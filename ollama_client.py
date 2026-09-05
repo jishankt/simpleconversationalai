@@ -105,7 +105,7 @@ class OllamaClient:
 
         # Greetings
         if any(w in customer_msg for w in ["hi", "hello", "hey", "good morning", "good afternoon"]) and len(customer_msg.split()) < 5:
-            return "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?"
+            return "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?\n\n[Options: Printers | Scanners | Consumables]"
 
         # Product Comparisons (Section D Compliance)
         if any(w in customer_msg for w in ["compare", "vs", "versus", "difference between"]):

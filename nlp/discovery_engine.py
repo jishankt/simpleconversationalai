@@ -8,7 +8,7 @@ from typing import Tuple, Optional, Dict, Any, List
 
 BROAD_CATEGORY_PATTERNS = {
     "ink": [
-        r"^(?:no\s+)?(?:do\s+you\s+have\s+|i\s+need\s+|i\s+want\s+|show\s+me\s+|give\s+me\s+|wanna\s+)?(?:some\s+)?(?:inks?|cartridges?|bottles?|toners?)\s*\??$",
+        r"^(?:no\s+)?(?:do\s+you\s+have\s+|i\s+need\s+|i\s+want\s+|show\s+me\s+|give\s+me\s+|wanna\s+)?(?:some\s+)?(?:inks?|cartridges?|bottles?|toners?|consumables?)\s*\??$",
     ],
     "printer": [
         r"(?:new\s+printing\s+shop|new\s+shop|printing\s+business|new\s+business|event\s+setup|my\s+business)",

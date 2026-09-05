@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appendMessage('bot', welcomeMsg);
 
     setTimeout(() => {
-      const followUp = "How can I help you today?\n\n[Options: Recommended Printers | Inks & Consumables | Scanners | Dubai Office & Hours]";
+      const followUp = "How can I help you today?\n\n[Options: Printers | Scanners | Consumables]";
       appendMessage('bot', followUp);
     }, 250);
   }

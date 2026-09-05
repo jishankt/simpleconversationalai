@@ -131,7 +131,7 @@ def analyze_input(text: str) -> dict:
     elif detected_intent == INTENT_TROUBLESHOOTING:
         suggested_chips = ["Nozzle Check Instructions", "Paper Feed Issues", "Printhead Cleaning"]
     else:
-        suggested_chips = ["CAD / Blueprint Plotters", "Photo & Fine Art", "Enterprise Office Printers", "Dubai Office Hours"]
+        suggested_chips = ["Printers", "Scanners", "Consumables"]
 
     return {
         "raw_text": norm_result["raw_text"],
