@@ -286,18 +286,20 @@ document.addEventListener('DOMContentLoaded', () => {
       productCards.forEach(p => {
         const card = document.createElement('div');
         card.className = 'product-card-item';
+        const cardImg = p.image_url || p.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
+        const cardUrl = p.source_url || p.url || p.website_url || '#';
         card.innerHTML = `
           <div class="card-img-wrap" title="Click to enlarge image">
-            <span class="card-sku-badge">${p.sku}</span>
-            <img src="${p.image_url}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
+            <span class="card-sku-badge">${p.sku || 'VERIFIED'}</span>
+            <img src="${cardImg}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
           </div>
           <div class="card-title" title="${p.name}">${p.name}</div>
-          <div class="card-desc">${p.description}</div>
+          <div class="card-desc">${p.description || ''}</div>
           <div class="card-actions">
             <button type="button" class="card-btn view-consumables-btn" data-printer="${p.name}">
               ↳ View Compatible Consumables
             </button>
-            <a href="${p.source_url}" target="_blank" class="card-btn" style="background: transparent; border-color: rgba(255,255,255,0.1); color: #94a3b8;">
+            <a href="${cardUrl}" target="_blank" class="card-btn" style="background: transparent; border-color: rgba(255,255,255,0.1); color: #94a3b8;">
               View on keplertechllc.com ↗
             </a>
           </div>
@@ -305,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Image zoom lightbox
         card.querySelector('.card-img-wrap').addEventListener('click', () => {
-          openLightbox(p.image_url, `${p.name} (${p.sku})`);
+          openLightbox(cardImg, `${p.name} (${p.sku || ''})`);
         });
 
         // View Consumables action
@@ -368,21 +370,23 @@ document.addEventListener('DOMContentLoaded', () => {
       consumableCards.forEach(c => {
         const cCard = document.createElement('div');
         cCard.className = 'consumable-card';
+        const cImg = c.image_url || c.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
+        const cUrl = c.source_url || c.url || c.website_url || '#';
         cCard.innerHTML = `
           <div class="consumable-img-wrap" title="Click to enlarge">
-            <img src="${c.image_url}" alt="${c.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
+            <img src="${cImg}" alt="${c.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
           </div>
           <div class="consumable-title" title="${c.name}">${c.name}</div>
           <div class="consumable-sku">${c.sku}</div>
           <div class="consumable-actions" style="margin-top: auto; padding-top: 4px;">
-            <a href="${c.source_url || c.url}" target="_blank" class="card-btn" style="color: var(--chat-blue); font-size: 0.68rem; padding: 4px 6px; text-align: center; text-decoration: none; background: #f0f2f5;">
+            <a href="${cUrl}" target="_blank" class="card-btn" style="color: var(--chat-blue); font-size: 0.68rem; padding: 4px 6px; text-align: center; text-decoration: none; background: #f0f2f5;">
               View on Website ↗
             </a>
           </div>
         `;
 
         cCard.querySelector('.consumable-img-wrap').addEventListener('click', () => {
-          openLightbox(c.image_url, `${c.name} (${c.sku})`);
+          openLightbox(cImg, `${c.name} (${c.sku})`);
         });
 
         grid.appendChild(cCard);

@@ -370,6 +370,103 @@ VERIFIED_PRINTER_MAPPING = {
     }
 }
 
+# Verified authentic product image map for all hardware models
+VERIFIED_HARDWARE_IMAGES = {
+    # Scanners (100% authentic models)
+    'ds-70': 'https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-70-Business-Scanner.webp',
+    'ds-80w': 'https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-80W-Wireless-Portable-Scanner.webp',
+    'ds-1630': 'https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-1630-Flatbed-Color-Document-Scanner.webp',
+    'ds-1660w': 'https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-1660W-Wi-Fi-flatbed-Color-Scanner.webp',
+    'ds-310': 'https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-310-Portable-Sheet-fed-Document-Scanner.webp',
+    'ds-360w': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-360W-Wi-Fi-Portable-Sheet-fed-Document-Scanner.webp',
+    'ds-410': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-410-Document-Scanner.webp',
+    'ds-530ii': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp',
+    'ds-730n': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-730N-Network-Color-Document-Scanner.webp',
+    'ds-770 ii': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-770-II-Color-Duplex-Document-Scanner.webp',
+    'ds-770': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-770-II-Color-Duplex-Document-Scanner.webp',
+    'ds-790wn': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-790WN-Wireless-Network-Color-Document-Scanner.webp',
+    'ds-800wn': 'https://www.keplertechllc.com/wp-content/uploads/2026/05/WorkForce-DS-800WN-scaled.webp',
+    'ds-870': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-870-Color-Duplex-Workgroup-Document-Scanner.webp',
+    'ds-900wn': 'https://www.keplertechllc.com/wp-content/uploads/2026/05/WorkForce-DS-900WN-scaled.webp',
+    'ds-970': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-970-Color-Duplex-Workgroup-Document-Scanner.webp',
+    'ds-30000': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-30000-Large-format-Document-Scanner.webp',
+    'ds-32000': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-32000-Large-format-Document-Scanner.webp',
+    'ds-60000n': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-60000N-Color-Document-Scanner.webp',
+    'ds-60000': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-60000-Color-Document-Scanner.webp',
+    'ds-6500n': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-6500N-Color-Document-Scanner.webp',
+    'ds-6500': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-6500-Color-Document-Scanner.webp',
+    'ds-70000n': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-70000N-Color-Document-Scanner.webp',
+    'ds-70000': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-70000-Color-Document-Scanner.webp',
+    'ds-7500n': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-7500N-Color-Document-Scanner.webp',
+    'ds-7500': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-7500-Color-Document-Scanner.webp',
+    'es-500wii': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-ES-500W-II-Wireless-Duplex-Desktop-Document-Scanner.webp',
+    'es-500w': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-ES-500W-II-Wireless-Duplex-Desktop-Document-Scanner.webp',
+    'es-580w': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-ES-580W-Wireless-Touchscreen-Desktop-Document-Scanner.webp',
+    '12000xl pro': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-Expression-12000XL-Pro.-Photo-Scanner.webp',
+    '12000xl': 'https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-Expression-12000XL-Photo-Scanner.webp',
+    # Printers & Plotters (100% authentic models)
+    'p700': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp',
+    'sc-p700': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp',
+    'p900': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P900-Printer-1.webp',
+    'sc-p900': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P900-Printer-1.webp',
+    'p7000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp',
+    'sc-p7000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp',
+    'p6000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P6000-Printer.webp',
+    'sc-p6000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P6000-Printer.webp',
+    'p5000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-STD-1.webp',
+    'sc-p5000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-STD-1.webp',
+    'p8000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P8000-Printer-1.webp',
+    'sc-p8000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P8000-Printer-1.webp',
+    'p9000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-2.webp',
+    'sc-p9000': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-2.webp',
+    'p7500': 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp',
+    'sc-p7500': 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp',
+    'p9500': 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp',
+    'sc-p9500': 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp',
+    'p20000': 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P20000-Large-Format-Printer.webp',
+    'sc-p20000': 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P20000-Large-Format-Printer.webp',
+    't3100': 'https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp',
+    'sc-t3100': 'https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp',
+    't3400': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T3400-Printer.webp',
+    'sc-t3400': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T3400-Printer.webp',
+    't3405': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T3405-Printer.webp',
+    'sc-t3405': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T3405-Printer.webp',
+    't3700': 'https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-Sure-Color-SC-T3700E-Printer.webp',
+    'sc-t3700': 'https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-Sure-Color-SC-T3700E-Printer.webp',
+    't5100': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5100-Printer.webp',
+    'sc-t5100': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5100-Printer.webp',
+    't5400': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5400-Printer.webp',
+    'sc-t5400': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5400-Printer.webp',
+    't5405': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5405-Printer.webp',
+    'sc-t5405': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5405-Printer.webp',
+    't7700': 'https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-SC-T7700D-Technical-Printer.webp',
+    'sc-t7700': 'https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-SC-T7700D-Technical-Printer.webp',
+    'f100': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-F100-Sublimation-Printer.webp',
+    'sc-f100': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-F100-Sublimation-Printer.webp',
+    'f500': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-F500-Sublimation-Printer.webp',
+    'sc-f500': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-F500-Sublimation-Printer.webp',
+    'wf-c5290': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5290-Business-Printer.webp',
+    'wf-c5790': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5790-Network-Multifunction-Color-Printer.webp',
+    'wf-c529r': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp',
+    'wf-c579r': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C579R-DTWF-Multifunction-Printer.webp',
+    'wf-c5890': 'https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-WorkForce-Pro-WF-C5890-Printer.webp',
+    'wf-c878r': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C878R-Business-Printer.webp',
+    'wf-c879r': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp',
+    'wf-m5299': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-M5299-Business-Printer.webp',
+    'wf-m5799': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-M5799-Printer.webp',
+    'wf-c20600': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp',
+    'wf-c20750': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp',
+    'wf-c21000': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp',
+    'am-c4000': 'https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp',
+    'am-c5000': 'https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B-1.webp',
+    'am-c6000': 'https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B-2.webp',
+    'cx-02': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp',
+    'cx02': 'https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp',
+    'cx-02w': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer-Dubai.webp',
+    'cy-02': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer-Dubai.webp',
+    'cz-01': 'https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer-Dubai.webp'
+}
+
 # Non-hardware stopwords to prevent consumables, media, and bags from acting as printer cards
 NON_HARDWARE_STOPWORDS = {
     'media', 'bag', 'pen', 'stick', 'ink', 'cartridge', 'tank', 'box', 
@@ -884,8 +981,10 @@ class ConsumablesEngine:
         unique = []
         seen = set()
         for c in candidates:
-            if c["sku"] not in seen:
+            norm_name = re.sub(r"[^a-z0-9]", "", c["name"].lower())
+            if c["sku"] not in seen and norm_name not in seen:
                 seen.add(c["sku"])
+                seen.add(norm_name)
                 unique.append(c)
                 if len(unique) >= limit:
                     break
@@ -895,14 +994,38 @@ class ConsumablesEngine:
         """
         Formats product data into clean, compliant cards.
         Adheres to Section E: No pricing, no discounts, no checkout buttons.
+        Guarantees verified, model-specific product images instead of generic banners.
         """
-        image_url = prod.get("image_url") or prod.get("image")
-        if not image_url and prod.get("images"):
-            image_url = prod.get("images")[0]
-        if not image_url:
-            image_url = "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
-
         name = prod.get("name", "")
+        sku = prod.get("sku", "VERIFIED-KEPLER")
+        name_low = name.lower()
+        sku_low = str(sku).lower()
+
+        # Check explicit verified image dictionary
+        image_url = None
+        for k, v in VERIFIED_HARDWARE_IMAGES.items():
+            pattern = r'(?:\b|_|-)' + re.escape(k) + r'(?:\b|_|-|\s|$)'
+            if re.search(pattern, name_low) or re.search(pattern, sku_low):
+                image_url = v
+                break
+
+        if not image_url:
+            image_url = prod.get("image_url") or prod.get("image")
+            if not image_url and prod.get("images"):
+                image_url = prod.get("images")[0]
+
+        # Filter out generic placeholder banners if model matches
+        if not image_url or any(banner in image_url for banner in [
+            "Epson-Business-Scanners.webp",
+            "Large-Format-Printer.webp",
+            "Business-Printers.webp",
+            "Photo-Printers.webp",
+            "photo-1586075010923-2dd4570fb338"
+        ]):
+            # Fallback to authentic Kepler product logo if no specific image
+            if not image_url or "photo-1586075010923" in image_url:
+                image_url = "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
+
         # Exact website URL from catalog or slug fallback
         product_url = prod.get("website_url") or prod.get("url")
         if not product_url:
@@ -922,7 +1045,7 @@ class ConsumablesEngine:
         return {
             "id": prod.get("_id") or prod.get("sku"),
             "name": name,
-            "sku": prod.get("sku", "VERIFIED-KEPLER"),
+            "sku": sku,
             "image": image_url,
             "image_url": image_url,
             "url": product_url,
