@@ -293,36 +293,12 @@ body {
   display: none; /* Kept minimal without clutter */
 }
 
-/* Clean Pill Option Buttons (BotPenguin Outline Style: Blue Border, White Background) */
-.interactive-replies-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 6px;
-  margin-left: 0;
-  align-items: flex-start;
-}
-
+/* Pill Option Buttons completely removed per customer preference */
+.interactive-replies-row,
 .interactive-reply-btn {
-  background: #ffffff;
-  border: 1px solid var(--chat-blue);
-  color: var(--chat-blue);
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 3.5px 10px;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-  line-height: 1.3;
-}
-
-.interactive-reply-btn:hover {
-  background: #eff6ff;
-  border-color: var(--chat-blue-hover);
-  transform: translateY(-1px);
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Hardware / Product Cards */

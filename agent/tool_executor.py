@@ -59,6 +59,8 @@ class CatalogToolExecutor:
             "image_url": image_url,
             "url": product_url,
             "source_url": product_url,
+            "website_url": product_url,
+            "web_url": product_url,
             "badge": badge,
             "card_type": card_type,
             "description": prod.get("description") or f"Official verified {badge.lower()} from Kepler Tech LLC.",
@@ -199,43 +201,62 @@ class CatalogToolExecutor:
                 "consumables_summary": ""
             }
 
+        # Determine target brand
+        p_name_l = target_printer.get("name", "").lower()
+        if "citizen" in p_name_l:
+            target_brand = "citizen"
+        elif any(b in p_name_l for b in ["epson", "surecolor", "workforce"]):
+            target_brand = "epson"
+        elif "innova" in p_name_l:
+            target_brand = "innova"
+        else:
+            target_brand = None
+
         consumable_items = []
         seen = set()
 
         # Look up explicit consumables SKU links from printer metadata
         if target_printer.get("consumables"):
             raw_skus = target_printer["consumables"]
-            # Separate inks and maintenance tanks so customer sees both
             mbox_skus = [s for s in raw_skus if any(s.upper().startswith(pfx) for pfx in ["C12C", "C13S", "C13T671"])]
             ink_skus = [s for s in raw_skus if s not in mbox_skus]
-            
-            # Include maintenance box first or alongside inks
             ordered_skus = (mbox_skus[:1] + ink_skus) if mbox_skus else raw_skus
 
             for c_sku in ordered_skus:
                 c_sku_up = str(c_sku).upper()
                 if c_sku_up in self.sku_map and c_sku_up not in seen:
-                    seen.add(c_sku_up)
-                    consumable_items.append(self.sku_map[c_sku_up])
-                    if len(consumable_items) >= limit:
-                        break
+                    item = self.sku_map[c_sku_up]
+                    item_name_l = item.get("name", "").lower()
+                    item_brand = "citizen" if "citizen" in item_name_l else ("epson" if "epson" in item_name_l else None)
+                    if not target_brand or not item_brand or target_brand == item_brand:
+                        seen.add(c_sku_up)
+                        consumable_items.append(item)
+                        if len(consumable_items) >= limit:
+                            break
 
-        # Dynamic token match over catalog if more needed
-        if len(consumable_items) < limit:
+        # Only perform fallback search if no explicit consumables exist in metadata
+        if not consumable_items:
             q_name = target_printer.get("name", q_raw).lower()
-            tokens = [t for t in re.findall(r"[a-z0-9]+", q_name) if len(t) >= 3]
-            clean_tokens = [t for t in tokens if t not in ["epson", "surecolor", "printer", "workforce", "color", "scanner", "plotter", "large", "format"]]
+            # Extract specific model tokens only (e.g. t3100, p900, cx02, amc4000)
+            GENERIC_STOP = {"epson", "surecolor", "printer", "workforce", "color", "scanner", "plotter", "large", "format", "photo", "digital", "pro", "series", "the", "for", "with"}
+            tokens = [t for t in re.findall(r"[a-z0-9]+", q_name) if len(t) >= 3 and t not in GENERIC_STOP]
 
             for p in self.products:
                 sku_up = str(p.get("sku", "")).upper()
                 if sku_up in seen:
                     continue
-                p_name_norm = re.sub(r"[\s\-_\u200b]", "", p.get("name", "").lower())
+
+                p_name_l = p.get("name", "").lower()
+                p_item_brand = "citizen" if "citizen" in p_name_l else ("epson" if "epson" in p_name_l else None)
+                if target_brand and p_item_brand and target_brand != p_item_brand:
+                    continue
+
+                p_name_norm = re.sub(r"[\s\-_\u200b]", "", p_name_l)
                 p_desc_norm = re.sub(r"[\s\-_\u200b]", "", p.get("description", "").lower())
                 p_tags_norm = re.sub(r"[\s\-_\u200b]", "", " ".join(p.get("tags", [])).lower())
 
                 is_cons = any(k in p_name_norm or k in p_desc_norm for k in ["ink", "cartridge", "tank", "maintenance", "ribbon", "media", "paper"])
-                if is_cons and any(t in p_name_norm or t in p_desc_norm or t in p_tags_norm for t in clean_tokens):
+                if is_cons and any(t in p_name_norm or t in p_desc_norm or t in p_tags_norm for t in tokens):
                     seen.add(sku_up)
                     consumable_items.append(p)
                     if len(consumable_items) >= limit:
@@ -243,10 +264,13 @@ class CatalogToolExecutor:
 
         consumable_cards = [self.format_card(c, card_type="consumable") for c in consumable_items]
         p_name = target_printer.get("name") if target_printer else q_raw
+        hw_cards = [self.format_card(target_printer, card_type="hardware")] if target_printer else []
 
         return {
             "success": True,
             "printer_name": p_name,
+            "target_printer": target_printer,
+            "product_cards": hw_cards,
             "count": len(consumable_cards),
             "consumable_cards": consumable_cards,
             "consumables_summary": ", ".join([c["name"] for c in consumable_cards])
@@ -294,3 +318,4 @@ class CatalogToolExecutor:
 
 # Global singleton instance
 catalog_tool_executor = CatalogToolExecutor()
+tool_executor = catalog_tool_executor

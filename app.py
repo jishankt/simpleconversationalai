@@ -34,7 +34,8 @@ from nlp.dialogue_act import (
     ACT_REJECTING,
     ACT_GENERAL_DISCOVERY
 )
-from agent.ai_orchestrator import ai_orchestrator
+from agent.orchestrator import orchestrator as new_orchestrator
+from agent.ai_orchestrator import ai_orchestrator  # Kept for fallback
 from rag.consumables_engine import consumables_engine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -49,6 +50,11 @@ SESSIONS = {}
 STATE_STORE = {}
 
 ollama_client = OllamaClient(base_url=OLLAMA_BASE_URL, default_model=DEFAULT_MODEL)
+
+# Inject Ollama client into new orchestrator
+new_orchestrator.ollama_client = ollama_client
+new_orchestrator.llm_engine.client = ollama_client
+new_orchestrator.response_composer.ollama_client = ollama_client
 
 
 @app.route("/")
@@ -86,6 +92,9 @@ def health_check():
     return jsonify(health_data)
 
 
+from persistence import state_repository
+
+
 @app.route("/api/reset", methods=["POST"])
 def reset_session():
     """Resets conversation history and canonical state for a given session."""
@@ -96,6 +105,7 @@ def reset_session():
             del SESSIONS[session_id]
         if session_id in STATE_STORE:
             del STATE_STORE[session_id]
+        state_repository.delete_session(session_id)
         logger.info(f"Session {session_id} reset successfully.")
     return jsonify({"success": True, "message": "Session reset."})
 
@@ -155,19 +165,24 @@ def chat():
     if ollama_url != ollama_client.base_url:
         ollama_client.base_url = ollama_url.rstrip("/")
 
-    # Initialize session history and canonical state
-    if session_id not in SESSIONS:
-        SESSIONS[session_id] = []
-    history = SESSIONS[session_id]
+    # Initialize session history and canonical state (with SQLite persistence recovery)
+    if session_id not in STATE_STORE or session_id not in SESSIONS:
+        persisted = state_repository.get_session(session_id)
+        if persisted:
+            STATE_STORE[session_id], SESSIONS[session_id] = persisted
+        else:
+            if session_id not in SESSIONS:
+                SESSIONS[session_id] = []
+            if session_id not in STATE_STORE:
+                STATE_STORE[session_id] = CanonicalState(session_id=session_id)
 
-    if session_id not in STATE_STORE:
-        STATE_STORE[session_id] = CanonicalState(session_id=session_id)
+    history = SESSIONS[session_id]
     state = STATE_STORE[session_id]
 
     logger.info(f"[{session_id[:8]}] Customer: '{raw_message}' -> Normalized: '{normalized_msg}' | Intent: {detected_intent}")
 
-    # Process conversational turn through dynamic AI Orchestrator
-    orchestrator_res = ai_orchestrator.process_turn(
+    # Process conversational turn through new orchestrator pipeline
+    orchestrator_res = new_orchestrator.process_turn(
         raw_message=raw_message,
         session_id=session_id,
         history=history,
@@ -193,6 +208,9 @@ def chat():
     history.append({"role": "user", "content": normalized_msg})
     history.append({"role": "assistant", "content": assistant_reply})
 
+    # Persist session to SQLite
+    state_repository.save_session(session_id, state, history)
+
     logger.info(f"[{session_id[:8]}] Assistant ({source} | Grounding: {grounding_result['status']}): {assistant_reply}")
 
     # Format retrieved sources for frontend UI inspection
@@ -203,7 +221,7 @@ def chat():
             "score": r.get("similarity_score", 0),
             "width": r.get("width") or r.get("print_sizes") or r.get("speed", ""),
             "ink": r.get("ink_technology") or r.get("technology", ""),
-            "url": r.get("source_url", "https://www.keplertechllc.com/")
+            "url": r.get("url") or r.get("source_url") or r.get("website_url") or "https://www.keplertechllc.com/"
         }
         for r in retrieved_items
     ]

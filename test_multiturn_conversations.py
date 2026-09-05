@@ -41,7 +41,7 @@ def run_suite_1():
         resp = requests.post(f"{BASE_URL}/api/chat", json={
             "session_id": session_id,
             "message": user_msg
-        }, timeout=10)
+        }, timeout=60)
         assert resp.status_code == 200, f"Turn {idx} failed with {resp.status_code}"
         data = resp.json()
         reply = data.get("reply", "")

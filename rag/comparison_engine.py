@@ -28,16 +28,19 @@ def detect_comparison_request(query: str, nlp_context: dict) -> dict:
 
     # Find which products from corpus are referenced
     matched_products = []
-    for prod in rag_retriever.products:
-        prod_name_lower = prod["name"].lower()
-        prod_id = prod["id"]
+    GENERIC_WORDS = {
+        "epson", "surecolor", "workforce", "printer", "printers", "scanners",
+        "scanner", "series", "large", "format", "color", "wireless", "technical",
+        "compare", "versus", "between", "difference", "which", "better", "than", "with"
+    }
+    specific_tokens = [w for w in re.findall(r"[a-z0-9]+", lower) if len(w) >= 3 and w not in GENERIC_WORDS]
 
-        # Check explicit keywords or model tags
-        short_names = [
-            prod_id.replace("-", " "),
-            prod["id"].split("-")[-1]
-        ]
-        if any(sn in lower for sn in short_names if len(sn) > 2) or any(w in lower for w in prod_name_lower.split() if len(w) > 4 and w in lower):
+    for prod in rag_retriever.products:
+        prod_name_lower = prod.get("name", "").lower()
+        prod_id = str(prod.get("id") or prod.get("sku") or prod.get("_id") or "").lower()
+
+        # Check explicit keywords or model tags against specific non-generic tokens
+        if any(tok in prod_name_lower or tok in prod_id for tok in specific_tokens):
             if prod not in matched_products:
                 matched_products.append(prod)
 

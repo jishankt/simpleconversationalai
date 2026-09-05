@@ -37,10 +37,16 @@ def classify_dialogue_act(
     low = raw.lower()
 
     # 1. Topic change (e.g. "actually now I need a photo booth printer", "switch to scanners", "i want office printer", or clicking top pills)
-    if low in ["printers", "scanners", "consumables"] or any(k in low for k in [
-        "actually now i need", "now i need", "switch to", "instead i want", "changed my mind",
-        "i want", "i need", "looking for", "show me options for"
-    ]):
+    # BUT: skip if message contains a specific model code (e.g. "i want p900" -> should go to item reference)
+    _has_specific_model = re.search(r"\b(?:sc-[a-z0-9]+|[a-z]{1,2}\d{3,4}[a-z]*|cx-?02|cy-?02|am-c\d+|wf-c\d+|ds-\d+[a-z]*)\b", low)
+    if not _has_specific_model and (
+        low in ["printers", "scanners", "consumables"] or any(k in low for k in [
+            "actually now i need", "now i need", "switch to", "instead i want", "changed my mind"
+        ]) or (
+            any(k in low for k in ["i want", "i need", "looking for", "show me options for", "i also want"])
+            and not re.search(r"\b(?:sc-[a-z0-9]+|[a-z]{1,2}\d{2,4}[a-z]*|cx-?02|cy-?02)\b", low)
+        )
+    ):
         target_cat = None
         if any(k in low for k in ["photo booth", "dyesub", "citizen", "event printer"]):
             target_cat = "photo_booth"
@@ -87,7 +93,18 @@ def classify_dialogue_act(
             }
 
     # 3. Consumable questions (e.g. "what ink does it use?", "what consumables and inks are compatible with...", "inks for SC-T3100")
-    if any(k in low for k in ["ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "ribbon", "ribbons", "maintenance tank", "waste box", "toner"]):
+    # NOTE: exclude "scanner"/"scanners" from triggering consumables — they contain "scan" substring but are NOT consumable queries
+    _consumable_keywords = ["ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "ribbon", "ribbons", "maintenance tank", "waste box", "toner"]
+    _is_consumable_query = any(k in low for k in _consumable_keywords)
+    # If message is really about scanners (contains "scanner"/"scanners" but none of the real consumable words), skip
+    if _is_consumable_query:
+        _real_consumable_words = ["ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "ribbon", "ribbons", "maintenance tank", "waste box", "toner"]
+        _has_real_consumable_word = any(w in low.split() or w in low for w in _real_consumable_words if w not in ("scan",))
+        # "scanner" contains "scan" but should NOT trigger consumable detection
+        if not _has_real_consumable_word and any(s in low for s in ["scanner", "scanners"]):
+            _is_consumable_query = False
+
+    if _is_consumable_query:
         item_ref = None
         if "first" in low or "1st" in low:
             item_ref = 0
@@ -203,8 +220,11 @@ def classify_dialogue_act(
     if any(k in low for k in ["business scanners", "business scanner"]):
         return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scanner_type", "value": "business"}}
 
-    # 10. Greetings / Confirmations
-    if re.search(r"\b(?:hello|hi|hey|good\s+morning)\b", low) and len(low.split()) <= 3:
+    # 10. Greetings / Confirmations / Small Talk
+    if re.search(r"\b(?:hello|hi|hey|good\s+morning|good\s+afternoon|good\s+evening)\b", low) and len(low.split()) <= 5:
+        return {"act": ACT_GREETING, "params": {}}
+    # Name introductions and small talk ("my name is ...", "I'm ...")
+    if re.search(r"\b(?:my\s+name\s+is|i(?:'m|\s+am)\s+\w+$|thank\s+you|thanks)", low) and not any(k in low for k in ["printer", "scanner", "ink"]):
         return {"act": ACT_GREETING, "params": {}}
     if low in ["yes", "yeah", "yep", "sure", "ok", "okay"]:
         return {"act": ACT_CONFIRMING, "params": {}}

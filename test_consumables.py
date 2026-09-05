@@ -51,11 +51,15 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
         self.assertTrue(any("C13S210057" in s for s in skus))
 
     def test_verified_consumables_citizen_cx02(self):
-        """Citizen CX-02 must map to verified dye-sub media rolls and accessories."""
+        """Citizen CX-02 must map to verified dye-sub media rolls and accessories (ZERO Epson inks)."""
         cons = consumables_engine.get_printer_consumables("Citizen CX-02")
         self.assertTrue(len(cons) >= 2)
         names = [c["name"].lower() for c in cons]
         self.assertTrue(any("cx-02" in n or "cx2" in n for n in names))
+        # ZERO Epson inks or cross-brand pollution
+        for c in cons:
+            self.assertNotIn("epson", c["name"].lower(), f"Epson item {c['name']} found in Citizen CX-02 consumables!")
+            self.assertNotIn("ultrachrome", c["name"].lower(), f"UltraChrome ink {c['name']} found in Citizen CX-02 consumables!")
 
     def test_verified_consumables_am_c4000(self):
         """Epson AM-C4000 must map to T08H inks and C12C937181 maintenance box."""

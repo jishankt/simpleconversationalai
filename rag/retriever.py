@@ -36,12 +36,16 @@ class RagRetriever:
 
         # Merge additional rich specification fields from kepler_product_corpus if available
         corpus_lookup = {}
+        corpus_token_lookup = {}
         if os.path.exists(self.corpus_path):
             try:
                 with open(self.corpus_path, "r", encoding="utf-8") as cf:
                     for cp in json.load(cf):
                         norm_k = re.sub(r"[^a-z0-9]", "", cp.get("name", "").lower())
                         corpus_lookup[norm_k] = cp
+                        for tok in re.findall(r"[a-z0-9]{3,}", cp.get("name", "").lower()):
+                            if tok not in {"epson", "surecolor", "workforce", "printer", "technical", "plotter", "large", "format"}:
+                                corpus_token_lookup[tok] = cp
             except Exception:
                 pass
 
@@ -52,11 +56,22 @@ class RagRetriever:
         for p in raw_products:
             prod = dict(p)
             norm_name = re.sub(r"[^a-z0-9]", "", prod.get("name", "").lower())
-            if norm_name in corpus_lookup:
-                extra = corpus_lookup[norm_name]
+            extra = corpus_lookup.get(norm_name)
+            if not extra:
+                for tok in re.findall(r"[a-z0-9]{3,}", prod.get("name", "").lower()):
+                    if tok in corpus_token_lookup:
+                        extra = corpus_token_lookup[tok]
+                        break
+
+            if extra:
                 for k in ["width", "speed", "ink_technology", "intended_usage", "comparison_highlights"]:
                     if k in extra and not prod.get(k):
                         prod[k] = extra[k]
+
+            prod.setdefault("width", "")
+            prod.setdefault("speed", "")
+            prod.setdefault("ink_technology", "")
+            prod.setdefault("intended_usage", "")
 
             sku = str(prod.get("sku", "")).strip()
             if sku:
@@ -164,6 +179,23 @@ class RagRetriever:
                     scores[idx] += 0.20
                 elif len(w) >= 3 and w in p_desc:
                     scores[idx] += 0.05
+
+            p_width = str(p.get("width", "")).lower()
+
+            # Specific width/drawing size boosting
+            if ("24-inch" in q_lower or "a1" in q_lower or "24\"" in q_lower) and not ("36" in q_lower or "a0" in q_lower):
+                if any(x in p_name for x in ["t3100", "24-inch", "24\""]) or "24" in p_width:
+                    scores[idx] += 0.40
+                elif any(x in p_name for x in ["t5100", "t5400", "36-inch", "36\""]) or "36" in p_width:
+                    scores[idx] -= 0.30
+
+            if ("36-inch" in q_lower or "a0" in q_lower or "36\"" in q_lower) and not ("24" in q_lower or "a1" in q_lower):
+                if any(x in p_name for x in ["t5100", "t5400", "36-inch", "36\""]) or "36" in p_width:
+                    scores[idx] += 0.40
+
+            if "17-inch" in q_lower or "17\"" in q_lower or "10 colors" in q_lower:
+                if "p900" in p_name or "p-900" in p_name or "c11ch37402dr" in str(p.get("sku", "")).lower():
+                    scores[idx] += 0.45
 
         ranked_indices = np.argsort(scores)[::-1]
         results = []

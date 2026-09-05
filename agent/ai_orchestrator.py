@@ -77,7 +77,7 @@ class AIOrchestrator:
                 "source": "guardrail_rule",
                 "product_cards": state.candidate_products[:4] if state.candidate_products else [],
                 "consumable_cards": [],
-                "suggested_chips": ["Printers", "Scanners", "Consumables"],
+                "suggested_chips": [],
                 "grounding": {
                     "is_grounded": True,
                     "status": "GUARDRAIL_INTERCEPT",
@@ -100,6 +100,8 @@ class AIOrchestrator:
         # Handle category changes
         if act == ACT_CHANGING_TOPIC and act_params.get("target_category"):
             state.reset_category(act_params["target_category"])
+            state.active_product = None  # Clear active product on topic switch
+            state.candidate_products = []
         elif act_params.get("field") == "scanner_type":
             state.category = "scanner"
         elif not state.category:
@@ -226,12 +228,22 @@ class AIOrchestrator:
         # Case D: Greeting & Courtesy
         elif act == ACT_GREETING:
             assistant_reply = "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?"
-            suggested_chips = ["Printers", "Scanners", "Consumables"]
+            suggested_chips = []
             source = "ai_agent:greeting"
+            product_cards = []
+            consumable_cards = []
+            if not state.history_turns or len(state.history_turns) <= 1:
+                state.candidate_products = []
+                state.active_product = None
+                state.requirements = {}
+                state.category = None
 
         elif act == ACT_ENDING:
             assistant_reply = "Thank you for contacting Kepler Tech LLC! Please let us know if you need any further assistance with your printing equipment or media."
+            suggested_chips = []
             source = "ai_agent:ending"
+            product_cards = []
+            consumable_cards = []
 
         # Case E: Consultative Discovery & Catalog Search
         else:
@@ -240,7 +252,7 @@ class AIOrchestrator:
 
             if next_step:
                 assistant_reply = next_step["question"]
-                suggested_chips = next_step.get("pills", [])
+                suggested_chips = []
                 source = "tool:ask_consultative_question"
             else:
                 # Formulate search query dynamically from state requirements

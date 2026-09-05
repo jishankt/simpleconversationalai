@@ -1,14 +1,20 @@
 """
-Ollama HTTP Client for conversational generation.
-Communicates with http://localhost:11434/api/generate with fallback simulation
-adhering strictly to prompt rules when Ollama is offline.
+Ollama HTTP Client for conversational generation and structured classification.
+Communicates with http://localhost:11434/api/chat (structured) and /api/generate (legacy)
+with fallback simulation adhering strictly to prompt rules when Ollama is offline.
 """
 
 import requests
 import json
 import logging
 import re
-from config import OLLAMA_BASE_URL, DEFAULT_MODEL, TIMEOUT_SECONDS
+import time
+from config import (
+    OLLAMA_BASE_URL, DEFAULT_MODEL, TIMEOUT_SECONDS,
+    OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT,
+    OLLAMA_KEEP_ALIVE, OLLAMA_NUM_CTX,
+    OLLAMA_CLASSIFIER_TEMPERATURE, OLLAMA_RESPONSE_TEMPERATURE,
+)
 
 logger = logging.getLogger("ollama_client")
 
@@ -85,8 +91,215 @@ class OllamaClient:
             "response": simulated_response,
             "source": "simulation_engine",
             "model": f"{target_model} (simulation)",
+            "fallback_used": True,
             "note": "Generated via local fallback simulator because Ollama service is not responding."
         }
+
+    # ── New /api/chat Methods (Phase 3) ──────────────────────────────────
+
+    def classify(self, messages: list, schema: dict, model: str = None,
+                 temperature: float = None, max_retries: int = 0) -> dict:
+        """
+        Sends a structured classification request to Ollama /api/chat.
+        Uses 'format' parameter for constrained JSON output.
+
+        Returns:
+            {
+                "success": bool,
+                "result": dict,        # Parsed JSON from model
+                "source": str,         # "ollama" or "fallback"
+                "model": str,
+                "latency_ms": int,
+                "fallback_used": bool
+            }
+        """
+        target_model = model or self.default_model
+        temp = temperature if temperature is not None else OLLAMA_CLASSIFIER_TEMPERATURE
+        payload = {
+            "model": target_model,
+            "messages": messages,
+            "stream": False,
+            "format": schema,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": {
+                "temperature": temp,
+                "num_ctx": OLLAMA_NUM_CTX,
+                "num_predict": 300,
+            }
+        }
+
+        endpoint = f"{self.base_url}/api/chat"
+
+        for attempt in range(1 + max_retries):
+            try:
+                start = time.time()
+                resp = requests.post(
+                    endpoint, json=payload,
+                    timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
+                )
+                latency_ms = int((time.time() - start) * 1000)
+
+                if resp.status_code == 200:
+                    data = resp.json()
+                    content = data.get("message", {}).get("content", "")
+                    try:
+                        parsed = json.loads(content)
+                    except json.JSONDecodeError:
+                        logger.warning(f"Ollama classify returned non-JSON: {content[:200]}")
+                        parsed = {}
+
+                    return {
+                        "success": True,
+                        "result": parsed,
+                        "source": "ollama",
+                        "model": target_model,
+                        "latency_ms": latency_ms,
+                        "fallback_used": False,
+                    }
+                else:
+                    logger.warning(f"Ollama classify HTTP {resp.status_code} (attempt {attempt + 1})")
+
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Ollama classify error (attempt {attempt + 1}): {e}")
+
+        # All retries exhausted — return fallback
+        logger.info("Ollama classify: all retries exhausted, returning fallback.")
+        return {
+            "success": False,
+            "result": {},
+            "source": "fallback",
+            "model": target_model,
+            "latency_ms": 0,
+            "fallback_used": True,
+        }
+
+    def chat_completions(self, messages: list, model: str = None,
+                         temperature: float = None, max_retries: int = 1) -> dict:
+        """
+        Sends an OpenAI-compatible chat completion request to /v1/chat/completions.
+        Matches: curl http://localhost:11434/v1/chat/completions -H "Content-Type: application/json" -d '{"model": "qwen3:8b", ...}'
+        """
+        target_model = model or self.default_model
+        temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
+        payload = {
+            "model": target_model,
+            "messages": messages,
+            "stream": False,
+            "temperature": temp,
+            "max_tokens": 450,
+        }
+        endpoint = f"{self.base_url}/v1/chat/completions"
+
+        for attempt in range(1 + max_retries):
+            try:
+                start = time.time()
+                resp = requests.post(
+                    endpoint, json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
+                )
+                latency_ms = int((time.time() - start) * 1000)
+
+                if resp.status_code == 200:
+                    data = resp.json()
+                    choices = data.get("choices", [])
+                    content = ""
+                    if choices:
+                        content = choices[0].get("message", {}).get("content", "").strip()
+                    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+                    return {
+                        "success": True,
+                        "response": content,
+                        "source": "ollama_v1",
+                        "model": target_model,
+                        "latency_ms": latency_ms,
+                        "fallback_used": False,
+                    }
+                else:
+                    logger.warning(f"Ollama v1 chat completions HTTP {resp.status_code} (attempt {attempt + 1})")
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Ollama v1 error (attempt {attempt + 1}): {e}")
+
+        return {
+            "success": False,
+            "response": "",
+            "source": "fallback",
+            "model": target_model,
+            "latency_ms": 0,
+            "fallback_used": True,
+        }
+
+    def compose(self, messages: list, model: str = None,
+                temperature: float = None, max_retries: int = 1) -> dict:
+        """
+        Sends a natural language response generation request.
+        First attempts the OpenAI-compatible /v1/chat/completions endpoint,
+        falling back to native /api/chat if needed.
+        """
+        # Try /v1/chat/completions first
+        v1_res = self.chat_completions(messages, model=model, temperature=temperature, max_retries=max_retries)
+        if v1_res.get("success") and v1_res.get("response"):
+            return v1_res
+
+        target_model = model or self.default_model
+        temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
+        payload = {
+            "model": target_model,
+            "messages": messages,
+            "stream": False,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": {
+                "temperature": temp,
+                "num_ctx": OLLAMA_NUM_CTX,
+                "num_predict": 450,
+            }
+        }
+
+        endpoint = f"{self.base_url}/api/chat"
+
+        for attempt in range(1 + max_retries):
+            try:
+                start = time.time()
+                resp = requests.post(
+                    endpoint, json=payload,
+                    timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
+                )
+                latency_ms = int((time.time() - start) * 1000)
+
+                if resp.status_code == 200:
+                    data = resp.json()
+                    content = data.get("message", {}).get("content", "").strip()
+                    # Strip thinking tags if model emits them
+                    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+
+                    return {
+                        "success": True,
+                        "response": content,
+                        "source": "ollama",
+                        "model": target_model,
+                        "latency_ms": latency_ms,
+                        "fallback_used": False,
+                    }
+                else:
+                    logger.warning(f"Ollama compose HTTP {resp.status_code} (attempt {attempt + 1})")
+
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Ollama compose error (attempt {attempt + 1}): {e}")
+
+        # All retries exhausted
+        logger.info("Ollama compose: all retries exhausted, returning empty.")
+        return {
+            "success": False,
+            "response": "",
+            "source": "fallback",
+            "model": target_model,
+            "latency_ms": 0,
+            "fallback_used": True,
+        }
+
+    def health(self) -> dict:
+        """Alias for check_health for API consistency."""
+        return self.check_health()
 
     def _simulate_assistant_response(self, prompt: str) -> str:
         """
@@ -113,7 +326,7 @@ class OllamaClient:
 
         # Greetings
         if re.search(r"\b(?:hi|hello|hey|good\s+morning|good\s+afternoon)\b", customer_msg) and len(customer_msg.split()) < 5:
-            return "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?\n\n[Options: Printers | Scanners | Consumables]"
+            return "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?"
 
         # Product Comparisons (Section D Compliance)
         if any(w in customer_msg for w in ["compare", "vs", "versus", "difference between"]):

@@ -14,8 +14,8 @@
       "C11CH13301A1",
       "2933"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P9500-Large-Format-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
       "C13T699700",
@@ -35,7 +35,9 @@
       "C13T44J440",
       "C13T44Q440"
     ],
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P9500-Large-Format-Printer.webp"
   },
   {
     "_id": "C11CE20001A0",
@@ -52,7 +54,7 @@
       "C11CE20001A0",
       "6089"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P20000-Large-Format-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T7200-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t7200-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -77,10 +79,12 @@
       "C13T800100",
       "6105"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/C13T55K100-Epson-Singlepack-Photo-Black-UltraChrome-HDXHD-700ml-Ink.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t55k100-epson-singlepack-photo-black-ultrachrome-hdx-hd-700ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Photo-Black-T800100-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-singlepack-photo-black-t800100-ultrachrome-pro-700ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Photo-Black-T800100-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/epson-singlepack-photo-black-t800100-ultrachrome-pro-700ml/"
   },
   {
     "_id": "C13T800300",
@@ -96,10 +100,12 @@
       "C13T800300",
       "6119"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/C13T55K300-Epson-Singlepack-Vivid-Magenta-UltraChrome-HDXHD-700ml-Ink.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t55k300-epson-singlepack-vivid-magenta-700ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Vivid-Magenta-T800300-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-singlepack-vivid-magenta-t800300-ultrachrome-pro-700ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Vivid-Magenta-T800300-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/epson-singlepack-vivid-magenta-t800300-ultrachrome-pro-700ml/"
   },
   {
     "_id": "C13T800200",
@@ -115,10 +121,12 @@
       "C13T800200",
       "6121"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/02/C13T50U200-Epson-Singlepack-UltraChrome-XD3-Cyan-Ink.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t50u200-epson-singlepack-cyan-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T800200-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-cyan-t800200-ultrachrome-pro-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T800200-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-cyan-t800200-ultrachrome-pro-700ml-ink/"
   },
   {
     "_id": "C13T800500",
@@ -134,10 +142,12 @@
       "C13T800500",
       "6123"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/C13T55K500-Epson-Singlepack-Light-Cyan-UltraChrome-HDXHD-700ml-Ink.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t55k500-epson-singlepack-light-cyan-700ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Cyan-T800500-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-light-cyan-t800500-ultrachrome-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Cyan-T800500-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/epson-light-cyan-t800500-ultrachrome-700ml-ink/"
   },
   {
     "_id": "C13T800400",
@@ -153,10 +163,12 @@
       "C13T800400",
       "6125"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/C13T55K400-Epson-Singlepack-Yellow-UltraChrome-HDXHD-700ml-Ink.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t55k400-epson-singlepack-yellow-ultrachrome-hdx-hd-700ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Yellow-T800400-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-yellow-t800400-ultrachrome-pro-700ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Yellow-T800400-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-yellow-t800400-ultrachrome-pro-700ml/"
   },
   {
     "_id": "C13T800600",
@@ -172,10 +184,12 @@
       "C13T800600",
       "6127"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Vivid-Light-Magenta-T46S6-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s600-epson-singlepack-vivid-light-magenta-ultrachrome-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Vivid-Light-Magenta-T800600-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-vivid-light-magenta-t800600-ultrachrome-pro-700ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Vivid-Light-Magenta-T800600-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-vivid-light-magenta-t800600-ultrachrome-pro-700ml/"
   },
   {
     "_id": "C13T800800",
@@ -191,10 +205,12 @@
       "C13T800800",
       "6129"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Matte-Black-T46S8-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s800-epson-singlepack-matte-black-ultrachrome-pro-10-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Matte-Black-T800800-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-singlepack-matte-black-t800800-ultrachrome-pro-700ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Matte-Black-T800800-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/epson-singlepack-matte-black-t800800-ultrachrome-pro-700ml/"
   },
   {
     "_id": "C13T800900",
@@ -210,10 +226,12 @@
       "C13T800900",
       "6131"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Light-Gray-T46S9-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s900-epson-singlepack-light-gray-ultrachrome-pro-10-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Gray-T800900-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-gray-t800900-ultrachrome-pro-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Gray-T800900-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-gray-t800900-ultrachrome-pro-700ml-ink/"
   },
   {
     "_id": "C13T800000",
@@ -229,10 +247,12 @@
       "C13T800000",
       "6133"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Light-Gray-T46S9-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s900-epson-singlepack-light-gray-ultrachrome-pro-10-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Gray-T800000-UltraChrome-PRO-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-light-gray-t800000-ultrachrome-pro-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Gray-T800000-UltraChrome-PRO-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-light-gray-t800000-ultrachrome-pro-700ml-ink/"
   },
   {
     "_id": "C13T800700",
@@ -288,13 +308,16 @@
       "6139"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp",
-    "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-6x8-media/",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
     "category": "Photo Printer",
     "consumables": [
       "CX2.4x6",
-      "CX2.6X8"
+      "CX2.6X8",
+      "Citizen Pen",
+      "Citizen CX-02 Bag"
     ],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp"
   },
   {
     "_id": "C11CH86401BY",
@@ -312,7 +335,7 @@
       "6219"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c21000-multi-function-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-color-multifunction-printer/",
     "category": "Business Printer",
     "consumables": [
       "C13T02S100",
@@ -321,7 +344,8 @@
       "C13T02S400",
       "C13T671300"
     ],
-    "web_url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-multi-functional-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-color-multifunction-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp"
   },
   {
     "_id": "C13T02Q100",
@@ -338,7 +362,7 @@
       "C13T02Q100",
       "6229"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Workforce-Enterprise-WF-C20600-Black-Ink-C13T02Q100.webp",
     "website_url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-black-ink-c13t02q100/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -348,7 +372,8 @@
       "C13T02S400",
       "C13T671300"
     ],
-    "web_url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-black-ink-c13t02q100/"
+    "web_url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-black-ink-c13t02q100/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Workforce-Enterprise-WF-C20600-Black-Ink-C13T02Q100.webp"
   },
   {
     "_id": "C13T02Q200",
@@ -365,7 +390,7 @@
       "C13T02Q200",
       "6236"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/WorkForce-Enterprise-WF-C20600-Cyan-Ink-C13T02Q200.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-cyan-ink-c13t02q200/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -375,7 +400,8 @@
       "C13T02S400",
       "C13T671300"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-cyan-ink-c13t02q200/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-cyan-ink-c13t02q200/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/WorkForce-Enterprise-WF-C20600-Cyan-Ink-C13T02Q200.webp"
   },
   {
     "_id": "C13T02Q300",
@@ -392,7 +418,7 @@
       "C13T02Q300",
       "6238"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Workforce-Enterprise-WF-C20600-Magenta-Ink-C13T02Q300.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-magenta-ink-c13t02q300/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -402,7 +428,8 @@
       "C13T02S400",
       "C13T671300"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-magenta-ink-c13t02q300/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-magenta-ink-c13t02q300/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Workforce-Enterprise-WF-C20600-Magenta-Ink-C13T02Q300.webp"
   },
   {
     "_id": "C13T02Q400",
@@ -419,7 +446,7 @@
       "C13T02Q400",
       "6240"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/WorkForce-Enterprise-WF-C20600-Yellow-Ink-C13T02Q400.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-yellow-ink-c13t02q400/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -429,7 +456,8 @@
       "C13T02S400",
       "C13T671300"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-yellow-ink-c13t02q400/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-yellow-ink-c13t02q400/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/WorkForce-Enterprise-WF-C20600-Yellow-Ink-C13T02Q400.webp"
   },
   {
     "_id": "C13T671300",
@@ -546,10 +574,12 @@
       "C13T44Q540",
       "6282"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q240-epson-singlepack-cyan-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Cyan-T44Q540-UltraChrome-PRO-12-350ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-light-cyan-t44q540-ultrachrome-pro-12-350ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Cyan-T44Q540-UltraChrome-PRO-12-350ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-light-cyan-t44q540-ultrachrome-pro-12-350ml-ink/"
   },
   {
     "_id": "C13T44Q740",
@@ -565,10 +595,12 @@
       "C13T44Q740",
       "6284"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q240-epson-singlepack-cyan-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Gray-T44Q740-UltraChrome-PRO-12-350ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-gray-t44q740-ultrachrome-pro-12-350ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Gray-T44Q740-UltraChrome-PRO-12-350ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-gray-t44q740-ultrachrome-pro-12-350ml-ink/"
   },
   {
     "_id": "C13T44Q640",
@@ -624,10 +656,12 @@
       "C13T44QA40",
       "6290"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q240-epson-singlepack-cyan-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Orange-T44QA40-UltraChrome-PRO-12-350ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-orange-t44qa40-ultrachrome-pro-12-350ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Orange-T44QA40-UltraChrome-PRO-12-350ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-orange-t44qa40-ultrachrome-pro-12-350ml/"
   },
   {
     "_id": "C13T44Q940",
@@ -643,10 +677,12 @@
       "C13T44Q940",
       "6292"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Light-Gray-T47A9-UltraChrome-Pro-10-ink-50ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t47a900-epson-singlepack-light-gray-ultrachrome-pro-10-ink-50ml/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Gray-T44Q940-UltraChrome-PRO-12-350ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-light-gray-t44q940-ultrachrome-pro-12-350ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Light-Gray-T44Q940-UltraChrome-PRO-12-350ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-light-gray-t44q940-ultrachrome-pro-12-350ml-ink/"
   },
   {
     "_id": "C13T44QD40",
@@ -662,10 +698,12 @@
       "C13T44QD40",
       "6294"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Singlepack-Violet-T54XD00-UltraChrome-HDXHD-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t54xd00-epson-singlepack-violet-ultrachrome-hdx-hd-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Violet-T44QD40-UltraChrome-PRO-12-350ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-violet-t44qd40-ultrachrome-pro-12-350ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Violet-T44QD40-UltraChrome-PRO-12-350ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-violet-t44qd40-ultrachrome-pro-12-350ml/"
   },
   {
     "_id": "C13T44QB40",
@@ -720,10 +758,12 @@
       "C13T44J440",
       "6300"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Yellow-T44Q440-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q440-epson-singlepack-yellow-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Yellow-T44Q440-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-yellow-t44j440-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Yellow-T44Q440-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-yellow-t44j440-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44J240",
@@ -739,10 +779,12 @@
       "C13T44J240",
       "6315"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q240-epson-singlepack-cyan-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-cyan-t44j240-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-cyan-t44j240-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44J140",
@@ -758,10 +800,12 @@
       "C13T44J140",
       "6317"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Photo-Black-T47A1-UltraChrome-Pro-10-ink-50ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t47a100-epson-singlepack-photo-black-ultrachrome-pro10-ink-50ml/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Photo-Black-T44Q140-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-photo-black-t44j140-ultrachrome-pro-12-700ml/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Photo-Black-T44Q140-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-photo-black-t44j140-ultrachrome-pro-12-700ml/"
   },
   {
     "_id": "C13T44J340",
@@ -777,10 +821,12 @@
       "C13T44J340",
       "6319"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Vivid-Magenta-T44Q340-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q340-epson-singlepack-vivid-magenta-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Vivid-Magenta-T44Q340-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-vivid-magenta-t44j340-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Vivid-Magenta-T44Q340-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-vivid-magenta-t44j340-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44J540",
@@ -796,10 +842,12 @@
       "C13T44J540",
       "6321"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Light-Cyan-T46S5-UltraChrome-Pro-10-ink-25ml-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s500-epson-singlepack-light-cyan-ultrachrome-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Light-Cyan-T44Q540-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-light-cyan-t44j540-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Light-Cyan-T44Q540-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-light-cyan-t44j540-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44J640",
@@ -815,10 +863,12 @@
       "C13T44J640",
       "6323"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/C13T55K600-Epson-Singlepack-Vivid-Light-Magenta-UltraChrome-HDXHD-700ml-Ink.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t55k600-epson-singlepack-vivid-light-magenta-700ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-P9500-Printer-Singlepack-Vivid-Light-Magenta-T44Q640-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-vivid-light-magenta-t44j640-ultrachrome-pro12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-P9500-Printer-Singlepack-Vivid-Light-Magenta-T44Q640-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-vivid-light-magenta-t44j640-ultrachrome-pro12-700ml-ink/"
   },
   {
     "_id": "C13T44J740",
@@ -834,10 +884,12 @@
       "C13T44J740",
       "6325"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Light-Gray-T46S9-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s900-epson-singlepack-light-gray-ultrachrome-pro-10-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Gray-T44Q740-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-gray-t44j740-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Gray-T44Q740-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-gray-t44j740-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44J840",
@@ -853,10 +905,12 @@
       "C13T44J840",
       "6327"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Matte-Black-T46S8-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s800-epson-singlepack-matte-black-ultrachrome-pro-10-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-P9500-Printer-Singlepack-Matte-Black-T44Q840-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-matte-black-t44j840-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-P9500-Printer-Singlepack-Matte-Black-T44Q840-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-matte-black-t44j840-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44JB40",
@@ -872,10 +926,12 @@
       "C13T44JB40",
       "6329"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q240-epson-singlepack-cyan-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Green-T44QB-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-green-t44jb40-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Green-T44QB-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-green-t44jb40-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44JA40",
@@ -891,10 +947,12 @@
       "C13T44JA40",
       "6332"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Singlepack-Cyan-T44Q420-UltraChrome-PRO-12-350ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t44q240-epson-singlepack-cyan-ultrachrome-350ml-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-P9500-Printer-Singlepack-Orange-T44QA40-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-orange-t44ja40-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-P9500-Printer-Singlepack-Orange-T44QA40-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-orange-t44ja40-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44JD40",
@@ -910,10 +968,12 @@
       "C13T44JD40",
       "6334"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Violet-T46SD-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46sd00-epson-singlepack-violet-ultrachrome-pro-10-ink-25ml/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Violet-T44QD40-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-violet-t44jd40-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Violet-T44QD40-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-violet-t44jd40-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C13T44J940",
@@ -929,10 +989,12 @@
       "C13T44J940",
       "6337"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Singlepack-Light-Gray-T46S9-UltraChrome-Pro-10-ink-25ml.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t46s900-epson-singlepack-light-gray-ultrachrome-pro-10-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Light-Gray-T44Q940-UltraChrome-PRO-12-700ml.webp",
+    "website_url": "https://www.keplertechllc.com/product/singlepack-light-gray-t44j940-ultrachrome-pro-12-700ml-ink/",
     "category": "Ink Cartridge",
-    "consumables": []
+    "consumables": [],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9500-P7500-Printer-Singlepack-Light-Gray-T44Q940-UltraChrome-PRO-12-700ml.webp",
+    "web_url": "https://www.keplertechllc.com/product/singlepack-light-gray-t44j940-ultrachrome-pro-12-700ml-ink/"
   },
   {
     "_id": "C11CH12301A1",
@@ -949,7 +1011,7 @@
       "C11CH12301A1",
       "6522"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -959,7 +1021,8 @@
       "C13T44Q440",
       "C13T699700"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp"
   },
   {
     "_id": "C11CE40301A0",
@@ -976,7 +1039,7 @@
       "C11CE40301A0",
       "6529"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-2.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-3.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p9000-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -1004,7 +1067,8 @@
       "C13T55KB00",
       "C13T699700"
     ],
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-3.webp"
   },
   {
     "_id": "C13T804200",
@@ -1478,7 +1542,7 @@
       "6676"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
     "category": "Printer",
     "consumables": [
       "C13T800100",
@@ -1486,7 +1550,9 @@
       "C13T800300",
       "C13T800400",
       "C13T699700"
-    ]
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp"
   },
   {
     "_id": "C11CE42301A0",
@@ -1512,7 +1578,9 @@
       "C13T800300",
       "C13T800400",
       "C13T699700"
-    ]
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p8000-44-large-format-inkjet-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P8000-Printer-1.webp"
   },
   {
     "_id": "C11CE41301A0",
@@ -1529,7 +1597,7 @@
       "C11CE41301A0",
       "6721"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P6000-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
     "category": "Printer",
     "consumables": [
@@ -1742,7 +1810,7 @@
       "C11CF66001A4",
       "6794"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-STD-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
     "category": "Printer",
     "consumables": [
@@ -2054,7 +2122,7 @@
       "C12C935711",
       "6883"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Maintenance-Tank-SC-P700SC-P900-C12C935711.webp",
     "website_url": "https://www.keplertechllc.com/product/maintenance-tank-sc-p700-sc-p900-c12c935711/",
     "category": "Maintenance Box",
     "consumables": [
@@ -2065,7 +2133,8 @@
       "C13T47AD00",
       "C13T699700"
     ],
-    "web_url": "https://www.keplertechllc.com/product/maintenance-tank-sc-p700-sc-p900-c12c935711/"
+    "web_url": "https://www.keplertechllc.com/product/maintenance-tank-sc-p700-sc-p900-c12c935711/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Maintenance-Tank-SC-P700SC-P900-C12C935711.webp"
   },
   {
     "_id": "C11CH37402DA",
@@ -2082,8 +2151,8 @@
       "C11CH37402DA",
       "6886"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P900-Printer-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
     "category": "Printer",
     "consumables": [
       "C13T47A100",
@@ -2091,7 +2160,9 @@
       "C13T47A300",
       "C13T47A400",
       "C12C935711"
-    ]
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp"
   },
   {
     "_id": "C13T46S100",
@@ -2318,7 +2389,9 @@
       "C13T46S400",
       "C13T46SD00",
       "C13T699700"
-    ]
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp"
   },
   {
     "_id": "CY-02",
@@ -2334,16 +2407,17 @@
       "CY-02",
       "6986"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer-Dubai.webp",
-    "website_url": "https://www.keplertechllc.com/product/citizen-cy-02-carry-bags/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
     "category": "Photo Printer",
     "consumables": [
       "CY-MS46",
       "CY-MS68",
-      "CY02Bag",
-      "Citizen Pen"
+      "Citizen Pen",
+      "CY02Bag"
     ],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp"
   },
   {
     "_id": "CX-02W",
@@ -2359,14 +2433,15 @@
       "CX-02W",
       "7002"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer-Dubai.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
     "category": "Photo Printer",
     "consumables": [
-      "CX2.4x6",
-      "CX2.6X8"
+      "CX2W 812",
+      "Citizen Pen"
     ],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer.webp"
   },
   {
     "_id": "CZ-01",
@@ -2382,13 +2457,17 @@
       "CZ-01",
       "7017"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer-Dubai.webp",
-    "website_url": "https://www.keplertechllc.com/product/citizen-cz-01-printer-carry-bag/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
     "category": "Photo Printer",
     "consumables": [
-      "CZ01-MEDIA-4X6"
+      "CZ-MS46",
+      "CZ-MS458",
+      "Citizen Pen",
+      "CZ01 Carry Bag"
     ],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer.webp"
   },
   {
     "_id": "C13T619100",
@@ -2451,7 +2530,7 @@
       "C13T02S100",
       "7161"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Black-Ink-C13T02S100.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02s100-epson-workforce-enterprise-wf-c20750-black-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2462,7 +2541,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02s100-epson-workforce-enterprise-wf-c20750-black-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02s100-epson-workforce-enterprise-wf-c20750-black-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Black-Ink-C13T02S100.webp"
   },
   {
     "_id": "C13T02S300",
@@ -2479,7 +2559,7 @@
       "C13T02S300",
       "7164"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Magenta-Ink-C13T02S300.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02s300-epson-workforce-enterprise-wf-c20750-magenta-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2490,7 +2570,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02s300-epson-workforce-enterprise-wf-c20750-magenta-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02s300-epson-workforce-enterprise-wf-c20750-magenta-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Magenta-Ink-C13T02S300.webp"
   },
   {
     "_id": "C13T02S200",
@@ -2507,7 +2588,7 @@
       "C13T02S200",
       "7168"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Cyan-Ink-C13T02S200.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02s200-epson-workforce-enterprise-wf-c20750-cyan-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2518,7 +2599,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02s200-epson-workforce-enterprise-wf-c20750-cyan-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02s200-epson-workforce-enterprise-wf-c20750-cyan-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Cyan-Ink-C13T02S200.webp"
   },
   {
     "_id": "C13T02S400",
@@ -2535,7 +2617,7 @@
       "C13T02S400",
       "7171"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Yellow-Ink-C13T02S400.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02s400-epson-workforce-enterprise-wf-c20750-yellow-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2546,7 +2628,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02s400-epson-workforce-enterprise-wf-c20750-yellow-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02s400-epson-workforce-enterprise-wf-c20750-yellow-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C20750-Yellow-Ink-C13T02S400.webp"
   },
   {
     "_id": "C13T02Y100",
@@ -2563,7 +2646,7 @@
       "C13T02Y100",
       "7175"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Black-Ink-C13T02Y100.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02y100-epson-workforce-enterprise-wf-c21000-black-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2574,7 +2657,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02y100-epson-workforce-enterprise-wf-c21000-black-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02y100-epson-workforce-enterprise-wf-c21000-black-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Black-Ink-C13T02Y100.webp"
   },
   {
     "_id": "C13T02Y200",
@@ -2591,7 +2675,7 @@
       "C13T02Y200",
       "7178"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Cyan-Ink-C13T02Y200.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02y200-epson-workforce-enterprise-wf-c21000-cyan-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2602,7 +2686,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02y200-epson-workforce-enterprise-wf-c21000-cyan-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02y200-epson-workforce-enterprise-wf-c21000-cyan-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Cyan-Ink-C13T02Y200.webp"
   },
   {
     "_id": "C13T02Y300",
@@ -2619,7 +2704,7 @@
       "C13T02Y300",
       "7181"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Magenta-Ink-C13T02Y300.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02y300-epson-workforce-enterprise-wf-c21000-magenta-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2630,7 +2715,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02y300-epson-workforce-enterprise-wf-c21000-magenta-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02y300-epson-workforce-enterprise-wf-c21000-magenta-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Magenta-Ink-C13T02Y300.webp"
   },
   {
     "_id": "C13T02Y400",
@@ -2647,7 +2733,7 @@
       "C13T02Y400",
       "7185"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Yellow-Ink-C13T02Y400.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t02y400-epson-workforce-enterprise-wf-c21000-yellow-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2658,7 +2744,8 @@
       "C13T671300"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t02y400-epson-workforce-enterprise-wf-c21000-yellow-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t02y400-epson-workforce-enterprise-wf-c21000-yellow-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Enterprise-WF-C21000-Yellow-Ink-C13T02Y400.webp"
   },
   {
     "_id": "C11CH88401BY",
@@ -2675,7 +2762,7 @@
       "C11CH88401BY",
       "7190"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C21000.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c21000-multi-function-printer/",
     "category": "Business Printer",
     "consumables": [
@@ -2685,7 +2772,8 @@
       "C13T02S400",
       "C13T671300"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c21000-multi-function-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c21000-multi-function-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C21000.webp"
   },
   {
     "_id": "C13T946140",
@@ -2701,7 +2789,7 @@
       "C13T946140",
       "7204"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5290-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2711,7 +2799,8 @@
       "C13T946440",
       "C13T671600"
     ],
-    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/"
+    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp"
   },
   {
     "_id": "C13T945140",
@@ -2918,7 +3007,9 @@
       "C13T946340",
       "C13T946440",
       "C13T671600"
-    ]
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c5290-inkjet-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5290-Business-Printer.webp"
   },
   {
     "_id": "C11CG02201",
@@ -2962,7 +3053,7 @@
       "C13T01D100",
       "7297"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Black-XXL-Ink-Supply-Unit-C13T01D100.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01d100-epson-workforce-pro-wf-c529r-c579r-black-xxl-ink-supply-unit/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -2973,7 +3064,8 @@
       "C13T671600"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t01d100-epson-workforce-pro-wf-c529r-c579r-black-xxl-ink-supply-unit/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01d100-epson-workforce-pro-wf-c529r-c579r-black-xxl-ink-supply-unit/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Black-XXL-Ink-Supply-Unit-C13T01D100.webp"
   },
   {
     "_id": "C13T01D200",
@@ -2990,7 +3082,7 @@
       "C13T01D200",
       "7300"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Cyan-XXL-Ink-Supply-Unit-C13T01D200.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01d200-workforce-pro-wf-c529r-c579r-cyan-xxl-ink-supply-unit/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3000,7 +3092,8 @@
       "C13T01D400",
       "C13T671600"
     ],
-    "web_url": "https://www.keplertechllc.com/product/c13t01d200-workforce-pro-wf-c529r-c579r-cyan-xxl-ink-supply-unit/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01d200-workforce-pro-wf-c529r-c579r-cyan-xxl-ink-supply-unit/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Cyan-XXL-Ink-Supply-Unit-C13T01D200.webp"
   },
   {
     "_id": "C13T01D300",
@@ -3017,7 +3110,7 @@
       "C13T01D300",
       "7305"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Magenta-XXL-Ink-Supply-Unit-C13T01D300.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01d300-epson-workforce-pro-wf-c529r-c579r-magenta-xxl-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3028,7 +3121,8 @@
       "C13T671600"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t01d300-epson-workforce-pro-wf-c529r-c579r-magenta-xxl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01d300-epson-workforce-pro-wf-c529r-c579r-magenta-xxl-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Magenta-XXL-Ink-Supply-Unit-C13T01D300.webp"
   },
   {
     "_id": "C13T01C200",
@@ -3045,7 +3139,7 @@
       "C13T01C200",
       "7309"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Cyan-XL-Ink-Supply-Unit-C13T01C200.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01c200-epson-workforce-pro-wf-c529r-c579r-cyan-xl-ink-supply-unit/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3056,7 +3150,8 @@
       "C13T671600"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t01c200-epson-workforce-pro-wf-c529r-c579r-cyan-xl-ink-supply-unit/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01c200-epson-workforce-pro-wf-c529r-c579r-cyan-xl-ink-supply-unit/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Cyan-XL-Ink-Supply-Unit-C13T01C200.webp"
   },
   {
     "_id": "C13T01D400",
@@ -3073,7 +3168,7 @@
       "C13T01D400",
       "7312"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Yellow-XXL-Ink-Supply-Unit-C13T01D400.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01d400-epson-wf-c529r-c579r-yellow-xxl-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3083,7 +3178,8 @@
       "C13T01D400",
       "C13T671600"
     ],
-    "web_url": "https://www.keplertechllc.com/product/c13t01d400-epson-wf-c529r-c579r-yellow-xxl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01d400-epson-wf-c529r-c579r-yellow-xxl-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Yellow-XXL-Ink-Supply-Unit-C13T01D400.webp"
   },
   {
     "_id": "C13T01C100",
@@ -3100,7 +3196,7 @@
       "C13T01C100",
       "7315"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Black-XL-Ink-Supply-Unit-C13T01C100.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01c100-epson-workforce-pro-wf-c529r-c579r-black-xl-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3111,7 +3207,8 @@
       "C13T671600"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t01c100-epson-workforce-pro-wf-c529r-c579r-black-xl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01c100-epson-workforce-pro-wf-c529r-c579r-black-xl-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Black-XL-Ink-Supply-Unit-C13T01C100.webp"
   },
   {
     "_id": "C13T01C300",
@@ -3128,7 +3225,7 @@
       "C13T01C300",
       "7318"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Magenta-XL-Ink-Supply-Unit-C13T01C300.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01c300-epson-workforce-pro-wf-c529r-c579r-magenta-xl/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3138,7 +3235,8 @@
       "C13T01D400",
       "C13T671600"
     ],
-    "web_url": "https://www.keplertechllc.com/product/c13t01c300-epson-workforce-pro-wf-c529r-c579r-magenta-xl/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01c300-epson-workforce-pro-wf-c529r-c579r-magenta-xl/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Magenta-XL-Ink-Supply-Unit-C13T01C300.webp"
   },
   {
     "_id": "C13T01C400",
@@ -3155,7 +3253,7 @@
       "C13T01C400",
       "7321"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C529R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Yellow-XL-Ink-Supply-Unit-C13T01C400.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t01c400-epson-workforce-pro-wf-c529r-c579r-yellow-xl-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3166,7 +3264,8 @@
       "C13T671600"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t01c400-epson-workforce-pro-wf-c529r-c579r-yellow-xl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t01c400-epson-workforce-pro-wf-c529r-c579r-yellow-xl-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C529R-C579R-Yellow-XL-Ink-Supply-Unit-C13T01C400.webp"
   },
   {
     "_id": "C11CG79401BC",
@@ -3335,7 +3434,7 @@
       "C13T05B140",
       "7387"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Black-XXL-Ink-Supply-Unit-C13T05B140.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t05b140-epson-workforce-pro-wf-c879r-black-xxl-ink-supply-unit/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3346,7 +3445,8 @@
       "C13T671400"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t05b140-epson-workforce-pro-wf-c879r-black-xxl-ink-supply-unit/"
+    "web_url": "https://www.keplertechllc.com/product/c13t05b140-epson-workforce-pro-wf-c879r-black-xxl-ink-supply-unit/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Black-XXL-Ink-Supply-Unit-C13T05B140.webp"
   },
   {
     "_id": "C13T05B240",
@@ -3363,7 +3463,7 @@
       "C13T05B240",
       "7393"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Cyan-XXL-Ink-Supply-Unit-C13T05B240.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t05b240-epson-workforce-pro-wf-c879r-cyan-xxl-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3374,7 +3474,8 @@
       "C13T671400"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t05b240-epson-workforce-pro-wf-c879r-cyan-xxl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t05b240-epson-workforce-pro-wf-c879r-cyan-xxl-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Cyan-XXL-Ink-Supply-Unit-C13T05B240.webp"
   },
   {
     "_id": "C13T05B340",
@@ -3391,7 +3492,7 @@
       "C13T05B340",
       "7395"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Magenta-XXL-Ink-Supply-Unit-C13T05B340.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t05b340-epson-workforce-pro-wf-c879r-magenta-xxl-ink-supply-unit/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3402,7 +3503,8 @@
       "C13T671400"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t05b340-epson-workforce-pro-wf-c879r-magenta-xxl-ink-supply-unit/"
+    "web_url": "https://www.keplertechllc.com/product/c13t05b340-epson-workforce-pro-wf-c879r-magenta-xxl-ink-supply-unit/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Magenta-XXL-Ink-Supply-Unit-C13T05B340.webp"
   },
   {
     "_id": "C13T05B440",
@@ -3419,7 +3521,7 @@
       "C13T05B440",
       "7398"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Yellow-XXL-Ink-Supply-Unit-C13T05B440.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t05b440-epson-workforce-pro-wf-c879r-yellow-xxl-ink-supply-unit/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -3430,7 +3532,8 @@
       "C13T671400"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t05b440-epson-workforce-pro-wf-c879r-yellow-xxl-ink-supply-unit/"
+    "web_url": "https://www.keplertechllc.com/product/c13t05b440-epson-workforce-pro-wf-c879r-yellow-xxl-ink-supply-unit/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WorkForce-Pro-WF-C879R-Yellow-XXL-Ink-Supply-Unit-C13T05B440.webp"
   },
   {
     "_id": "C13T671400",
@@ -3612,7 +3715,7 @@
       "C11CG04402BY",
       "7468"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-M5799-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-WorkForce-Pro-WF-C579R-DWF-Multifunction-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c579r-dwf-multifunction-printer/",
     "category": "Business Printer",
     "consumables": [
@@ -3620,7 +3723,8 @@
       "C13T965140",
       "C13T671600"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-m5799-monochrome-multifunction-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-m5799-monochrome-multifunction-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-WorkForce-Pro-WF-C579R-DWF-Multifunction-Printer.webp"
   },
   {
     "_id": "C13T692100",
@@ -4317,11 +4421,12 @@
       "C11CJ55301A1",
       "7685"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T3405-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "category": "Printer",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3405-wireless-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3405-wireless-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp"
   },
   {
     "_id": "C11CJ56301A1",
@@ -4901,12 +5006,13 @@
       "C13S450275",
       "7824"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-Fine-Art-Cotton-Smooth-Bright-A2-A4-A3-A2.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13s450275-epson-fine-art-cotton-smooth-bright-a3/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/C13S450275-Epson-Fine-Art-Cotton-Smooth-Bright.webp",
+    "website_url": "https://www.keplertechllc.com/product/c13s450275-epson-fine-art-cotton-smooth-bright-17x15m/",
     "category": "Media & Paper",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13s450275-epson-fine-art-cotton-smooth-bright-a3/"
+    "web_url": "https://www.keplertechllc.com/product/c13s450275-epson-fine-art-cotton-smooth-bright-17x15m/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/C13S450275-Epson-Fine-Art-Cotton-Smooth-Bright.webp"
   },
   {
     "_id": "C13S450270",
@@ -7361,7 +7467,7 @@
       "C11CE40301A2",
       "8440"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-2.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/EPSON-P20000-PEINTER-1.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-sc-p20000-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -7371,7 +7477,8 @@
       "C13T47A400",
       "C13T47AD00",
       "C13T699700"
-    ]
+    ],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/EPSON-P20000-PEINTER-1.webp"
   },
   {
     "_id": "C11CE40301A1",
@@ -7388,7 +7495,7 @@
       "C11CE40301A1",
       "8442"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-2.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p20500-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -7398,7 +7505,8 @@
       "C13T47A400",
       "C13T47AD00",
       "C13T699700"
-    ]
+    ],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp"
   },
   {
     "_id": "C11CE40301A3",
@@ -7441,7 +7549,7 @@
       "C11CH13301A3",
       "8475"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -7462,7 +7570,8 @@
       "C13T44J440",
       "C13T44Q440"
     ],
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp"
   },
   {
     "_id": "C11CE42301A2",
@@ -7479,7 +7588,7 @@
       "C11CE42301A2",
       "8500"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P8000-Printer-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/02/Epson-SureColor-SC-P6500D-Large-Format-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p6500de-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -7488,7 +7597,8 @@
       "C13T800300",
       "C13T800400",
       "C13T699700"
-    ]
+    ],
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/02/Epson-SureColor-SC-P6500D-Large-Format-Printer.webp"
   },
   {
     "_id": "C11CH12301A3",
@@ -7505,7 +7615,7 @@
       "C11CH12301A3",
       "8520"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p20500-printer/",
     "category": "Large Format Printer",
     "consumables": [
@@ -7527,7 +7637,8 @@
       "C13T44Q440"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp"
   },
   {
     "_id": "C11CE41301A2",
@@ -7544,7 +7655,7 @@
       "C11CE41301A2",
       "8560"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P6000-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P6000-Printer-1.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p6000-24-large-format-printer-std/",
     "category": "Printer",
     "consumables": [
@@ -7570,7 +7681,7 @@
       "C11CF66001A5",
       "8574"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-STD-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
     "category": "Printer",
     "consumables": [
@@ -7596,7 +7707,7 @@
       "C11CF66001A6",
       "8579"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-STD-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
     "category": "Printer",
     "consumables": [
@@ -7622,7 +7733,7 @@
       "C11CF66001A7",
       "8584"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-STD-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p20500-printer/",
     "category": "Printer",
     "consumables": [
@@ -7708,7 +7819,7 @@
       "C11CJ55302A1",
       "8734"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T3405-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "category": "Printer",
     "consumables": [
@@ -7727,7 +7838,8 @@
       "C13T699700"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3405-wireless-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3405-wireless-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp"
   },
   {
     "_id": "C11CG77402BS",
@@ -7776,7 +7888,7 @@
       "C11CG77402BY",
       "9020"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C579R-DTWF-Multifunction-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-WorkForce-Pro-WF-C579R-DWF-Multifunction-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c579r-dwf-multifunction-printer/",
     "category": "Business Printer",
     "consumables": [
@@ -7792,7 +7904,8 @@
       "C11CG05201"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c579r-dtwf-multifunction-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c579r-dtwf-multifunction-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-WorkForce-Pro-WF-C579R-DWF-Multifunction-Printer.webp"
   },
   {
     "_id": "C11CH35402BS",
@@ -7873,7 +7986,7 @@
       "C11CH60402BC",
       "9054"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C878R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c879r-dtwf-multifunction-printer/",
     "category": "Business Printer",
     "consumables": [
@@ -7883,7 +7996,8 @@
       "C13T05A400",
       "C13T671400"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c878r-dwf-multifunction-color-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c878r-dwf-multifunction-color-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp"
   },
   {
     "_id": "C11CH60402BZ",
@@ -7900,7 +8014,7 @@
       "C11CH60402BZ",
       "9059"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-C878R-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c879r-dtwf-multifunction-printer/",
     "category": "Business Printer",
     "consumables": [
@@ -7911,7 +8025,8 @@
       "C13T671400"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c878r-dwf-multifunction-color-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c878r-dwf-multifunction-color-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp"
   },
   {
     "_id": "CY02Bag",
@@ -7927,11 +8042,12 @@
       "CY02Bag",
       "9159"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer-Dubai.webp",
-    "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-carry-bag/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CY-02-Carry-Bags.webp",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cy-02-carry-bags/",
     "category": "Accessory",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-carry-bags/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-carry-bags/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CY-02-Carry-Bags.webp"
   },
   {
     "_id": "Citizen CX-02 Bag",
@@ -7947,12 +8063,13 @@
       "Citizen CX-02 Bag",
       "9781"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-carry-bag/",
     "category": "Accessory",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-carry-bag/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1.webp"
   },
   {
     "_id": "CZ01 Carry Bag",
@@ -7968,12 +8085,13 @@
       "CZ01 Carry Bag",
       "9786"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer-Dubai.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1-1.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cz-01-printer-carry-bag/",
     "category": "Accessory",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-printer-carry-bag/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1-1.webp"
   },
   {
     "_id": "Citizen Pen",
@@ -7993,7 +8111,9 @@
     "website_url": "https://www.keplertechllc.com/product/citizen-thermal-head-cleaning-pen/",
     "category": "Accessory",
     "consumables": [],
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "web_url": "https://www.keplertechllc.com/product/citizen-thermal-head-cleaning-pen/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-Head-Cleaning-Pen.webp"
   },
   {
     "_id": "CX2.6X8",
@@ -8009,14 +8129,15 @@
       "CX2.6X8",
       "9795"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp",
-    "website_url": "https://www.keplertechllc.com/product/citizen-cx2w-8x12-media/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-Consumable-CX2-68-6x8-2.webp",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-6x8-media/",
     "category": "Media & Paper",
     "consumables": [
       "CX02-MEDIA-4X6",
       "CX02-MEDIA-6X8"
     ],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-5x7-media-set-2-roll/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-6x8-media/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-Consumable-CX2-68-6x8-2.webp"
   },
   {
     "_id": "CX2.4x6",
@@ -8032,14 +8153,15 @@
       "CX2.4x6",
       "9797"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/",
     "category": "Media & Paper",
     "consumables": [
       "CX02-MEDIA-4X6",
       "CX02-MEDIA-6X8"
     ],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-5x7-media-set-2-roll/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp"
   },
   {
     "_id": "IFA 11",
@@ -10870,7 +10992,7 @@
       "C13T08H300",
       "10741"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H300-Epson-WorkForce-Enterprise-AM-C4000-Magenta-Ink.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t08h300-epson-workforce-enterprise-am-c4000-magenta-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -10881,7 +11003,8 @@
       "C12C937181"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t08h300-epson-workforce-enterprise-am-c4000-magenta-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08h300-epson-workforce-enterprise-am-c4000-magenta-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H300-Epson-WorkForce-Enterprise-AM-C4000-Magenta-Ink.webp"
   },
   {
     "_id": "C13T08H100",
@@ -10898,7 +11021,7 @@
       "C13T08H100",
       "10747"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H100-Epson-WorkForce-AM-C4000-Black-Ink.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t08h100-epson-workforce-enterprise-am-c4000-black-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -10909,7 +11032,8 @@
       "C12C937181"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t08h100-epson-workforce-enterprise-am-c4000-black-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08h100-epson-workforce-enterprise-am-c4000-black-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H100-Epson-WorkForce-AM-C4000-Black-Ink.webp"
   },
   {
     "_id": "C13T08H200",
@@ -10926,7 +11050,7 @@
       "C13T08H200",
       "10750"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H200-Epson-WorkForce-AM-C4000-Cyan-Ink.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t08h200-epson-workforce-enterprise-am-c4000-cyan-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -10937,7 +11061,8 @@
       "C12C937181"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t08h200-epson-workforce-enterprise-am-c4000-cyan-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08h200-epson-workforce-enterprise-am-c4000-cyan-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H200-Epson-WorkForce-AM-C4000-Cyan-Ink.webp"
   },
   {
     "_id": "C13T08H400",
@@ -10954,7 +11079,7 @@
       "C13T08H400",
       "10753"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Epson-WorkForce-AM-C4000-Yellow-Ink.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t08h400-epson-workforce-enterprise-am-c4000-yellow-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -10965,7 +11090,8 @@
       "C12C937181"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t08h400-epson-workforce-enterprise-am-c4000-yellow-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08h400-epson-workforce-enterprise-am-c4000-yellow-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Epson-WorkForce-AM-C4000-Yellow-Ink.webp"
   },
   {
     "_id": "C12C937181",
@@ -10981,7 +11107,7 @@
       "C12C937181",
       "10757"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C12C937181-Epson-Maintenance-Box-AM-C4000-5000-6000.webp",
     "website_url": "https://www.keplertechllc.com/product/c12c937181-epson-maintenance-box-am-c4000-5000-6000/",
     "category": "Maintenance Box",
     "consumables": [
@@ -10992,7 +11118,8 @@
       "C12C937181"
     ],
     "web_url": "https://www.keplertechllc.com/product/c12c937181-epson-maintenance-box-am-c4000-5000-6000/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C12C937181-Epson-Maintenance-Box-AM-C4000-5000-6000.webp"
   },
   {
     "_id": "C13T08G300",
@@ -11051,7 +11178,7 @@
       "C13T08G400",
       "10784"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G400-Epson-WorkForce-Enterprise-AM-C5000-6000-Yellow-Ink.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t08g400-epson-workforce-enterprise-am-c5000-6000-yellow-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -11061,7 +11188,8 @@
       "C13T08G400",
       "C12C937181"
     ],
-    "web_url": "https://www.keplertechllc.com/product/c13t08g400-epson-workforce-enterprise-am-c5000-6000-yellow-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08g400-epson-workforce-enterprise-am-c5000-6000-yellow-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G400-Epson-WorkForce-Enterprise-AM-C5000-6000-Yellow-Ink.webp"
   },
   {
     "_id": "C13T08G200",
@@ -11078,7 +11206,7 @@
       "C13T08G200",
       "10787"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B-1.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G200-Epson-WorkForce-Enterprise-AM-C5000-6000-Cyan-Ink.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t08g200-epson-workforce-enterprise-am-c5000-6000-cyan-ink/",
     "category": "Ink Cartridge",
     "consumables": [
@@ -11088,7 +11216,8 @@
       "C13T08G400",
       "C12C937181"
     ],
-    "web_url": "https://www.keplertechllc.com/product/c13t08g200-epson-workforce-enterprise-am-c5000-6000-cyan-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08g200-epson-workforce-enterprise-am-c5000-6000-cyan-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G200-Epson-WorkForce-Enterprise-AM-C5000-6000-Cyan-Ink.webp"
   },
   {
     "_id": "C11CH37402DR",
@@ -11105,8 +11234,8 @@
       "C11CH37402DR",
       "10873"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P900-Printer-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p20500-printer/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
     "category": "Printer",
     "consumables": [
       "C13T47A100",
@@ -11121,7 +11250,9 @@
       "C13T47A900",
       "C12C935711"
     ],
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp"
   },
   {
     "_id": "CY-MS46",
@@ -11140,7 +11271,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Cy-Ms-46.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cy-ms46-4x6/",
     "category": "Media & Paper",
-    "consumables": []
+    "consumables": [],
+    "web_url": "https://www.keplertechllc.com/product/citizen-cy-ms46-4x6/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Cy-Ms-46.webp"
   },
   {
     "_id": "CY-MS68",
@@ -11159,7 +11292,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Cy-Ms-68.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cy-ms68/",
     "category": "Media & Paper",
-    "consumables": []
+    "consumables": [],
+    "web_url": "https://www.keplertechllc.com/product/citizen-cy-ms68/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Cy-Ms-68.webp"
   },
   {
     "_id": "CZ-MS46",
@@ -11178,7 +11313,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/RZ-MS-46-C-1000x-1000.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cz-ms46-4x-6/",
     "category": "Media & Paper",
-    "consumables": []
+    "consumables": [],
+    "web_url": "https://www.keplertechllc.com/product/citizen-cz-ms46-4x-6/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/RZ-MS-46-C-1000x-1000.webp"
   },
   {
     "_id": "CZ-MS458",
@@ -11198,7 +11335,9 @@
     "website_url": "https://www.keplertechllc.com/product/citizen-cz-ms458-4-5x8-media/",
     "category": "Media & Paper",
     "consumables": [],
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "web_url": "https://www.keplertechllc.com/product/citizen-cz-ms458-4-5x8-media/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/CZ-458-Small.webp"
   },
   {
     "_id": "CX2W 812",
@@ -11217,7 +11356,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/CX2-Ms-68-1-copyA.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cx2w-8x12-media/",
     "category": "Media & Paper",
-    "consumables": []
+    "consumables": [],
+    "web_url": "https://www.keplertechllc.com/product/citizen-cx2w-8x12-media/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/07/CX2-Ms-68-1-copyA.webp"
   },
   {
     "_id": "C11CJ80301",
@@ -11234,7 +11375,7 @@
       "C11CJ80301",
       "11240"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-F100-Sublimation-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
     "category": "Printer",
     "consumables": [
@@ -11260,11 +11401,13 @@
       "C13T49N100",
       "11264"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/C13T49N200.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t49n200-epson-dye-sublimation-cyan-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Dye-Sublimation-Black-T49N100-140mL.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-dye-sublimation-black-t49n100-ink/",
     "category": "Ink Cartridge",
     "consumables": [],
-    "availability": "In Stock"
+    "availability": "In Stock",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Dye-Sublimation-Black-T49N100-140mL.webp",
+    "web_url": "https://www.keplertechllc.com/product/epson-dye-sublimation-black-t49n100-ink/"
   },
   {
     "_id": "C13T49N300",
@@ -11280,11 +11423,13 @@
       "C13T49N300",
       "11269"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/C13T49N200.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t49n200-epson-dye-sublimation-cyan-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Dye-Sublimation-Magenta-T49N300-140mL.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-dye-sublimation-magenta-t49n300-ink/",
     "category": "Ink Cartridge",
     "consumables": [],
-    "availability": "In Stock"
+    "availability": "In Stock",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Dye-Sublimation-Magenta-T49N300-140mL.webp",
+    "web_url": "https://www.keplertechllc.com/product/epson-dye-sublimation-magenta-t49n300-ink/"
   },
   {
     "_id": "C13T49N200",
@@ -11305,7 +11450,8 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t49n200-epson-dye-sublimation-cyan-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t49n200-epson-dye-sublimation-cyan-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/07/C13T49N200.webp"
   },
   {
     "_id": "C13T49N400",
@@ -11326,7 +11472,8 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t49n400-epson-dye-sublimation-yellow-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t49n400-epson-dye-sublimation-yellow-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Dye-Sublimation-Yellow-T49N400-140mL.webp"
   },
   {
     "_id": "C13S210125",
@@ -12252,11 +12399,12 @@
       "C11CF12301A1",
       "12487"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5100-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "category": "Printer",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp"
   },
   {
     "_id": "C13T54XA00",
@@ -13621,11 +13769,12 @@
       "B11B262401BB",
       "13948"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-770-II-Color-Duplex-Document-Scanner.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-ds-530ii-color-duplex-document-scanner/",
     "category": "Scanner",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-770-ii-color-duplex-document-scanner/"
+    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-770-ii-color-duplex-document-scanner/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp"
   },
   {
     "_id": "B11B265401BB",
@@ -13642,11 +13791,12 @@
       "B11B265401BB",
       "13966"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-790WN-Wireless-Network-Color-Document-Scanner.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-7500N-Color-Document-Scanner.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-ds-7500n-color-document-scanner/",
     "category": "Scanner",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-790wn-wireless-document-scanner/"
+    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-790wn-wireless-document-scanner/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-7500N-Color-Document-Scanner.webp"
   },
   {
     "_id": "B11B250401BB",
@@ -13663,11 +13813,12 @@
       "B11B250401BB",
       "13987"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-870-Color-Duplex-Workgroup-Document-Scanner.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-ds-530ii-color-duplex-document-scanner/",
     "category": "Scanner",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-870-color-business-scanner/"
+    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-870-color-business-scanner/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp"
   },
   {
     "_id": "B11B251401BB",
@@ -13684,11 +13835,12 @@
       "B11B251401BB",
       "14002"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-970-Color-Duplex-Workgroup-Document-Scanner.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-ds-530ii-color-duplex-document-scanner/",
     "category": "Scanner",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-970-color-duplex-document-scanner/"
+    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-970-color-duplex-document-scanner/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp"
   },
   {
     "_id": "B11B255401BB",
@@ -13705,11 +13857,12 @@
       "B11B255401BB",
       "14020"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-32000-Large-format-Document-Scanner.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-30000-Large-format-Document-Scanner.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-ds-30000-large-format-document-scanner/",
     "category": "Scanner",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-32000-large-format-document-scanner/"
+    "web_url": "https://www.keplertechllc.com/product/epson-wf-ds-32000-large-format-document-scanner/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-30000-Large-format-Document-Scanner.webp"
   },
   {
     "_id": "B11B256401BB",
@@ -16065,8 +16218,8 @@
       "C13T08Q340",
       "17840"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2025/01/C13T08Q340-Epson-WorkForce-AM-C550-Magenta-Ink.webp",
-    "website_url": "https://www.keplertechllc.com/product/c13t08q340-epson-workforce-am-c550-magenta-ink/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2025/01/C13T08Q340-Epson-WorkForce-AM-C550-Cyan-Ink.webp",
+    "website_url": "https://www.keplertechllc.com/product/c13t08q340-epson-wf-am-c550-cyan-ink/",
     "category": "Ink Cartridge",
     "consumables": [
       "C13T08Q140",
@@ -16076,7 +16229,8 @@
       "C12C937201"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t08q340-epson-workforce-am-c550-magenta-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08q340-epson-wf-am-c550-cyan-ink/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2025/01/C13T08Q340-Epson-WorkForce-AM-C550-Cyan-Ink.webp"
   },
   {
     "_id": "C13T08Q240",
@@ -16470,7 +16624,7 @@
       "C11CJ17301A0",
       "18709"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-F500-Sublimation-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/04/epson-SC-F500.jpg.jpeg",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
     "category": "Printer",
     "consumables": [
@@ -16713,7 +16867,7 @@
       "Epson",
       "SureColor"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T5100-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
     "consumables": [
       "C13T40D140",
@@ -16775,11 +16929,12 @@
       "Dye-Sub",
       "Photo"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer-Dubai.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp",
     "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/",
     "category": "Media & Paper",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/"
+    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp"
   },
   {
     "_id": "C13T946240",
@@ -16798,11 +16953,12 @@
       "Cyan",
       "Ink"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5290-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
     "category": "Ink Cartridge",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/"
+    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp"
   },
   {
     "_id": "C13T946340",
@@ -16821,11 +16977,12 @@
       "Magenta",
       "Ink"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5290-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
     "category": "Ink Cartridge",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/"
+    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp"
   },
   {
     "_id": "C13T946440",
@@ -16844,10 +17001,11 @@
       "Yellow",
       "Ink"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5290-Business-Printer.webp",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp",
     "website_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
     "category": "Ink Cartridge",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/"
+    "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp"
   }
 ]

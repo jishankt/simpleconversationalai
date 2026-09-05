@@ -33,8 +33,7 @@ SPECIFIC_EXCLUSIONS = [
 
 CATEGORY_DISCOVERY_PROMPTS = {
     "ink": (
-        "Which printer or scanner model do you need consumables for? Please select or enter your product name:\n\n"
-        "[Options: SC-P900 | SC-T3100 | SC-F100 | SC-P700 | WF-C20600]"
+        "Which printer or scanner model do you need consumables for? Please tell me your model name (e.g. SC-P900, SC-T3100, SC-F100)."
     ),
     "printer": (
         "Welcome to Kepler Tech! 🖨️ We distribute Epson Large Format & Citizen Photo Printers across the UAE.\n\n"
@@ -42,18 +41,15 @@ CATEGORY_DISCOVERY_PROMPTS = {
         "• 📐 **Technical & CAD/GIS** (Epson SC-T series — 24\" to 44\" for architectural drawings)\n"
         "• 🏢 **Office & Enterprise** (Epson WorkForce A4/A3 high-speed business MFPs)\n"
         "• 📸 **Photo Booth & Events** (Citizen compact dye-sub photo printers)\n"
-        "• 🎨 **Fine Art & Photography** (Epson SC-P series — 12-color 99% Pantone)\n\n"
-        "[Options: Technical / CAD | Office & Enterprise | Photo Booth | Fine Art & Photo]"
+        "• 🎨 **Fine Art & Photography** (Epson SC-P series — 12-color 99% Pantone)"
     ),
     "paper": (
         "We stock genuine Innova fine art papers and Korejet canvas rolls! 🎨\n\n"
-        "What media type are you looking for?\n\n"
-        "[Options: Artistic Canvas Rolls | Fine Art Smooth Paper | Photo Gloss / Luster]"
+        "What media type are you looking for, such as Artistic Canvas Rolls, Fine Art Smooth Paper, or Photo Gloss / Luster?"
     ),
     "scanner": (
         "We supply Epson high-speed document and large format flatbed scanners. 📄\n\n"
-        "Which scanner type do you require?\n\n"
-        "[Options: Document Scanners | Flatbed Photo Scanners | WorkForce DS Series]"
+        "Which scanner type do you require, such as sheetfed document scanners or flatbed photo scanners?"
     )
 }
 

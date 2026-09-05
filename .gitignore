@@ -15,3 +15,11 @@ ENV/
 Thumbs.db
 scratch/
 *.log
+*.db
+*.sqlite
+*.sqlite3
+node_modules/
+package-lock.json
+.cache/
+dist/
+build/

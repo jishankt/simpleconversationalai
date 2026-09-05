@@ -32,9 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusPill = document.getElementById('ollamaStatusPill');
   const statusText = document.getElementById('ollamaStatusText');
 
-  // State
-  let sessionId = localStorage.getItem('cra_session_id') || generateUUID();
-  localStorage.setItem('cra_session_id', sessionId);
+  // State - use sessionStorage so each browser tab/window gets a fresh, clean conversation session
+  let sessionId = sessionStorage.getItem('cra_session_id') || generateUUID();
+  sessionStorage.setItem('cra_session_id', sessionId);
   let isAwaitingReply = false;
 
   // Initialize
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Reset endpoint failed:', err);
     }
     sessionId = generateUUID();
-    localStorage.setItem('cra_session_id', sessionId);
+    sessionStorage.setItem('cra_session_id', sessionId);
     messagesContainer.innerHTML = '';
     renderInitialGreeting();
   });
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     appendMessage('bot', welcomeMsg);
 
     setTimeout(() => {
-      const followUp = "How can I help you today?\n\n[Options: Printers | Scanners | Consumables]";
+      const followUp = "How can I help you with your printing solutions or consumable needs today?";
       appendMessage('bot', followUp);
     }, 250);
   }
@@ -443,28 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Clean conversation display: no raw RAG text dump after cards
-
-    // Interactive quick-reply pills underneath assistant message
-    if (sender === 'bot' && parsedChips && parsedChips.length > 0) {
-      const chipsRow = document.createElement('div');
-      chipsRow.className = 'interactive-replies-row';
-
-      parsedChips.forEach(chipText => {
-        const chipBtn = document.createElement('button');
-        chipBtn.type = 'button';
-        chipBtn.className = 'interactive-reply-btn';
-        chipBtn.textContent = chipText;
-        chipBtn.addEventListener('click', () => {
-          if (!isAwaitingReply) {
-            messageInput.value = chipText;
-            sendMessage(chipText);
-          }
-        });
-        chipsRow.appendChild(chipBtn);
-      });
-
-      contentWrapper.appendChild(chipsRow);
-    }
+    // Pure conversational text without pill buttons
 
     row.appendChild(avatar);
     row.appendChild(contentWrapper);
