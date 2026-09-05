@@ -36,12 +36,12 @@ def classify_dialogue_act(
     raw = text.strip()
     low = raw.lower()
 
-    # 1. Topic change (e.g. "actually now I need a photo booth printer", "switch to scanners")
-    if any(k in low for k in ["actually now i need", "now i need", "switch to", "instead i want", "changed my mind"]):
+    # 1. Topic change (e.g. "actually now I need a photo booth printer", "switch to scanners", or clicking top pills)
+    if low in ["printers", "scanners", "consumables"] or any(k in low for k in ["actually now i need", "now i need", "switch to", "instead i want", "changed my mind"]):
         target_cat = None
         if any(k in low for k in ["photo booth", "dyesub", "citizen", "event printer"]):
             target_cat = "photo_booth"
-        elif any(k in low for k in ["cad", "technical", "plotter", "architect", "blueprint"]):
+        elif any(k in low for k in ["cad", "technical", "plotter", "architect", "blueprint"]) or low == "printers":
             target_cat = "technical_cad"
         elif any(k in low for k in ["scanner", "scanners", "flatbed"]):
             target_cat = "scanner"
@@ -49,7 +49,7 @@ def classify_dialogue_act(
             target_cat = "photo_fine_art"
         elif any(k in low for k in ["office", "enterprise", "workforce", "business printer"]):
             target_cat = "office_enterprise"
-        elif any(k in low for k in ["ink", "consumable", "cartridge"]):
+        elif any(k in low for k in ["ink", "consumable", "consumables", "cartridge"]):
             target_cat = "consumable"
 
         if target_cat:
@@ -171,6 +171,14 @@ def classify_dialogue_act(
             if m_match:
                 return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "printer_model", "value": m_match.group(1).upper()}}
 
+        elif awaiting_field == "scanner_type":
+            if any(k in low for k in ["high-speed", "document", "high speed", "ds-", "sheetfed"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scanner_type", "value": "document_sheetfed"}}
+            elif any(k in low for k in ["flatbed", "a3", "12000xl"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scanner_type", "value": "flatbed_a3"}}
+            elif any(k in low for k in ["business", "workforce", "office", "scanners"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scanner_type", "value": "business"}}
+
     # 9. Standalone entities that match known requirements even without awaiting_field
     if re.search(r"\b(?:a0|36\s*inch|36\")\b", low) and not any(k in low for k in ["compare", "vs"]):
         return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A0"}}
@@ -181,7 +189,7 @@ def classify_dialogue_act(
         return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": m}}
 
     # 10. Greetings / Confirmations
-    if any(w in low for w in ["hello", "hi", "hey", "good morning"]) and len(low.split()) <= 3:
+    if re.search(r"\b(?:hello|hi|hey|good\s+morning)\b", low) and len(low.split()) <= 3:
         return {"act": ACT_GREETING, "params": {}}
     if low in ["yes", "yeah", "yep", "sure", "ok", "okay"]:
         return {"act": ACT_CONFIRMING, "params": {}}

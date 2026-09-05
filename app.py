@@ -315,6 +315,17 @@ def chat():
                 source = "consumables_engine"
                 grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Direct item reference."]}
 
+        elif act == ACT_GREETING:
+            assistant_reply = "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?"
+            suggested_chips = ["Printers", "Scanners", "Consumables"]
+            source = "greeting_engine"
+            grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Greeting response."]}
+
+        elif act == ACT_ENDING:
+            assistant_reply = "Thank you for contacting Kepler Tech LLC! Please let us know if you need any further assistance with your printing equipment or media."
+            source = "ending_engine"
+            grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Conversation conclusion."]}
+
         elif act in (ACT_ANSWERING_QUESTION, ACT_CORRECTING_ANSWER, ACT_CHANGING_TOPIC, "recommend_now") or state.category:
             if act == "recommend_now":
                 next_step = None
