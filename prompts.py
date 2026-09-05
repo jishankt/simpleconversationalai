@@ -240,3 +240,50 @@ def format_generate_prompt(system_prompt: str, history: list, latest_message: st
     return "\n\n".join(prompt_blocks)
 
 
+import json
+
+def format_evidence_grounded_prompt(
+    selected_product: dict,
+    customer_requirement: dict,
+    user_query: str,
+    dialogue_act: str = "recommendation"
+) -> str:
+    """
+    Builds a compact verified evidence payload for local LLM generation.
+    Enforces:
+    - Explain why this product matches.
+    - Use only the supplied facts.
+    - Do not introduce new specifications.
+    - Maximum 3 sentences.
+    - Ask at most one question.
+    """
+    evidence_payload = {
+        "selected_product": {
+            "name": selected_product.get("name"),
+            "sku": selected_product.get("sku"),
+            "width": selected_product.get("width") or selected_product.get("print_sizes", ""),
+            "scanner": "Integrated scanner (MFP)" if selected_product.get("has_scanner") or "mfp" in selected_product.get("name", "").lower() else "Print-only",
+            "ink": selected_product.get("ink_technology", ""),
+            "intended_use": selected_product.get("description", "")
+        },
+        "customer_requirement": customer_requirement
+    }
+
+    prompt = f"""You are the Customer Relations Assistant for Kepler Tech LLC (Dubai).
+EVIDENCE PAYLOAD:
+{json.dumps(evidence_payload, indent=2)}
+
+CUSTOMER QUERY: "{user_query}"
+DIALOGUE ACT: {dialogue_act}
+
+STRICT INSTRUCTIONS:
+1. Explain why this product matches the customer's requirement.
+2. Use ONLY the supplied facts in the evidence payload.
+3. Do NOT invent prices, discounts, or unlisted specifications.
+4. Maximum 3 sentences.
+5. Ask at most one follow-up question.
+"""
+    return prompt
+
+
+

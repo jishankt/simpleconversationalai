@@ -736,6 +736,115 @@ class ConsumablesEngine:
                     break
         return unique
 
+    def rank_candidates_from_state(self, state_dict: dict, limit: int = 4) -> List[Dict]:
+        """
+        Ranks hardware products using canonical structured state:
+        - category (technical_cad, photo_fine_art, office_enterprise, photo_booth, scanner)
+        - print_size (A0/36-inch, A1/24-inch, etc.)
+        - scan_required (bool)
+        - daily_volume (int)
+        """
+        if hasattr(state_dict, "to_dict"):
+            state_dict = state_dict.to_dict()
+
+        category = state_dict.get("category", "")
+        reqs = state_dict.get("requirements", {})
+        print_size = reqs.get("print_size")
+        scan_required = reqs.get("scan_required")
+        daily_volume = reqs.get("daily_volume", 0)
+
+        candidates = []
+        for p in self.products:
+            cat = p.get("category", "")
+            name = p.get("name", "")
+            desc = p.get("description", "")
+            name_lower = name.lower()
+            desc_lower = desc.lower()
+
+            # Must be hardware
+            if cat in ("Ink Cartridge", "Maintenance Box", "Inks & Consumables", "Media & Paper"):
+                continue
+
+            score = 0
+            # 1. Category Matching
+            if category == "technical_cad":
+                if any(k in name_lower for k in ["sc-t", "technical", "cad", "plotter", "t3100", "t5100", "t5400", "t5700", "t7700"]):
+                    score += 100
+                else:
+                    continue
+            elif category == "photo_fine_art":
+                if any(k in name_lower for k in ["sc-p", "p900", "p700", "p7500", "p9500", "p6000", "p7000", "p8000", "p9000", "fine art"]):
+                    score += 100
+                else:
+                    continue
+            elif category == "office_enterprise":
+                if any(k in name_lower for k in ["am-c", "wf-c", "workforce", "enterprise", "c879", "c550", "c4000"]):
+                    score += 100
+                else:
+                    continue
+            elif category == "photo_booth":
+                if any(k in name_lower for k in ["cx-02", "cy-02", "cz-01", "citizen", "photo booth"]):
+                    score += 100
+                else:
+                    continue
+            elif category == "scanner":
+                if cat == "Scanner" or "scanner" in name_lower or "ds-" in name_lower or "12000xl" in name_lower:
+                    score += 100
+                else:
+                    continue
+
+            # 2. Print Size Matching
+            if print_size:
+                ps = str(print_size).upper()
+                if ps in ("A0", "36", "36-INCH", "36\""):
+                    if any(k in name_lower or k in desc_lower for k in ["36\"", "36-inch", "36 inch", "t5100", "t5400", "t5700"]):
+                        score += 60
+                    elif any(k in name_lower for k in ["24\"", "24-inch", "t3100"]):
+                        score -= 50
+                elif ps in ("A1", "24", "24-INCH", "24\""):
+                    if any(k in name_lower or k in desc_lower for k in ["24\"", "24-inch", "24 inch", "t3100"]):
+                        score += 60
+                    elif any(k in name_lower for k in ["36\"", "36-inch", "t5100", "t5400"]):
+                        score -= 50
+
+            # 3. Scanner Required Matching
+            if scan_required is True:
+                # User wants built-in scanner (MFP)
+                if any(k in name_lower or k in desc_lower for k in ["mfp", "scanner", "scan", "t5400m", "t5700dm", "t5700d mfp", "with scanner"]):
+                    score += 80
+                else:
+                    score -= 40
+            elif scan_required is False:
+                # User explicitly doesn't want scanner (print only)
+                if any(k in name_lower for k in ["mfp", "t5400m", "t5700dm"]):
+                    score -= 50
+                else:
+                    score += 30
+
+            # 4. Daily Volume Matching
+            if daily_volume and daily_volume > 0:
+                if daily_volume >= 50:  # High volume
+                    if any(k in name_lower for k in ["t5700", "t7700", "t5400", "p7500", "p9500", "am-c", "wf-c20"]):
+                        score += 50
+                elif daily_volume < 20:  # Low volume desktop
+                    if any(k in name_lower for k in ["t3100", "t5100", "p700", "p900", "cx-02"]):
+                        score += 50
+
+            card = self._format_card(p, card_type="hardware")
+            card["match_score"] = score
+            candidates.append(card)
+
+        candidates.sort(key=lambda x: x["match_score"], reverse=True)
+        unique = []
+        seen = set()
+        for c in candidates:
+            if c["sku"] not in seen:
+                seen.add(c["sku"])
+                unique.append(c)
+                if len(unique) >= limit:
+                    break
+        return unique
+
     def _format_card(self, prod: dict, card_type: str = "hardware") -> dict:
         """
         Formats product data into clean, compliant cards.

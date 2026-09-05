@@ -53,12 +53,17 @@ def detect_comparison_request(query: str, nlp_context: dict) -> dict:
     }
 
 
-def generate_comparison_response(model_a: dict, model_b: dict, user_query: str) -> dict:
+def generate_comparison_response(model_a, model_b, user_query: str) -> dict:
     """
     Generates a natural, compliant Section D comparison response.
     """
-    name_a = model_a["name"]
-    name_b = model_b["name"]
+    if isinstance(model_a, str):
+        model_a = {"name": model_a}
+    if isinstance(model_b, str):
+        model_b = {"name": model_b}
+
+    name_a = model_a.get("name", "Option 1")
+    name_b = model_b.get("name", "Option 2")
 
     # Differences based on specifications
     diff_points = []
