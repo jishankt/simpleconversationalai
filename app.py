@@ -34,6 +34,8 @@ from nlp.dialogue_act import (
     ACT_REJECTING,
     ACT_GENERAL_DISCOVERY
 )
+from agent.ai_orchestrator import ai_orchestrator
+from rag.consumables_engine import consumables_engine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("conversational_ai")
@@ -164,243 +166,24 @@ def chat():
 
     logger.info(f"[{session_id[:8]}] Customer: '{raw_message}' -> Normalized: '{normalized_msg}' | Intent: {detected_intent}")
 
-    # 2. Strict Commercial Rule Intercept
-    fast_refusal = check_user_intent_for_pricing_or_discount(raw_message)
-    if not fast_refusal and (detected_intent == INTENT_PRICE):
-        fast_refusal = PRICE_REFUSAL
-    elif not fast_refusal and (detected_intent == INTENT_DISCOUNT):
-        fast_refusal = DISCOUNT_REFUSAL
+    # Process conversational turn through dynamic AI Orchestrator
+    orchestrator_res = ai_orchestrator.process_turn(
+        raw_message=raw_message,
+        session_id=session_id,
+        history=history,
+        state=state,
+        model_name=model_name
+    )
 
-    retrieved_items = []
-    product_cards = []
-    consumable_cards = []
-    suggested_chips = nlp_result.get("suggested_chips", [])
-    assistant_reply = ""
-    source = ""
-
-    if fast_refusal:
-        assistant_reply = fast_refusal
-        source = "guardrail_rule"
-        grounding_result = {
-            "is_grounded": True,
-            "status": "GUARDRAIL_INTERCEPT",
-            "notes": ["Strict commercial boundary enforced (price/discount refusal)."]
-        }
-    else:
-        # 3. Dialogue Act Classification
-        act_info = classify_dialogue_act(
-            text=raw_message,
-            awaiting_field=state.awaiting_field,
-            current_category=state.category,
-            active_product=state.active_product
-        )
-        act = act_info.get("act")
-        act_params = act_info.get("params", {})
-        logger.info(f"[{session_id[:8]}] Dialogue Act: {act} | Params: {act_params} | Current Awaiting: {state.awaiting_field}")
-
-        low_msg = normalized_msg.lower()
-
-        # Category initialization or switching
-        if act == ACT_CHANGING_TOPIC and act_params.get("target_category"):
-            state.reset_category(act_params["target_category"])
-        elif act_params.get("field") == "scanner_type":
-            state.category = "scanner"
-        elif not state.category:
-            if any(k in low_msg for k in ["architect", "cad", "plotter", "technical", "blueprint"]):
-                state.category = "technical_cad"
-            elif any(k in low_msg for k in ["photo booth", "dyesub", "instant print"]):
-                state.category = "photo_booth"
-            elif any(k in low_msg for k in ["fine art", "photo printer", "gallery"]):
-                state.category = "photo_fine_art"
-            elif any(k in low_msg for k in ["scanner", "scanners", "flatbed"]):
-                state.category = "scanner"
-            elif any(k in low_msg for k in ["consumable", "consumables", "ink", "cartridge"]):
-                state.category = "consumable"
-            elif any(k in low_msg for k in ["office", "enterprise", "workforce"]):
-                state.category = "office_enterprise"
-
-        # 4. Requirement Updater
-        state = req_updater.update_state(state, act_info, raw_message)
-
-        # Check for model keys or history for consumables
-        last_assistant_msg = ""
-        for turn in reversed(history):
-            if turn.get("role") == "assistant":
-                last_assistant_msg = turn.get("content", "").lower()
-                break
-        was_asking_for_consumables = any(k in last_assistant_msg for k in ["need consumables for", "printer or scanner model", "cartridge size are you looking for", "which printer model do you have"])
-        identified_key = consumables_engine.identify_printer_key(normalized_msg)
-
-        # 5. Route by Dialogue Act
-        if act == ACT_ASKING_CONSUMABLES:
-            target_p = None
-            model_code = act_params.get("model_code")
-            if model_code:
-                consumable_cards = consumables_engine.get_printer_consumables(model_code, limit=6)
-                if consumable_cards:
-                    assistant_reply = f"Here are the genuine compatible inks and consumables for {model_code}:"
-                    source = "consumables_engine"
-                    grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Verified compatible consumables."]}
-
-            if not consumable_cards:
-                if act_params.get("item_ref") is not None and 0 <= act_params["item_ref"] < len(state.candidate_products):
-                    target_p = state.candidate_products[act_params["item_ref"]]
-                elif state.active_product:
-                    target_p = state.active_product
-                elif state.candidate_products:
-                    target_p = state.candidate_products[0]
-
-                if target_p:
-                    consumable_cards = consumables_engine.get_printer_consumables(target_p.get("name") or target_p.get("sku"), limit=6)
-                    model_name = target_p.get("name", "this printer")
-                    assistant_reply = f"Here are the genuine compatible inks and consumables for {model_name}:"
-                    source = "consumables_engine"
-                    grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Verified compatible consumables."]}
-                else:
-                    consumable_cards = consumables_engine.get_printer_consumables(normalized_msg, limit=6)
-                    if consumable_cards:
-                        assistant_reply = f"Here are the genuine compatible inks and consumables for {normalized_msg.upper()}:"
-                        source = "consumables_engine"
-                        grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Verified compatible consumables."]}
-
-        elif act == ACT_ASKING_PRODUCT_QUESTION:
-            target_p = None
-            if act_params.get("item_ref") is not None and 0 <= act_params["item_ref"] < len(state.candidate_products):
-                target_p = state.candidate_products[act_params["item_ref"]]
-                state.active_product = target_p
-            elif state.active_product:
-                target_p = state.active_product
-            elif state.candidate_products:
-                target_p = state.candidate_products[0]
-                state.active_product = target_p
-
-            if target_p:
-                ev_prompt = format_evidence_grounded_prompt(
-                    selected_product=target_p,
-                    customer_requirement=state.requirements,
-                    user_query=raw_message,
-                    dialogue_act="asking_product_question"
-                )
-                gen_result = ollama_client.generate(prompt=ev_prompt, model=model_name)
-                raw_response = gen_result.get("response", "")
-                source = gen_result.get("source", "ollama")
-                sanitized = validate_and_sanitize_response(raw_response, normalized_msg)
-                grounding_result = validate_grounding(sanitized, normalized_msg, nlp_result)
-                assistant_reply = grounding_result["sanitized_response"]
-                product_cards = state.candidate_products[:4] if state.candidate_products else [target_p]
-
-        elif act == ACT_ASKING_COMPARISON:
-            if "which is better" in raw_message.lower() and state.active_product:
-                ev_prompt = format_evidence_grounded_prompt(
-                    selected_product=state.active_product,
-                    customer_requirement=state.requirements,
-                    user_query=raw_message,
-                    dialogue_act="which_is_better_for_me"
-                )
-                gen_result = ollama_client.generate(prompt=ev_prompt, model=model_name)
-                raw_response = gen_result.get("response", "")
-                source = gen_result.get("source", "ollama")
-                sanitized = validate_and_sanitize_response(raw_response, normalized_msg)
-                grounding_result = validate_grounding(sanitized, normalized_msg, nlp_result)
-                assistant_reply = grounding_result["sanitized_response"]
-                product_cards = state.candidate_products[:4]
-            elif len(state.candidate_products) >= 2:
-                comp_res = generate_comparison_response(state.candidate_products[0], state.candidate_products[1], raw_message)
-                assistant_reply = comp_res["text"]
-                source = "rag_comparison_engine"
-                grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Section D comparison."]}
-                product_cards = state.candidate_products[:2]
-
-        elif act == ACT_CHANGING_REQUIREMENT:
-            if state.candidate_products and len(state.candidate_products) > 1:
-                if state.active_product:
-                    product_cards = [state.active_product]
-                    assistant_reply = f"Here is another option that matches your requirements: {state.active_product.get('name')}."
-                    source = "state_candidate_rotator"
-                    grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Alternative candidate."]}
-
-        elif act == ACT_REFERENCING_ITEM:
-            if state.active_product:
-                product_cards = [state.active_product]
-                assistant_reply = f"Here are the details for the {state.active_product.get('name')}:"
-                source = "consumables_engine"
-                grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Direct item reference."]}
-
-        elif act == ACT_GREETING:
-            assistant_reply = "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?"
-            suggested_chips = ["Printers", "Scanners", "Consumables"]
-            source = "greeting_engine"
-            grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Greeting response."]}
-
-        elif act == ACT_ENDING:
-            assistant_reply = "Thank you for contacting Kepler Tech LLC! Please let us know if you need any further assistance with your printing equipment or media."
-            source = "ending_engine"
-            grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Conversation conclusion."]}
-
-        elif act in (ACT_ANSWERING_QUESTION, ACT_CORRECTING_ANSWER, ACT_CHANGING_TOPIC, "recommend_now") or state.category:
-            if act == "recommend_now":
-                next_step = None
-            else:
-                next_step = next_question_engine.evaluate_next_step(state)
-
-            if next_step:
-                assistant_reply = next_step["question"]
-                suggested_chips = next_step.get("pills", [])
-                source = "next_question_engine"
-                grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Consultative qualification active."]}
-                product_cards = []
-                consumable_cards = []
-            else:
-                candidates = consumables_engine.rank_candidates_from_state(state, limit=4)
-                state.candidate_products = candidates
-                if candidates:
-                    state.active_product = candidates[0]
-                    product_cards = candidates
-                    cat_label = "printers"
-                    if state.category == "technical_cad":
-                        cat_label = "Epson Technical & CAD plotters"
-                    elif state.category == "photo_booth":
-                        cat_label = "Citizen compact dye-sub photo printers"
-                    elif state.category == "photo_fine_art":
-                        cat_label = "Epson SureColor Fine Art & Photo printers"
-                    elif state.category == "scanner":
-                        st = state.requirements.get("scanner_type")
-                        if st == "document_sheetfed":
-                            cat_label = "Epson high-speed network & duplex document scanners"
-                        elif st == "flatbed_a3":
-                            cat_label = "Epson A3 large-format flatbed scanners"
-                        elif st == "business":
-                            cat_label = "Epson compact desktop & portable business scanners"
-                        else:
-                            cat_label = "Epson document and flatbed scanners"
-                    elif state.category == "consumable":
-                        cat_label = "genuine consumables"
-
-                    req_summary = []
-                    if "print_size" in state.requirements:
-                        req_summary.append(str(state.requirements['print_size']))
-                    if "scan_required" in state.requirements:
-                        req_summary.append("integrated scanner" if state.requirements['scan_required'] else "print-only")
-                    if "daily_volume" in state.requirements:
-                        req_summary.append(f"~{state.requirements['daily_volume']} prints/day")
-
-                    summary_str = f" ({', '.join(req_summary)})" if req_summary else ""
-                    assistant_reply = f"Based on your requirements{summary_str}, here are our recommended {cat_label}:"
-                    source = "state_retrieval_engine"
-                    grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Ranked from canonical state."]}
-
-        # Fallback RAG if no response was formulated
-        if not assistant_reply:
-            retrieved_items = rag_retriever.retrieve(normalized_msg, nlp_context=nlp_result, top_k=3)
-            rag_context_str = rag_retriever.format_prompt_context(retrieved_items)
-            system_prompt = build_system_prompt(company_context)
-            full_prompt = format_generate_prompt(system_prompt, history, normalized_msg, nlp_context=nlp_result, rag_context=rag_context_str)
-            gen_result = ollama_client.generate(prompt=full_prompt, model=model_name)
-            raw_response = gen_result.get("response", "")
-            source = gen_result.get("source", "ollama")
-            sanitized = validate_and_sanitize_response(raw_response, normalized_msg)
-            grounding_result = validate_grounding(sanitized, normalized_msg, nlp_result)
-            assistant_reply = grounding_result["sanitized_response"]
+    assistant_reply = orchestrator_res["reply"]
+    source = orchestrator_res["source"]
+    product_cards = orchestrator_res["product_cards"]
+    consumable_cards = orchestrator_res["consumable_cards"]
+    suggested_chips = orchestrator_res["suggested_chips"]
+    grounding_result = orchestrator_res["grounding"]
+    nlp_result = orchestrator_res["nlp"]
+    state = orchestrator_res["state"]
+    retrieved_items = orchestrator_res.get("retrieved_items", [])
 
     # Save state and history turns
     state.history_turns.append({"role": "user", "content": normalized_msg})

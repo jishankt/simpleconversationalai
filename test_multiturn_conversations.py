@@ -10,6 +10,10 @@ Verifies all 4 required suites:
 import requests
 import json
 import uuid
+import sys
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 BASE_URL = "http://127.0.0.1:5050"
 
