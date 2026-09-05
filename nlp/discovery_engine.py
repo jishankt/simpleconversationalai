@@ -28,14 +28,13 @@ SPECIFIC_EXCLUSIONS = [
     # If the user mentioned a specific model name/code or specific ink color, it's NOT a broad query
     r"\b(?:sc-p\d+[a-z0-9]*|sc-t\d+[a-z0-9]*|sc-f\d+[a-z0-9]*|p\d{3,5}[a-z0-9]*|t\d{3,5}[a-z0-9]*|f\d{3,4}[a-z0-9]*|cx-02[a-z0-9]*|cz-01|cy-02|wf-[a-z0-9]+|am-[a-z0-9]+|em-[a-z0-9]+|ds-[a-z0-9]+|es-[a-z0-9]+|12000xl|c13t\d+|t800\d+|photo\s+black|matte\s+black|cyan|magenta|yellow|700ml|350ml|110ml|1\.6l)\b",
     # Do not intercept specific pill choices from discovery prompts
-    r"(?:a4\s+business|a3\s+large\s+format|high-speed\s+document|flatbed|artistic\s+canvas|fine\s+art\s+smooth|photo\s+gloss)"
+    r"(?:a4\s+business|a3\s+large\s+format|high-speed\s+document|flatbed|artistic\s+canvas|fine\s+art\s+smooth|photo\s+gloss|document\s+scanners|workforce\s+ds)"
 ]
 
 CATEGORY_DISCOVERY_PROMPTS = {
     "ink": (
-        "Sure! We carry the complete range of genuine Epson UltraChrome and WorkForce inks. 🖨️\n\n"
-        "What printer model do you have? Which color(s) or cartridge size are you looking for?\n\n"
-        "[Options: SureColor SC-P Inks | WorkForce Pro Inks | EcoTank / Dye-Sub | Maintenance Box]"
+        "Which printer or scanner model do you need consumables for? Please select or enter your product name:\n\n"
+        "[Options: SC-P900 | SC-T3100 | SC-F100 | SC-P700 | WF-C20600]"
     ),
     "printer": (
         "Welcome to Kepler Tech! 🖨️ We distribute Epson Large Format & Citizen Photo Printers across the UAE.\n\n"
@@ -52,9 +51,9 @@ CATEGORY_DISCOVERY_PROMPTS = {
         "[Options: Artistic Canvas Rolls | Fine Art Smooth Paper | Photo Gloss / Luster]"
     ),
     "scanner": (
-        "We carry high-speed Epson business and flatbed scanners. 📄\n\n"
-        "What document size do you need to scan?\n\n"
-        "[Options: A4 Business Scanner | A3 Large Format Flatbed | High-Speed Document Scanner]"
+        "We supply Epson high-speed document and large format flatbed scanners. 📄\n\n"
+        "Which scanner type do you require?\n\n"
+        "[Options: Document Scanners | Flatbed Photo Scanners | WorkForce DS Series]"
     )
 }
 

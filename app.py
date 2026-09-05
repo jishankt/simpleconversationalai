@@ -171,56 +171,98 @@ def chat():
 
             # 4. Strict Intent-Based Card Delivery Flow (Give ONLY what was asked)
             lower_msg = normalized_msg.lower()
-            is_scanner_query = any(k in lower_msg for k in ["scanner", "scanners", "flatbed", "document scanner"])
-            is_media_query = any(k in lower_msg for k in ["paper", "media", "canvas", "roll", "rolls", "rag", "luster", "cotton"])
-            is_consumable_query = any(k in lower_msg for k in ["ink", "cartridge", "cartridges", "consumable", "consumables", "ribbon", "ribbons", "maintenance box", "waste box", "tank", "tanks"])
-            is_printer_query = any(k in lower_msg for k in ["printer", "printers", "plotter", "plotters", "cad", "photo booth", "workforce", "surecolor", "office printer", "business printer", "fine art"])
 
-            if is_scanner_query:
+            # Check conversation history to see if assistant just asked for the consumables product model
+            last_assistant_msg = ""
+            for turn in reversed(history):
+                if turn.get("role") == "assistant":
+                    last_assistant_msg = turn.get("content", "").lower()
+                    break
+
+            was_asking_for_consumables = any(k in last_assistant_msg for k in ["need consumables for", "printer or scanner model", "cartridge size are you looking for", "which printer model do you have"])
+            
+            # Check if this query mentions a known printer model or is responding to consumables question
+            identified_key = consumables_engine.identify_printer_key(normalized_msg)
+            is_consumable_query = any(k in lower_msg for k in ["ink", "cartridge", "cartridges", "consumable", "consumables", "ribbon", "ribbons", "maintenance box", "waste box", "tank", "tanks"]) or (was_asking_for_consumables and identified_key is not None)
+            is_scanner_query = any(k in lower_msg for k in ["scanner", "scanners", "flatbed", "document scanner"]) and not is_consumable_query
+            is_media_query = any(k in lower_msg for k in ["paper", "media", "canvas", "roll", "rolls", "rag", "luster", "cotton"]) and not is_consumable_query
+
+            assistant_reply = ""
+            source = ""
+
+            if is_consumable_query:
+                # User asked explicitly for inks/consumables or answered which product model they have
+                printer_key = identified_key or consumables_engine.identify_printer_key(normalized_msg)
+                if printer_key:
+                    consumable_cards = consumables_engine.get_printer_consumables(normalized_msg, limit=6)
+                else:
+                    consumable_cards = consumables_engine.get_printer_consumables(normalized_msg, limit=6)
+                    if not consumable_cards:
+                        consumable_cards = [c for c in consumables_engine.products if any(t in c.get('name', '').lower() for t in lower_msg.split()) and c.get('category') in ('Ink Cartridge', 'Maintenance Box')][:6]
+                        consumable_cards = [consumables_engine._format_card(c, card_type="consumable") for c in consumable_cards]
+                product_cards = []
+                if consumable_cards:
+                    model_display = (printer_key or normalized_msg).upper()
+                    assistant_reply = f"Here are the genuine compatible inks and consumables for {model_display}:"
+                    source = "consumables_engine"
+            elif is_scanner_query:
                 product_cards = consumables_engine.find_matching_scanners(normalized_msg, limit=4)
                 consumable_cards = []
+                if product_cards:
+                    assistant_reply = "Here are our recommended Epson high-speed document and flatbed scanners:"
+                    source = "consumables_engine"
             elif is_media_query:
                 consumable_cards = consumables_engine.find_matching_media(normalized_msg, limit=4)
                 product_cards = []
-            elif is_consumable_query:
-                # User asked explicitly for inks or consumables -> return only matching consumables
-                printer_key = consumables_engine.identify_printer_key(normalized_msg)
-                if printer_key:
-                    consumable_cards = consumables_engine.get_printer_consumables(normalized_msg, limit=4)
-                else:
-                    consumable_cards = consumables_engine.get_printer_consumables(normalized_msg, limit=4)
-                    if not consumable_cards:
-                        # Direct keyword search for matching ink items
-                        consumable_cards = [c for c in consumables_engine.products if any(t in c.get('name', '').lower() for t in lower_msg.split()) and c.get('category') in ('Ink Cartridge', 'Maintenance Box')][:4]
-                        consumable_cards = [consumables_engine._format_card(c, card_type="consumable") for c in consumable_cards]
-                product_cards = []
+                if consumable_cards:
+                    assistant_reply = "Here are our recommended genuine Innova fine art and Korejet media rolls:"
+                    source = "consumables_engine"
             else:
                 # Default / printer hardware request -> return strictly matching printer hardware cards
                 product_cards = consumables_engine.find_matching_hardware(normalized_msg, limit=4)
                 consumable_cards = []
+                if product_cards and any(k in lower_msg for k in ["cad", "technical", "photo booth", "fine art", "office", "enterprise", "t3100", "t5100", "p900", "p700", "cx-02", "printer", "printers", "plotter"]):
+                    cat_name = "printers"
+                    if "cad" in lower_msg or "technical" in lower_msg:
+                        cat_name = "Epson Technical & CAD plotters"
+                    elif "fine art" in lower_msg or "photo" in lower_msg:
+                        cat_name = "Epson SureColor Fine Art & Photo printers"
+                    elif "office" in lower_msg or "enterprise" in lower_msg:
+                        cat_name = "Epson WorkForce Enterprise office MFPs"
+                    elif "photo booth" in lower_msg:
+                        cat_name = "Citizen compact dye-sub photo printers"
+                    assistant_reply = f"Here are our recommended {cat_name}:"
+                    source = "consumables_engine"
 
-            # 5. Check for Dedicated Section D Product Comparison Request
-            comparison_info = detect_comparison_request(normalized_msg, nlp_result)
-            if comparison_info["is_comparison"] and len(comparison_info["models"]) >= 2:
-                comp_res = generate_comparison_response(comparison_info["models"][0], comparison_info["models"][1], normalized_msg)
-                raw_response = comp_res["text"]
-                source = "rag_comparison_engine"
+            if not assistant_reply:
+                # 5. Check for Dedicated Section D Product Comparison Request
+                comparison_info = detect_comparison_request(normalized_msg, nlp_result)
+                if comparison_info["is_comparison"] and len(comparison_info["models"]) >= 2:
+                    comp_res = generate_comparison_response(comparison_info["models"][0], comparison_info["models"][1], normalized_msg)
+                    raw_response = comp_res["text"]
+                    source = "rag_comparison_engine"
+                else:
+                    # 6. Build system prompt with factual grounding & RAG context
+                    system_prompt = build_system_prompt(company_context)
+                    full_prompt = format_generate_prompt(system_prompt, history, normalized_msg, nlp_context=nlp_result, rag_context=rag_context_str)
+
+                    # Call Ollama generate
+                    gen_result = ollama_client.generate(prompt=full_prompt, model=model_name)
+                    raw_response = gen_result.get("response", "")
+                    source = gen_result.get("source", "ollama")
+
+                # 7. Commercial sanitizer
+                sanitized = validate_and_sanitize_response(raw_response, normalized_msg)
+
+                # 8. Zero-Hallucination Grounding Validator
+                grounding_result = validate_grounding(sanitized, normalized_msg, nlp_result)
+                assistant_reply = grounding_result["sanitized_response"]
             else:
-                # 6. Build system prompt with factual grounding & RAG context
-                system_prompt = build_system_prompt(company_context)
-                full_prompt = format_generate_prompt(system_prompt, history, normalized_msg, nlp_context=nlp_result, rag_context=rag_context_str)
-
-                # Call Ollama generate
-                gen_result = ollama_client.generate(prompt=full_prompt, model=model_name)
-                raw_response = gen_result.get("response", "")
-                source = gen_result.get("source", "ollama")
-
-            # 7. Commercial sanitizer
-            sanitized = validate_and_sanitize_response(raw_response, normalized_msg)
-
-            # 8. Zero-Hallucination Grounding Validator
-            grounding_result = validate_grounding(sanitized, normalized_msg, nlp_result)
-            assistant_reply = grounding_result["sanitized_response"]
+                grounding_result = {
+                    "is_grounded": True,
+                    "status": "VERIFIED_GROUNDED",
+                    "notes": ["Verified catalog match."]
+                }
 
     # Save turns to session history
     history.append({"role": "user", "content": normalized_msg})
