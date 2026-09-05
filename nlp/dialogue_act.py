@@ -36,21 +36,26 @@ def classify_dialogue_act(
     raw = text.strip()
     low = raw.lower()
 
-    # 1. Topic change (e.g. "actually now I need a photo booth printer", "switch to scanners", or clicking top pills)
-    if low in ["printers", "scanners", "consumables"] or any(k in low for k in ["actually now i need", "now i need", "switch to", "instead i want", "changed my mind"]):
+    # 1. Topic change (e.g. "actually now I need a photo booth printer", "switch to scanners", "i want office printer", or clicking top pills)
+    if low in ["printers", "scanners", "consumables"] or any(k in low for k in [
+        "actually now i need", "now i need", "switch to", "instead i want", "changed my mind",
+        "i want", "i need", "looking for", "show me options for"
+    ]):
         target_cat = None
         if any(k in low for k in ["photo booth", "dyesub", "citizen", "event printer"]):
             target_cat = "photo_booth"
-        elif any(k in low for k in ["cad", "technical", "plotter", "architect", "blueprint"]) or low == "printers":
+        elif any(k in low for k in ["cad", "technical", "plotter", "architect", "blueprint"]):
             target_cat = "technical_cad"
+        elif any(k in low for k in ["fine art", "photo printer", "photo printers", "gallery", "photography"]):
+            target_cat = "photo_fine_art"
+        elif any(k in low for k in ["office", "enterprise", "workforce", "business printer", "copier"]):
+            target_cat = "office_enterprise"
         elif any(k in low for k in ["scanner", "scanners", "flatbed"]):
             target_cat = "scanner"
-        elif any(k in low for k in ["fine art", "photo printer", "gallery"]):
-            target_cat = "photo_fine_art"
-        elif any(k in low for k in ["office", "enterprise", "workforce", "business printer"]):
-            target_cat = "office_enterprise"
-        elif any(k in low for k in ["ink", "consumable", "consumables", "cartridge"]):
+        elif any(k in low for k in ["ink", "consumable", "consumables", "cartridge", "cartridges"]):
             target_cat = "consumable"
+        elif any(k in low for k in ["printer", "printers"]):
+            target_cat = "technical_cad"
 
         if target_cat:
             return {"act": ACT_CHANGING_TOPIC, "params": {"target_category": target_cat}}
@@ -189,6 +194,14 @@ def classify_dialogue_act(
     if re.search(r"\b(?:4x6|5x7|6x8)\b", low):
         m = re.search(r"\b(?:4x6|5x7|6x8)\b", low).group(0)
         return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": m}}
+
+    # 9b. Standalone scanner types (even without awaiting_field)
+    if any(k in low for k in ["high-speed document", "high-speed scanner", "high speed document", "high speed scanner", "high-speed"]):
+        return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scanner_type", "value": "document_sheetfed"}}
+    if any(k in low for k in ["a3 large format flatbed", "large format flatbed", "a3 flatbed", "flatbed scanner", "a3 scanner"]):
+        return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scanner_type", "value": "flatbed_a3"}}
+    if any(k in low for k in ["business scanners", "business scanner"]):
+        return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scanner_type", "value": "business"}}
 
     # 10. Greetings / Confirmations
     if re.search(r"\b(?:hello|hi|hey|good\s+morning)\b", low) and len(low.split()) <= 3:

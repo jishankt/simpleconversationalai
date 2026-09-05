@@ -203,6 +203,8 @@ def chat():
         # Category initialization or switching
         if act == ACT_CHANGING_TOPIC and act_params.get("target_category"):
             state.reset_category(act_params["target_category"])
+        elif act_params.get("field") == "scanner_type":
+            state.category = "scanner"
         elif not state.category:
             if any(k in low_msg for k in ["architect", "cad", "plotter", "technical", "blueprint"]):
                 state.category = "technical_cad"

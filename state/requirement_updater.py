@@ -40,7 +40,7 @@ class RequirementUpdater:
                 state.candidate_products = []
             return state
 
-        # 3. Answering Question (e.g. "A0", "yes", "around 60")
+        # 3. Answering Question (e.g. "A0", "yes", "around 60", "scanner_type")
         if act == ACT_ANSWERING_QUESTION:
             field = params.get("field")
             val = params.get("value")
@@ -48,6 +48,8 @@ class RequirementUpdater:
                 state.requirements[field] = val
                 if field == state.awaiting_field:
                     state.awaiting_field = None
+                state.active_product = None
+                state.candidate_products = []
             return state
 
         # 4. Item Referencing (e.g., "the first one", "the second one", "T5400M")
