@@ -81,14 +81,16 @@ def classify_dialogue_act(
                 "params": {"field": correction_field, "value": new_val}
             }
 
-    # 3. Consumable questions (e.g. "what ink does it use?", "what ink does the first one use?", "what inks for it?")
-    if re.search(r"\b(?:what\s+ink|which\s+ink|compatible\s+ink|what\s+consumable|maintenance\s+tank|waste\s+box|cartridges?\s+for)\b", low):
+    # 3. Consumable questions (e.g. "what ink does it use?", "what consumables and inks are compatible with...", "inks for SC-T3100")
+    if any(k in low for k in ["ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "ribbon", "ribbons", "maintenance tank", "waste box", "toner"]):
         item_ref = None
         if "first" in low or "1st" in low:
             item_ref = 0
         elif "second" in low or "2nd" in low:
             item_ref = 1
-        return {"act": ACT_ASKING_CONSUMABLES, "params": {"item_ref": item_ref}}
+        model_m = re.search(r"\b(sc-[a-z0-9-]+|t\d{4}[a-z]*|p\d{3,4}[a-z]*|f\d{3,4}|cx-02|cy-02|am-c\d+|wf-c\d+|ds-\d+[a-z]*)\b", low)
+        model_code = model_m.group(1).upper() if model_m else None
+        return {"act": ACT_ASKING_CONSUMABLES, "params": {"item_ref": item_ref, "model_code": model_code}}
 
     # 4. Comparison (e.g., "compare them", "which is better for me?", "difference between")
     if any(k in low for k in ["compare", "which is better", "difference between", "how do they compare", "which one should i choose"]):

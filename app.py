@@ -232,25 +232,34 @@ def chat():
         # 5. Route by Dialogue Act
         if act == ACT_ASKING_CONSUMABLES:
             target_p = None
-            if act_params.get("item_ref") is not None and 0 <= act_params["item_ref"] < len(state.candidate_products):
-                target_p = state.candidate_products[act_params["item_ref"]]
-            elif state.active_product:
-                target_p = state.active_product
-            elif state.candidate_products:
-                target_p = state.candidate_products[0]
-
-            if target_p:
-                consumable_cards = consumables_engine.get_printer_consumables(target_p.get("name") or target_p.get("sku"), limit=6)
-                model_name = target_p.get("name", "this printer")
-                assistant_reply = f"Here are the genuine compatible inks and consumables for {model_name}:"
-                source = "consumables_engine"
-                grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Verified compatible consumables."]}
-            else:
-                consumable_cards = consumables_engine.get_printer_consumables(normalized_msg, limit=6)
+            model_code = act_params.get("model_code")
+            if model_code:
+                consumable_cards = consumables_engine.get_printer_consumables(model_code, limit=6)
                 if consumable_cards:
-                    assistant_reply = f"Here are the genuine compatible inks and consumables for {normalized_msg.upper()}:"
+                    assistant_reply = f"Here are the genuine compatible inks and consumables for {model_code}:"
                     source = "consumables_engine"
                     grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Verified compatible consumables."]}
+
+            if not consumable_cards:
+                if act_params.get("item_ref") is not None and 0 <= act_params["item_ref"] < len(state.candidate_products):
+                    target_p = state.candidate_products[act_params["item_ref"]]
+                elif state.active_product:
+                    target_p = state.active_product
+                elif state.candidate_products:
+                    target_p = state.candidate_products[0]
+
+                if target_p:
+                    consumable_cards = consumables_engine.get_printer_consumables(target_p.get("name") or target_p.get("sku"), limit=6)
+                    model_name = target_p.get("name", "this printer")
+                    assistant_reply = f"Here are the genuine compatible inks and consumables for {model_name}:"
+                    source = "consumables_engine"
+                    grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Verified compatible consumables."]}
+                else:
+                    consumable_cards = consumables_engine.get_printer_consumables(normalized_msg, limit=6)
+                    if consumable_cards:
+                        assistant_reply = f"Here are the genuine compatible inks and consumables for {normalized_msg.upper()}:"
+                        source = "consumables_engine"
+                        grounding_result = {"is_grounded": True, "status": "VERIFIED_GROUNDED", "notes": ["Verified compatible consumables."]}
 
         elif act == ACT_ASKING_PRODUCT_QUESTION:
             target_p = None
@@ -353,7 +362,15 @@ def chat():
                     elif state.category == "photo_fine_art":
                         cat_label = "Epson SureColor Fine Art & Photo printers"
                     elif state.category == "scanner":
-                        cat_label = "Epson high-speed document and flatbed scanners"
+                        st = state.requirements.get("scanner_type")
+                        if st == "document_sheetfed":
+                            cat_label = "Epson high-speed network & duplex document scanners"
+                        elif st == "flatbed_a3":
+                            cat_label = "Epson A3 large-format flatbed scanners"
+                        elif st == "business":
+                            cat_label = "Epson compact desktop & portable business scanners"
+                        else:
+                            cat_label = "Epson document and flatbed scanners"
                     elif state.category == "consumable":
                         cat_label = "genuine consumables"
 

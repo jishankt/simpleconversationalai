@@ -703,31 +703,55 @@ class ConsumablesEngine:
         return unique
 
     def find_matching_scanners(self, query: str, limit: int = 4) -> List[Dict]:
-        """Finds genuine Epson business, document, and flatbed scanners."""
+        """Finds genuine Epson business, document, and flatbed scanners with strict subcategory differentiation."""
         lower = query.lower()
+        is_high_speed = any(k in lower for k in ["high-speed", "high speed", "fast document", "ds-900", "ds-800", "ds-970", "ds-870", "ds-790", "ds-770"])
+        is_a3_flatbed = any(k in lower for k in ["a3", "flatbed", "large format", "large-format", "12000xl", "ds-70000", "ds-60000", "ds-32000", "ds-30000"])
+        is_business = any(k in lower for k in ["business", "ds-1630", "ds-1660", "ds-410", "ds-70", "ds-80", "ds-310", "ds-360", "portable", "desktop scanner"])
+
         results = []
         for p in self.products:
             name = p.get("name", "").lower()
             cat = p.get("category", "")
-            if cat == "Scanner" or "scanner" in name:
+            if cat == "Scanner" or "scanner" in name or "12000xl" in name or "ds-" in name:
                 score = 10
-                if "flatbed" in lower and ("flatbed" in name or "12000xl" in name or "v850" in name or "ds-50000" in name or "ds-70000" in name):
+                if is_high_speed:
+                    if any(k in name for k in ["ds-900wn", "ds-800wn", "ds-970", "ds-870", "ds-790wn", "ds-770"]):
+                        score += 150
+                    elif "duplex" in name or "high-speed" in name:
+                        score += 80
+                    elif "12000xl" in name or "ds-70000" in name or "ds-60000" in name:
+                        score -= 80
+                elif is_a3_flatbed:
+                    if any(k in name for k in ["12000xl", "ds-70000", "ds-60000", "ds-32000", "ds-30000", "large-format"]):
+                        score += 150
+                    elif "flatbed" in name:
+                        score += 70
+                    else:
+                        score -= 80
+                elif is_business:
+                    if any(k in name for k in ["ds-1630", "ds-1660w", "ds-410", "ds-70", "ds-80w", "ds-310", "ds-360w", "business"]):
+                        score += 150
+                    elif "12000xl" in name or "ds-70000" in name or "ds-60000" in name or "ds-32000" in name:
+                        score -= 80
+                else:
                     score += 50
-                if "document" in lower and ("document" in name or "ds-" in name or "workforce" in name):
-                    score += 50
-                if "a3" in lower and ("a3" in name or "large format" in name or "12000xl" in name):
-                    score += 50
-                tokens = [t for t in lower.split() if len(t) > 2]
-                for token in tokens:
-                    if token in name:
-                        score += 10
+
                 card = self._format_card(p, card_type="hardware")
                 card["badge"] = "Epson Scanner"
                 card["match_score"] = score
                 results.append(card)
+
         results.sort(key=lambda x: x["match_score"], reverse=True)
         unique = []
         seen = set()
+        for r in results:
+            if r["sku"] not in seen:
+                seen.add(r["sku"])
+                unique.append(r)
+                if len(unique) >= limit:
+                    break
+        return unique
         for r in results:
             if r["sku"] not in seen:
                 seen.add(r["sku"])
@@ -788,10 +812,32 @@ class ConsumablesEngine:
                 else:
                     continue
             elif category == "scanner":
-                if cat == "Scanner" or "scanner" in name_lower or "ds-" in name_lower or "12000xl" in name_lower:
-                    score += 100
-                else:
+                if cat != "Scanner" and "scanner" not in name_lower and "12000xl" not in name_lower and "ds-" not in name_lower:
                     continue
+                score += 100
+                st = reqs.get("scanner_type")
+                if st == "document_sheetfed":
+                    # High-Speed Document Scanners
+                    if any(k in name_lower for k in ["ds-900wn", "ds-800wn", "ds-970", "ds-870", "ds-790wn", "ds-770"]):
+                        score += 160
+                    elif "duplex document" in name_lower or "high-speed" in name_lower or "ds-530" in name_lower:
+                        score += 80
+                    elif "12000xl" in name_lower or "ds-60000" in name_lower or "ds-70000" in name_lower:
+                        score -= 90
+                elif st == "flatbed_a3":
+                    # A3 Large Format Flatbed
+                    if any(k in name_lower for k in ["12000xl", "ds-70000", "ds-60000", "ds-32000", "ds-30000", "large-format"]):
+                        score += 160
+                    elif "flatbed" in name_lower:
+                        score += 70
+                    else:
+                        score -= 90
+                elif st == "business":
+                    # Business Scanners (Desktop & Portable Workgroup)
+                    if any(k in name_lower for k in ["ds-1630", "ds-1660w", "ds-410", "ds-70", "ds-80w", "ds-310", "ds-360w"]):
+                        score += 160
+                    elif "12000xl" in name_lower or "ds-70000" in name_lower or "ds-60000" in name_lower or "ds-32000" in name_lower:
+                        score -= 90
 
             # 2. Print Size Matching
             if print_size:
