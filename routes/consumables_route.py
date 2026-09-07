@@ -69,16 +69,14 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # If asking generally for ink ("i want to buy a ink", "need ink", "i want ink") without explicit model code, do not assume previous active product
     has_model_mention = bool(model_code or m)
-    is_general_ink_req = not has_model_mention and any(k in raw_lower for k in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon"])
+    has_pronoun_ref = any(p in raw_lower for p in ["for this", "for it", "for that", "this printer", "that printer", "for the printer"])
+    is_general_ink_req = not has_model_mention and not has_pronoun_ref and any(k in raw_lower for k in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon"])
     if not is_general_ink_req:
         # If no explicit model code in query, rely on active printer context from previous turn
+        if not target and (has_pronoun_ref or not is_general_ink_req) and state.active_product:
+            target = state.active_product.get("name") or state.active_product.get("sku")
         if not target and state.active_printer_for_consumables:
             target = state.active_printer_for_consumables
-        if not target and state.active_product:
-            p_cat = state.active_product.get("category", "").lower()
-            # Only use active_product if it is hardware or has consumables
-            if any(hw_kw in p_cat for hw_kw in ["printer", "scanner", "large format", "business"]) or state.active_product.get("consumables"):
-                target = state.active_product.get("name") or state.active_product.get("sku")
 
     # If no printer identified, ask user for the exact model
     if not target:

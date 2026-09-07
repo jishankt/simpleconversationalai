@@ -122,10 +122,15 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     )
     if is_consumable_query:
         args = {}
-        # Only inject printer_identifier if the message contains a model code or user is answering the model/color
-        is_general_ink = not model_code and any(k in msg_lower for k in ["i want", "need", "buy", "looking for", "have"]) and any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon"])
+        # Only inject printer_identifier if the message contains a model code, user refers to active product (e.g. 'for this', 'for it'), or user is answering the model/color
+        has_pronoun_to_active = any(p in msg_lower for p in ["for this", "for it", "for that", "this printer", "that printer"])
+        is_general_ink = not has_pronoun_to_active and not model_code and any(k in msg_lower for k in ["i want", "need", "buy", "looking for", "have"]) and any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon"])
         if model_code:
             args["printer_identifier"] = model_code
+        elif has_pronoun_to_active and state.active_product:
+            args["printer_identifier"] = state.active_product.get("name", "")
+        elif has_pronoun_to_active and state.active_printer_for_consumables:
+            args["printer_identifier"] = state.active_printer_for_consumables
         elif not is_general_ink and state.active_printer_for_consumables:
             args["printer_identifier"] = state.active_printer_for_consumables
         elif not is_general_ink and state.active_product:

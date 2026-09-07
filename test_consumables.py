@@ -126,11 +126,11 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
 
 
     def test_color_first_then_printer_model(self):
-        """User asks for 'i want cyan ink for this' -> Assistant asks model -> User responds 'f100' -> Returns Cyan ink."""
+        """User asks for 'i want cyan ink' -> Assistant asks model -> User responds 'f100' -> Returns Cyan ink."""
         sess_id = "test-cyan-first-session"
         # Turn 1: Ask for cyan ink without printer model
         resp1 = self.client.post("/api/chat", json={
-            "message": "i want cyan ink for this",
+            "message": "i want cyan ink",
             "session_id": sess_id
         })
         self.assertEqual(resp1.status_code, 200)
@@ -140,6 +140,30 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
         # Turn 2: User gives printer model
         resp2 = self.client.post("/api/chat", json={
             "message": "f100",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp2.status_code, 200)
+        data2 = resp2.get_json()
+        self.assertTrue(data2["success"])
+        self.assertIn("Cyan", data2["reply"])
+        self.assertEqual(len(data2.get("consumable_cards", [])), 1)
+        self.assertIn("Cyan", data2["consumable_cards"][0]["name"])
+
+
+    def test_ink_for_this_active_printer(self):
+        """User views printer F100, then says 'i want cyan ink for this' -> directly returns Cyan ink for F100."""
+        sess_id = "test-ink-for-this-session"
+        # Turn 1: Show F100 printer
+        resp1 = self.client.post("/api/chat", json={
+            "message": "f100 printer",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp1.status_code, 200)
+        self.assertTrue(len(resp1.get_json().get("product_cards", [])) > 0)
+
+        # Turn 2: User says 'i want cyan ink for this'
+        resp2 = self.client.post("/api/chat", json={
+            "message": "i want cyan ink for this",
             "session_id": sess_id
         })
         self.assertEqual(resp2.status_code, 200)
