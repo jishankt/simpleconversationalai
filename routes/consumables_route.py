@@ -107,10 +107,11 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         )
 
     # 5. Check if user asked specifically for ink without specifying a color
-    is_ink_query = any(k in raw_lower for k in ["ink", "cartridge", "inks", "cartridges"])
+    is_ink_query = any(k in raw_lower for k in ["ink", "cartridge", "inks", "cartridges", "tank"]) or state.awaiting_field in ("printer_model", "ink_color") or state.category == "consumable"
     
     # Filter by color if color was specified
     if extracted_color:
+        state.awaiting_field = None
         matched_color_cards = [
             c for c in all_consumables 
             if extracted_color in c.get("name", "").lower() or extracted_color in c.get("description", "").lower()
@@ -119,27 +120,33 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             item_names = ", ".join([c["name"] for c in matched_color_cards])
             return RouteResult(
                 reply=f"Here is the genuine **{extracted_color.title()}** ink for {printer_name}:",
-                product_cards=product_cards,
+                product_cards=[],
                 consumable_cards=matched_color_cards,
                 source="tool:get_compatible_consumables_by_color",
+                needs_composition=False,
             )
 
     # If asking for ink generally and there are multiple colors, prompt for color with chips
     available_ink_colors = []
     for c in all_consumables:
         c_name = c.get("name", "").lower()
-        for clr in ["Photo Black", "Matte Black", "Cyan", "Magenta", "Yellow", "Grey", "Violet"]:
+        for clr in ["Black", "Photo Black", "Matte Black", "Cyan", "Magenta", "Yellow", "Grey", "Violet"]:
             if clr.lower() in c_name and clr not in available_ink_colors:
                 available_ink_colors.append(clr)
 
-    if is_ink_query and len(available_ink_colors) >= 2 and not extracted_color:
+    # If customer asked specifically to see both the printer AND inks, attach product card
+    user_wanted_printer_card = any(k in raw_lower for k in ["show me the", "printer and its inks", "printer and inks", "and the printer", "show the printer"])
+    hw_cards_to_show = product_cards if user_wanted_printer_card else []
+
+    if (is_ink_query or len(available_ink_colors) >= 2) and not extracted_color:
         state.awaiting_field = "ink_color"
         return RouteResult(
             reply=f"Which ink color do you need for the **{printer_name}**? (Black, Cyan, Magenta, Yellow, etc.)",
             suggested_chips=available_ink_colors[:5] + ["All Colors"],
-            product_cards=product_cards,
+            product_cards=hw_cards_to_show,
             consumable_cards=all_consumables[:6],
             source="route:consumables:ask_color",
+            needs_composition=False,
         )
 
     # Default: Return verified compatible consumables

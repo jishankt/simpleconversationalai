@@ -87,22 +87,26 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             if rag_retriever.get_by_sku(cand) or rag_retriever.get_by_name(cand):
                 model_code = cand
 
-    # ── Consumables query ────────────────────────────────────────────────
+    # ── Consumables query & Follow-up answers ────────────────────────────
     is_consumable_query = (
         intent == Intent.CONSUMABLES_QUERY or
-        any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon", "what ink", "which ink"])
+        any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon", "what ink", "which ink"]) or
+        state.category == "consumable" or
+        state.awaiting_field in ("printer_model", "ink_color")
     )
     if is_consumable_query:
         args = {}
         if model_code:
             args["printer_identifier"] = model_code
+        elif state.active_printer_for_consumables:
+            args["printer_identifier"] = state.active_printer_for_consumables
         elif state.active_product:
             args["printer_identifier"] = state.active_product.get("name", "")
         return RouteDecision(
             route=RouteName.CONSUMABLES,
             tool="get_compatible_consumables",
             tool_arguments=args,
-            reason="Consumables query",
+            reason="Consumables query or model clarification answer",
         )
 
     # ── Product comparison ───────────────────────────────────────────────
