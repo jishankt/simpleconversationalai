@@ -87,10 +87,36 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             if rag_retriever.get_by_sku(cand) or rag_retriever.get_by_name(cand):
                 model_code = cand
 
+    # ── Explicit Hardware Switch / Ink Negation Detection ──────────────
+    is_ink_requested = any(ik in msg_lower for ik in ["ink", "cartridge", "toner", "ribbon", "consumable", "maintenance tank", "maintenance box"])
+    is_explicitly_negating_ink = any(k in msg_lower for k in [
+        "not ink", "no ink", "dont want ink", "don't want ink", "not the ink", 
+        "no cartridges", "not cartridge", "dont need ink", "don't need ink",
+        "i want printer", "i want the printer", "want printer", "buy printer",
+        "need printer", "looking for printer", "want a printer", "buy a printer",
+        "need a printer", "looking for a printer", "printer p900", "printer t3100", "printer f100"
+    ])
+    
+    is_negating_consumable = is_explicitly_negating_ink or (
+        bool(model_code) and any(hw in msg_lower for hw in ["printer", "plotter", "hardware", "machine", "device", "unit"]) and not is_ink_requested
+    )
+
+    if is_negating_consumable:
+        state.category = None
+        state.awaiting_field = None
+        state.active_printer_for_consumables = None
+        if model_code:
+            return RouteDecision(
+                route=RouteName.PRODUCT,
+                tool="get_product_specs",
+                tool_arguments={"product_identifier": model_code},
+                reason=f"Explicit product hardware requested: {model_code}",
+            )
+
     # ── Consumables query & Follow-up answers ────────────────────────────
-    is_consumable_query = (
+    is_consumable_query = not is_negating_consumable and (
         intent == Intent.CONSUMABLES_QUERY or
-        any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon", "what ink", "which ink"]) or
+        is_ink_requested or
         state.category == "consumable" or
         state.awaiting_field in ("printer_model", "ink_color")
     )

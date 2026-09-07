@@ -103,5 +103,28 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
         self.assertTrue(any("T49N" in name or "Maintenance Box" in name or "Ink" in name for name in consumable_names))
 
 
+    def test_switch_from_ink_to_printer_hardware(self):
+        """User in consumable mode who says 'not ink i want printer' or 'i want printer p900' must get printer card."""
+        sess_id = "test-switch-to-hardware-session"
+        # Turn 1: Ask for ink generally
+        resp1 = self.client.post("/api/chat", json={
+            "message": "i want ink",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp1.status_code, 200)
+        
+        # Turn 2: User says 'not ink i want printer p900'
+        resp2 = self.client.post("/api/chat", json={
+            "message": "not ink i want printer p900",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp2.status_code, 200)
+        data2 = resp2.get_json()
+        self.assertTrue(data2["success"])
+        self.assertTrue(len(data2.get("product_cards", [])) > 0)
+        self.assertIn("P900", data2["product_cards"][0]["name"])
+
+
 if __name__ == "__main__":
     unittest.main()
+
