@@ -62,28 +62,30 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         if m:
             target = m.group(0).upper()
 
-    # If no explicit model code in query, rely on active printer context from previous turn
-    if not target and state.active_printer_for_consumables:
-        target = state.active_printer_for_consumables
-    if not target and state.active_product:
-        p_cat = state.active_product.get("category", "").lower()
-        # Only use active_product if it is hardware or has consumables
-        if any(hw_kw in p_cat for hw_kw in ["printer", "scanner", "large format", "business"]) or state.active_product.get("consumables"):
-            target = state.active_product.get("name") or state.active_product.get("sku")
-
-    # Fallback to identifying printer key if still unresolved
-    if not target and raw_message:
-        from rag.consumables_engine import consumables_engine
-        target = consumables_engine.identify_printer_key(raw_message)
+    # If asking generally for ink ("i want ink", "need ink") without model code, do not assume previous active product
+    is_general_ink_req = any(raw_lower == g for g in ["i want ink", "need ink", "want ink", "ink", "inks", "i need ink", "buy ink", "cartridges"])
+    if not is_general_ink_req:
+        # If no explicit model code in query, rely on active printer context from previous turn
+        if not target and state.active_printer_for_consumables:
+            target = state.active_printer_for_consumables
+        if not target and state.active_product:
+            p_cat = state.active_product.get("category", "").lower()
+            # Only use active_product if it is hardware or has consumables
+            if any(hw_kw in p_cat for hw_kw in ["printer", "scanner", "large format", "business"]) or state.active_product.get("consumables"):
+                target = state.active_product.get("name") or state.active_product.get("sku")
 
     # If no printer identified, ask user for the exact model
     if not target:
         state.category = "consumable"
         state.awaiting_field = "printer_model"
+        state.candidate_products = []
         return RouteResult(
             reply="Which printer or scanner model do you need consumables for?",
             suggested_chips=["SC-P900", "SC-T3100", "SC-F100", "SC-P700", "WF-C20600"],
-            source="route:consumables",
+            product_cards=[],
+            consumable_cards=[],
+            source="route:consumables:ask_model",
+            needs_composition=False,
         )
 
     # Cache active printer for follow-up questions

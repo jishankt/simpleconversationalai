@@ -44,6 +44,8 @@ class ResponseComposer:
             or route_result.source == "guardrail:price"
             or route_result.source == "guardrail:discount"
             or route_result.source == "route:qualification"
+            or route_result.source.startswith("route:consumables:ask")
+            or not route_result.needs_composition
             or active_route == RouteName.QUALIFICATION
             or active_route == RouteName.BUSINESS_INFO
         ):
