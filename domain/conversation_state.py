@@ -38,6 +38,7 @@ class ConversationState:
     active_product_id: Optional[str] = None
     compared_product_ids: List[str] = field(default_factory=list)
     active_printer_for_consumables: Optional[str] = None
+    requested_ink_color: Optional[str] = None
 
     # ── Operational ──────────────────────────────────────────────────────
     awaiting_field: Optional[str] = None  # print_size | scan_required | daily_volume | printer_model | scanner_type
@@ -70,6 +71,7 @@ class ConversationState:
             "active_product_id": self.active_product_id,
             "candidate_products": self.candidate_products,
             "active_printer_for_consumables": self.active_printer_for_consumables,
+            "requested_ink_color": self.requested_ink_color,
             # Operational
             "awaiting_field": self.awaiting_field,
             "turn_count": self.turn_count or len(self.history_turns),
@@ -100,6 +102,7 @@ class ConversationState:
             active_product_id=data.get("active_product_id"),
             candidate_products=data.get("candidate_products", []),
             active_printer_for_consumables=data.get("active_printer_for_consumables"),
+            requested_ink_color=data.get("requested_ink_color"),
             # Operational
             awaiting_field=data.get("awaiting_field"),
             history_turns=data.get("history_turns", []),
@@ -117,6 +120,8 @@ class ConversationState:
         self.active_product_id = None
         self.candidate_products = []
         self.compared_product_ids = []
+        self.active_printer_for_consumables = None
+        self.requested_ink_color = None
         self.awaiting_field = None
         self.pending_question = None
         self.pending_field = None

@@ -125,6 +125,32 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
         self.assertIn("P900", data2["product_cards"][0]["name"])
 
 
+    def test_color_first_then_printer_model(self):
+        """User asks for 'i want cyan ink for this' -> Assistant asks model -> User responds 'f100' -> Returns Cyan ink."""
+        sess_id = "test-cyan-first-session"
+        # Turn 1: Ask for cyan ink without printer model
+        resp1 = self.client.post("/api/chat", json={
+            "message": "i want cyan ink for this",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp1.status_code, 200)
+        data1 = resp1.get_json()
+        self.assertIn("Which printer or scanner model", data1["reply"])
+
+        # Turn 2: User gives printer model
+        resp2 = self.client.post("/api/chat", json={
+            "message": "f100",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp2.status_code, 200)
+        data2 = resp2.get_json()
+        self.assertTrue(data2["success"])
+        self.assertIn("Cyan", data2["reply"])
+        self.assertEqual(len(data2.get("consumable_cards", [])), 1)
+        self.assertIn("Cyan", data2["consumable_cards"][0]["name"])
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

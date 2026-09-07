@@ -42,12 +42,17 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                 source="tool:get_direct_consumable_sku",
             )
 
-    # 2. Extract Color if customer mentioned one
+    # 2. Extract Color if customer mentioned one (or retrieve saved color from previous turn)
     extracted_color = None
     for color in sorted(KNOWN_COLORS, key=lambda c: len(c), reverse=True):
         if re.search(r"\b" + re.escape(color) + r"\b", raw_lower):
             extracted_color = color
             break
+
+    if extracted_color:
+        state.requested_ink_color = extracted_color
+    elif state.requested_ink_color:
+        extracted_color = state.requested_ink_color
 
     # 3. Determine target printer / hardware model with exact full-word matching
     target = None
@@ -113,6 +118,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     # Filter by color if color was specified
     if extracted_color:
         state.awaiting_field = None
+        state.requested_ink_color = None  # Clear once fulfilled
         matched_color_cards = [
             c for c in all_consumables 
             if extracted_color in c.get("name", "").lower() or extracted_color in c.get("description", "").lower()
