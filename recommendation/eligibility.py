@@ -33,6 +33,15 @@ class EligibilityEngine:
 
         specs = product.verified
 
+        # ── 0. Hardware Type Gate ───────────────────────────────────────────
+        if product.category in ("media_paper", "software", "consumable"):
+            return AssessmentResult(
+                product=product,
+                is_eligible=False,
+                failed=["hardware_type"],
+                rejection_reason=f"Product is {product.category}, not a printing/scanning hardware device."
+            )
+
         # ── 1. Print Size Gate ───────────────────────────────────────────────
         req_size = requirements.get("print_size")
         if req_size:
@@ -45,7 +54,9 @@ class EligibilityEngine:
                         is_eligible = False
                         rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A0 (36-inch)."
                 else:
-                    unknown.append("print_size")
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = "Product does not support A0 (36-inch) wide-format printing."
             elif req_size in ("A1", "24-inch"):
                 if specs.max_width_mm is not None:
                     if specs.max_width_mm >= 610:
@@ -55,25 +66,23 @@ class EligibilityEngine:
                         is_eligible = False
                         rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A1 (24-inch)."
                 else:
-                    unknown.append("print_size")
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = "Product does not support A1 (24-inch) wide-format printing."
 
-        # ── 2. Scanner Gate (Strict 3-valued logic) ───────────────────────────
+        # ── 2. Scanner Gate (Strict logic) ───────────────────────────────────
         req_scan = requirements.get("scan_required")
         if req_scan is not None:
             if req_scan is True:
                 if specs.has_scanner is True:
                     matched.append("scan_required")
-                elif specs.has_scanner is False:
+                else:
                     failed.append("scan_required")
                     is_eligible = False
                     rejection_reason = "Product does not have an integrated scanner (customer requires scanning)."
-                else:
-                    unknown.append("scan_required")
             elif req_scan is False:
                 # Customer does NOT need scanner
                 if specs.has_scanner is False or specs.has_scanner is None or specs.has_scanner is True:
-                    # Print-only printers or multifunction printers are both technically capable of printing,
-                    # but standalone print-only units match perfectly.
                     matched.append("scan_required")
 
         # ── 3. Application Match ─────────────────────────────────────────────

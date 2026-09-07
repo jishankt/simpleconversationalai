@@ -230,7 +230,7 @@ class CatalogRepository:
             return None
 
         # Determine category
-        cat_raw = item.get("category", "")
+        cat_raw = item.get("category", "").lower()
         if "booth" in cat_raw or "dyesub" in cat_raw or "dye_sub" in cat_raw or "citizen" in p_id or "f100" in p_id or "f500" in p_id:
             category = "photo_booth"
         elif "cad" in cat_raw or "plotter" in cat_raw:
@@ -241,6 +241,12 @@ class CatalogRepository:
             category = "office_enterprise"
         elif "scanner" in cat_raw:
             category = "scanner"
+        elif "paper" in cat_raw or "media" in cat_raw:
+            category = "media_paper"
+        elif "software" in cat_raw or "server" in cat_raw:
+            category = "software"
+        elif "ink" in cat_raw or "cartridge" in cat_raw or "consumable" in cat_raw:
+            category = "consumable"
         else:
             category = "technical_cad"
 
