@@ -97,7 +97,7 @@ class Orchestrator:
         recent_turns = state.history_turns[-6:] if state.history_turns else []
 
         understanding = self.llm_engine.understand(
-            customer_message=raw_message,
+            customer_message=normalized_msg,
             recent_turns=recent_turns,
             state_summary=state_summary,
             model=model_name,
@@ -112,7 +112,7 @@ class Orchestrator:
             state.customer_name = understanding.entities["customer_name"]
 
         # ── 4. Decision Engine ───────────────────────────────────────────
-        decision = decide(understanding, state, raw_message=raw_message)
+        decision = decide(understanding, state, raw_message=normalized_msg)
         logger.info(f"[{session_id[:8]}] Decision: route={decision.route.value} "
                      f"tool={decision.tool} reason={decision.reason}")
 
@@ -124,10 +124,10 @@ class Orchestrator:
         route_result = RouteResult()
 
         if handler:
-            # Pass raw_message for routes that need it
+            # Pass normalized_msg for routes that need it
             try:
                 if decision.route in (RouteName.PRODUCT, RouteName.BUSINESS_INFO, RouteName.QUALIFICATION, RouteName.CONSUMABLES):
-                    route_result = handler.handle(understanding, state, raw_message=raw_message)
+                    route_result = handler.handle(understanding, state, raw_message=normalized_msg)
                 else:
                     route_result = handler.handle(understanding, state)
             except Exception as e:
