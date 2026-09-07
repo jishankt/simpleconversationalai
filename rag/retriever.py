@@ -111,13 +111,15 @@ class RagRetriever:
     def search(self, query: str, category: Optional[str] = None, limit: int = 4) -> List[Dict[str, Any]]:
         """
         Dynamically searches the full 792 catalog items using hybrid lexical + semantic search.
+        Prioritizes hardware equipment over consumables when searching for equipment models.
         """
         if not self.products:
             return []
 
         q_clean = query.strip()
         q_upper = q_clean.upper()
-        q_lower = q_clean.lower()
+        q_lower = q_clean.lower().replace("\u200b", " ")
+        q_norm = re.sub(r"[^a-z0-9]", "", q_lower)
 
         # 1. Exact SKU match
         if q_upper in self.sku_index:
@@ -125,16 +127,24 @@ class RagRetriever:
             target["similarity_score"] = 1.0
             return [target]
 
-        # 2. Model token exact / prefix match ONLY for dedicated short model queries (e.g. 'P700', 'DS-900WN', 'T3100')
+        # 2. Model token exact / prefix match ONLY for dedicated short model queries (e.g. 'P700', 'DS-900WN', 'T3100', 'AM-C4000')
         tokens = [t for t in re.findall(r"[A-Za-z0-9\-]+", q_lower) if len(t) >= 3]
-        if 1 <= len(tokens) <= 2 and not any(w in q_lower for w in ["recommend", "printer", "scanner", "need", "best", "speed", "flatbed"]):
+        if 1 <= len(tokens) <= 3 and not any(w in q_lower for w in ["recommend", "need", "best", "speed", "flatbed"]):
             exact_model_matches = []
             for p in self.products:
-                p_name = p.get("name", "").lower()
+                p_name_clean = p.get("name", "").lower().replace("\u200b", " ")
                 p_sku = str(p.get("sku", "")).lower()
+                p_norm = re.sub(r"[^a-z0-9]", "", p_name_clean)
+                
+                # Check direct normalized containment (e.g. 'amc4000' in 'epsonworkforceenterprisewfamc4000printer')
+                if q_norm and (q_norm == p_sku or q_norm in p_norm):
+                    exact_model_matches.append(p)
+                    continue
+
                 for t in tokens:
+                    t_norm = re.sub(r"[^a-z0-9]", "", t)
                     pattern = r'(?:\b|_|-)' + re.escape(t) + r'(?:\b|_|-|\s|$)'
-                    if re.search(pattern, p_name) or re.search(pattern, p_sku):
+                    if re.search(pattern, p_name_clean) or re.search(pattern, p_sku) or (t_norm and t_norm in p_norm):
                         exact_model_matches.append(p)
                         break
 
@@ -143,6 +153,14 @@ class RagRetriever:
                     cat_filtered = [p for p in exact_model_matches if category.lower() in p.get("category", "").lower()]
                     if cat_filtered:
                         exact_model_matches = cat_filtered
+                else:
+                    # Prioritize hardware over ink/maintenance boxes when query does NOT mention ink/consumables
+                    query_wants_consumables = any(w in q_lower for w in ["ink", "cartridge", "ribbon", "maintenance", "box", "tank", "roll", "paper", "media"])
+                    if not query_wants_consumables:
+                        hw_matches = [p for p in exact_model_matches if any(hw_kw in p.get("category", "").lower() for hw_kw in ["printer", "scanner", "large format", "business"])]
+                        if hw_matches:
+                            exact_model_matches = hw_matches
+
                 res = []
                 seen_exact = set()
                 for item in exact_model_matches:
@@ -228,12 +246,55 @@ class RagRetriever:
         return self.sku_index.get(sku.strip().upper())
 
     def get_by_name(self, name: str) -> Optional[Dict[str, Any]]:
-        """Finds a product by name match."""
-        name_clean = name.strip().lower()
+        """Finds a product by name match with hardware prioritization and word-boundary token accuracy."""
+        q_clean = name.strip().lower().replace("\u200b", " ")
+        q_tokens = [t for t in re.findall(r"[a-z0-9]+", q_clean) if len(t) >= 2]
+        if not q_tokens:
+            return None
+
+        GENERIC_STOP = {"epson", "surecolor", "workforce", "printer", "sc", "the", "for", "with", "series"}
+        
+        best_item = None
+        best_score = -1
+
         for p in self.products:
-            if name_clean in p.get("name", "").lower():
-                return p
-        return None
+            p_name = p.get("name", "").lower().replace("\u200b", " ")
+            p_sku = str(p.get("sku", "")).lower()
+            p_tokens = set(re.findall(r"[a-z0-9]+", p_name))
+            p_cat = p.get("category", "").lower()
+            is_hw = any(hw_kw in p_cat for hw_kw in ["printer", "scanner", "large format", "business", "photo printer"]) and not any(acc in p_cat for acc in ["accessory", "media", "ink", "bag"])
+
+            score = 0
+            all_specific_matched = True
+            specific_count = 0
+
+            for qt in q_tokens:
+                if qt in GENERIC_STOP:
+                    if qt in p_tokens:
+                        score += 2
+                else:
+                    specific_count += 1
+                    # Word boundary pattern preventing p900 from matching p9000, cx02 from matching cx02w
+                    pattern = r'(?:\b|_|-)' + re.escape(qt) + r'(?:\b|_|-|\s|$)(?!\d|[a-z])'
+                    if re.search(pattern, p_name) or qt == p_sku or qt in p_tokens:
+                        score += 20
+                    else:
+                        all_specific_matched = False
+                        break
+
+            if all_specific_matched and (score > 0 or specific_count == 0):
+                if is_hw:
+                    score += 100
+                if "bag" in p_name or "accessory" in p_cat:
+                    score -= 50
+                # Tie breaker: length similarity
+                score -= abs(len(p_name) - len(q_clean)) * 0.05
+
+                if score > best_score:
+                    best_score = score
+                    best_item = p
+
+        return best_item
 
     def format_prompt_context(self, retrieved_items: list) -> str:
         """Formats retrieved product cards into a structured prompt block for LLM."""

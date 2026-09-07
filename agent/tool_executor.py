@@ -54,6 +54,7 @@ class CatalogToolExecutor:
         return {
             "id": prod.get("_id") or prod.get("sku"),
             "name": name,
+            "title": name,
             "sku": sku,
             "image": image_url,
             "image_url": image_url,
@@ -109,7 +110,7 @@ class CatalogToolExecutor:
 
         cards = []
         for r in raw_results:
-            card_type = "consumable" if r.get("category") in ["Consumables", "Ink Cartridge", "Media"] else "hardware"
+            card_type = "consumable" if r.get("category") in ["Consumables", "Ink Cartridge", "Media", "Maintenance Box"] else "hardware"
             cards.append(self.format_card(r, card_type=card_type))
 
         return {
@@ -154,7 +155,7 @@ class CatalogToolExecutor:
         """Finds genuine consumables dynamically linked to a printer model."""
         target_printer = None
         q_raw = printer_identifier.strip()
-        q_clean = q_raw.lower()
+        q_clean = q_raw.lower().replace("\u200b", " ")
 
         # Reject explicitly unverified / competitor brands
         if any(unv in q_clean for unv in ["canon", "hp", "designjet", "brother", "xerox", "ricoh"]):
@@ -170,9 +171,18 @@ class CatalogToolExecutor:
         if q_raw.upper() in self.sku_map:
             target_printer = self.sku_map[q_raw.upper()]
 
-        # 2. Match by specific model token
+        # 2. Direct retrieve by name / SKU from rag_retriever (prioritizes hardware)
         if not target_printer:
-            GENERIC_WORDS = {"epson", "surecolor", "workforce", "printer", "scanner", "series", "large", "format", "color", "pro", "the", "for", "with"}
+            target_printer = rag_retriever.get_by_sku(q_raw) or rag_retriever.get_by_name(q_raw)
+
+        # 3. Match by specific model token
+        if not target_printer:
+            GENERIC_WORDS = {
+                "epson", "surecolor", "workforce", "printer", "scanner", "series",
+                "large", "format", "color", "pro", "the", "for", "with", "enterprise",
+                "multifunction", "multifunctional"
+            }
+            # Look for model codes like c4000, t3100, p900, cx02, etc.
             specific_tokens = [t for t in re.findall(r"[a-z0-9]+", q_clean) if len(t) >= 3 and t not in GENERIC_WORDS]
             
             # Prioritize matching printer category products
@@ -180,7 +190,10 @@ class CatalogToolExecutor:
             if not candidate_printers:
                 candidate_printers = self.products
 
-            for t in sorted(specific_tokens, key=lambda x: len(x), reverse=True):
+            # Prefer tokens containing digits (model numbers like c4000, t3100, cx02)
+            specific_tokens.sort(key=lambda x: (any(c.isdigit() for c in x), len(x)), reverse=True)
+
+            for t in specific_tokens:
                 pattern = r'(?:\b|_|-)' + re.escape(t) + r'(?:\b|_|-|\s|$)(?!\d)'
                 for p in candidate_printers:
                     p_name = p.get("name", "").lower().replace("\u200b", " ")

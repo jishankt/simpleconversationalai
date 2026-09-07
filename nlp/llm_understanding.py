@@ -122,6 +122,10 @@ class LLMUnderstandingEngine:
         if any(w in msg_l for w in ["compare", " vs ", " versus "]):
             return True
 
+        # Consumables / Inks / Colors
+        if any(w in msg_l for w in ["yellow", "cyan", "magenta", "black", "matte black", "photo black", "gray", "grey", "violet", "orange", "green", "ink", "inks", "cartridge", "cartridges", "maintenance box", "ribbon"]):
+            return True
+
         # Business info questions
         if any(w in msg_l for w in ["delivery", "shipping", "deliver", "ship", "address", "location", "dubai", "where are you", "office hours", "timings", "contact number", "phone number", "whatsapp", "email", "companies", "brands you provide", "what brands"]):
             return True
@@ -199,19 +203,25 @@ class LLMUnderstandingEngine:
                 action = "continue_qualification"
 
         # Comparisons
-        if any(w in msg_l for w in ["compare", " vs ", " versus "]):
+        if any(w in msg_l for w in ["compare", " vs ", " versus ", "which is better", "which is best", "epson or citizen", "citizen or epson"]):
             intent = Intent.PRODUCT_COMPARISON
             action = "compare_products"
 
         # Pronoun question on product
-        if any(w in msg_l for w in ["does it", "can it", "what size", "how fast", "specs", "why this one", "which is better"]):
+        elif any(w in msg_l for w in ["does it", "can it", "what size", "how fast", "specs", "why this one"]):
             intent = Intent.PRODUCT_QUESTION
             action = "show_product_specs"
 
-        # Consumables
-        if any(k in msg_l for k in ["ink", "cartridge", "toner", "ribbon", "what ink", "which ink"]):
+
+        # Consumables / Colors
+        if any(k in msg_l for k in [
+            "consumable", "consumables", "ink", "inks", "cartridge", "cartridges",
+            "toner", "ribbon", "what ink", "which ink", "maintenance box",
+            "yellow", "cyan", "magenta", "photo black", "matte black", "light cyan", "light magenta", "gray", "grey", "violet", "orange", "green"
+        ]):
             intent = Intent.CONSUMABLES_QUERY
             action = "show_consumables"
+
 
         # Discovery / Recommendations
         if intent == Intent.UNCLEAR and any(k in msg_l for k in ["recommend now", "recommend", "options", "printer", "plotter", "scanner", "cad"]):

@@ -179,16 +179,22 @@ def classify_dialogue_act(
             elif any(k in low for k in ["no", "nope", "print only", "not needed", "dont need", "don't need"]):
                 return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scan_required", "value": False}}
 
-        elif awaiting_field == "daily_volume":
-            num_match = re.search(r"\b(\d+)\b", low)
+        elif awaiting_field in ("daily_volume", "speed"):
+            num_match = re.search(r"\b(\d[\d,]*)\b", low)
             if num_match:
-                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": int(num_match.group(1))}}
-            elif any(k in low for k in ["low", "few", "1-10"]):
-                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": 5}}
-            elif any(k in low for k in ["medium", "moderate", "10-50"]):
-                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": 25}}
-            elif any(k in low for k in ["high", "heavy", "production", "50+"]):
-                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": 75}}
+                cleaned_num = int(num_match.group(1).replace(",", ""))
+                # If number is large (>1000), interpret as high monthly/daily volume or convert
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": cleaned_num}}
+            elif any(k in low for k in ["40-55", "55 ppm", "40 ppm", "standard", "compact"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "speed", "value": "40-55 ppm"}}
+            elif any(k in low for k in ["60-100", "100 ppm", "60 ppm", "high-volume", "production"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "speed", "value": "60-100 ppm"}}
+            elif any(k in low for k in ["low", "few", "1-50", "1-10"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": 20}}
+            elif any(k in low for k in ["medium", "moderate", "50-200", "10-50"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": 100}}
+            elif any(k in low for k in ["high", "heavy", "production", "200+", "50+"]):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "daily_volume", "value": 500}}
 
         elif awaiting_field == "printer_model":
             m_match = re.search(r"\b(sc-p\d+[a-z0-9]*|sc-t\d+[a-z0-9]*|sc-f\d+[a-z0-9]*|p\d{3,4}|t\d{3,4}|f\d{3,4}|wf-c\d+|am-c\d+)\b", low)

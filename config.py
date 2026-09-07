@@ -6,16 +6,18 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # Ollama Endpoint Configuration
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
 TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "4"))
 
 # Advanced Ollama settings for /api/chat methods
-OLLAMA_CONNECT_TIMEOUT = int(os.getenv("OLLAMA_CONNECT_TIMEOUT", "3"))
-OLLAMA_READ_TIMEOUT = int(os.getenv("OLLAMA_READ_TIMEOUT", "30"))
+OLLAMA_CONNECT_TIMEOUT = int(os.getenv("OLLAMA_CONNECT_TIMEOUT", "5"))
+OLLAMA_READ_TIMEOUT = int(os.getenv("OLLAMA_READ_TIMEOUT", "90"))
 OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "10m")
-OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "2048"))
-OLLAMA_CLASSIFIER_TEMPERATURE = float(os.getenv("OLLAMA_CLASSIFIER_TEMPERATURE", "0.1"))
-OLLAMA_RESPONSE_TEMPERATURE = float(os.getenv("OLLAMA_RESPONSE_TEMPERATURE", "0.4"))
+OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "4096"))
+OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", "0.0"))
+OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", "0.8"))
+OLLAMA_CLASSIFIER_TEMPERATURE = float(os.getenv("OLLAMA_CLASSIFIER_TEMPERATURE", str(OLLAMA_TEMPERATURE)))
+OLLAMA_RESPONSE_TEMPERATURE = float(os.getenv("OLLAMA_RESPONSE_TEMPERATURE", str(OLLAMA_TEMPERATURE)))
 
 # Verified Company Context from https://www.keplertechllc.com/
 DEFAULT_COMPANY_CONTEXT = {

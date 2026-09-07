@@ -22,8 +22,10 @@ def min_qualification_satisfied(state: ConversationState) -> bool:
     reqs = state.requirements
     if not cat:
         return False
-    if cat in ("technical_cad", "photo_booth"):
+    if cat in ("technical_cad", "photo_booth", "photo_fine_art"):
         return "print_size" in reqs
+    if cat == "office_enterprise":
+        return "speed" in reqs or "daily_volume" in reqs or "workload" in reqs
     if cat == "scanner":
         return "scanner_type" in reqs
     if cat == "consumable":
@@ -45,17 +47,17 @@ def qualification_complete(state: ConversationState) -> bool:
     if cat == "photo_booth":
         return "print_size" in reqs
 
+    if cat == "photo_fine_art":
+        return "print_size" in reqs
+
+    if cat == "office_enterprise":
+        return "speed" in reqs or "daily_volume" in reqs or "workload" in reqs
+
     if cat == "scanner":
         return "scanner_type" in reqs
 
     if cat == "consumable":
         return "printer_model" in reqs or state.active_printer_for_consumables is not None
-
-    if cat == "photo_fine_art":
-        return True  # Can search immediately
-
-    if cat == "office_enterprise":
-        return True  # Can search immediately
 
     return False
 

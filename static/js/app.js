@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
       headerRow.className = 'consumables-header-row';
       headerRow.innerHTML = `
         <div class="consumables-section-title">
-          <span>🖨️ Recommended Hardware (${productCards.length})</span>
+          <span>🖨️ Hardware & Products (${productCards.length})</span>
         </div>
         <div class="carousel-header-controls">
           <button type="button" class="deck-scroll-btn card-prev" title="Scroll left">&#9664;</button>

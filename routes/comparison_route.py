@@ -26,22 +26,24 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
 
         return RouteResult(
             reply=f"Here is a comparison between {model_a} and {model_b}:",
-            product_cards=cards,
+            product_cards=[],
             source="tool:compare_products",
             needs_composition=True,
             evidence=cards,
-            instruction=f"Compare {model_a} and {model_b} based on the evidence. Highlight key differences.",
+            instruction=f"Compare {model_a} and {model_b} based on the evidence. Highlight key differences without recommending or attaching hardware cards.",
         )
 
     if state.active_product:
         return RouteResult(
-            reply=f"The {state.active_product.get('name', '')} is well-suited for your requirements. Would you like to see alternative options to compare?",
-            product_cards=[state.active_product],
+            reply=f"The {state.active_product.get('name', '')} is an authorized system from Kepler Tech LLC. Would you like a direct spec comparison with another model?",
+            product_cards=[],
             source="tool:compare_products",
         )
 
     return RouteResult(
-        reply="I'd be happy to compare products for you. Could you first tell me what type of equipment you're looking for?",
-        suggested_chips=["Printers", "Scanners", "Consumables"],
+        reply="Epson and Citizen serve distinct professional printing needs: Epson specializes in Large Format CAD plotters, Fine Art printers, and Enterprise WorkForce MFPs, whereas Citizen specializes in high-speed dye-sublimation photo printers for events and photo booths. Which solution would you like to explore?",
+        suggested_chips=["CAD Plotters", "Photo Booth Printers", "Document Scanners"],
+        product_cards=[],
         source="route:comparison",
     )
+

@@ -40,14 +40,13 @@ class RequirementUpdater:
                 state.candidate_products = []
             return state
 
-        # 3. Answering Question (e.g. "A0", "yes", "around 60", "scanner_type")
+        # 3. Answering Question (e.g. "A0", "yes", "around 60", "60000", "scanner_type")
         if act == ACT_ANSWERING_QUESTION:
             field = params.get("field")
             val = params.get("value")
             if field and val is not None:
                 state.requirements[field] = val
-                if field == state.awaiting_field:
-                    state.awaiting_field = None
+                state.awaiting_field = None
                 state.active_product = None
                 state.candidate_products = []
             return state

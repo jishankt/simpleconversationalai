@@ -22,11 +22,24 @@ class ConsumablesEngine:
         self.executor = catalog_tool_executor
 
     def identify_printer_key(self, query: str) -> Optional[str]:
-        """Dynamically identifies product model code or token from user text."""
-        tokens = [t.lower() for t in re.findall(r"[A-Za-z0-9\-]+", query) if len(t) >= 3]
-        clean = [t for t in tokens if t not in ["the", "printer", "scanner", "inks", "consumables", "for", "with", "what", "need", "epson"]]
+        """Dynamically identifies hardware printer model code or token from user text."""
+        STOP_WORDS = {
+            "the", "printer", "scanner", "inks", "ink", "consumables", "consumable",
+            "for", "with", "what", "need", "want", "epson", "citizen", "surecolor", "workforce",
+            "cartridge", "cartridges", "tank", "box", "maintenance",
+            "yellow", "cyan", "magenta", "black", "matte", "photo", "grey", "gray", "violet", "orange", "green", "red", "color", "colours", "colors"
+        }
+        tokens = [t.lower() for t in re.findall(r"[A-Za-z0-9\-]+", query) if len(t) >= 2]
+        clean = [t for t in tokens if t not in STOP_WORDS]
         if clean:
-            # Check if any token matches a product in catalog
+            # Check if any token matches a hardware product in catalog first
+            for t in clean:
+                p = rag_retriever.get_by_sku(t) or rag_retriever.get_by_name(t)
+                if p:
+                    p_cat = p.get("category", "").lower()
+                    if any(hw_kw in p_cat for hw_kw in ["printer", "scanner", "large format", "business"]):
+                        return str(p.get("sku") or p.get("name"))
+            # Fallback to any product match
             for t in clean:
                 p = rag_retriever.get_by_sku(t) or rag_retriever.get_by_name(t)
                 if p:

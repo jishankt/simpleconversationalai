@@ -21,7 +21,18 @@ class NextQuestionEngine:
         reqs = state.requirements
 
         if not cat:
-            return None
+            state.awaiting_field = "category"
+            return {
+                "field": "category",
+                "question": "Welcome to Kepler Tech! What type of printer or printing solution are you looking for?",
+                "pills": [
+                    "CAD & Technical Plotters",
+                    "Photo & Fine Art",
+                    "Enterprise Office MFP",
+                    "Photo Booth / Dye-Sub",
+                    "Document Scanners"
+                ]
+            }
 
         # 1. Technical CAD & Blueprint Plotters
         if cat == "technical_cad":
@@ -52,7 +63,33 @@ class NextQuestionEngine:
             state.awaiting_field = None
             return None
 
-        # 2. Consumables Flow
+        # 2. Photo & Fine Art Printers
+        elif cat == "photo_fine_art":
+            if "print_size" not in reqs:
+                state.awaiting_field = "print_size"
+                return {
+                    "field": "print_size",
+                    "question": "What maximum print width do you require for photo & fine art?",
+                    "pills": ["13-inch (A3+)", "17-inch (A2+)", "24-inch to 44-inch Production"]
+                }
+
+            state.awaiting_field = None
+            return None
+
+        # 3. Enterprise Office Multifunction
+        elif cat == "office_enterprise":
+            if "speed" not in reqs and "daily_volume" not in reqs:
+                state.awaiting_field = "daily_volume"
+                return {
+                    "field": "daily_volume",
+                    "question": "Approximately how many pages or drawings do you print per day?",
+                    "pills": ["Low (1-50 pages/day)", "Medium (50-200 pages/day)", "High Volume (200+ pages/day)"]
+                }
+
+            state.awaiting_field = None
+            return None
+
+        # 4. Consumables Flow
         elif cat == "consumable":
             if "printer_model" not in reqs and not state.active_printer_for_consumables:
                 state.awaiting_field = "printer_model"
@@ -65,7 +102,7 @@ class NextQuestionEngine:
             state.awaiting_field = None
             return None
 
-        # 3. Photo Booth & Events
+        # 5. Photo Booth & Events
         elif cat == "photo_booth":
             if "print_size" not in reqs:
                 state.awaiting_field = "print_size"
@@ -78,7 +115,7 @@ class NextQuestionEngine:
             state.awaiting_field = None
             return None
 
-        # 4. Scanners
+        # 6. Scanners
         elif cat == "scanner":
             if "scanner_type" not in reqs:
                 state.awaiting_field = "scanner_type"

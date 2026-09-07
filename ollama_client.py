@@ -14,6 +14,7 @@ from config import (
     OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT,
     OLLAMA_KEEP_ALIVE, OLLAMA_NUM_CTX,
     OLLAMA_CLASSIFIER_TEMPERATURE, OLLAMA_RESPONSE_TEMPERATURE,
+    OLLAMA_TOP_P,
 )
 
 logger = logging.getLogger("ollama_client")
@@ -123,6 +124,7 @@ class OllamaClient:
             "keep_alive": OLLAMA_KEEP_ALIVE,
             "options": {
                 "temperature": temp,
+                "top_p": OLLAMA_TOP_P,
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": 300,
             }
@@ -174,18 +176,19 @@ class OllamaClient:
         }
 
     def chat_completions(self, messages: list, model: str = None,
-                         temperature: float = None, max_retries: int = 1) -> dict:
+                         temperature: float = None, top_p: float = None, max_retries: int = 1) -> dict:
         """
         Sends an OpenAI-compatible chat completion request to /v1/chat/completions.
-        Matches: curl http://localhost:11434/v1/chat/completions -H "Content-Type: application/json" -d '{"model": "qwen3:8b", ...}'
         """
         target_model = model or self.default_model
         temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
+        p_val = top_p if top_p is not None else OLLAMA_TOP_P
         payload = {
             "model": target_model,
             "messages": messages,
             "stream": False,
             "temperature": temp,
+            "top_p": p_val,
             "max_tokens": 450,
         }
         endpoint = f"{self.base_url}/v1/chat/completions"
@@ -230,19 +233,20 @@ class OllamaClient:
         }
 
     def compose(self, messages: list, model: str = None,
-                temperature: float = None, max_retries: int = 1) -> dict:
+                temperature: float = None, top_p: float = None, max_retries: int = 1) -> dict:
         """
         Sends a natural language response generation request.
         First attempts the OpenAI-compatible /v1/chat/completions endpoint,
         falling back to native /api/chat if needed.
         """
         # Try /v1/chat/completions first
-        v1_res = self.chat_completions(messages, model=model, temperature=temperature, max_retries=max_retries)
+        v1_res = self.chat_completions(messages, model=model, temperature=temperature, top_p=top_p, max_retries=max_retries)
         if v1_res.get("success") and v1_res.get("response"):
             return v1_res
 
         target_model = model or self.default_model
         temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
+        p_val = top_p if top_p is not None else OLLAMA_TOP_P
         payload = {
             "model": target_model,
             "messages": messages,
@@ -250,6 +254,7 @@ class OllamaClient:
             "keep_alive": OLLAMA_KEEP_ALIVE,
             "options": {
                 "temperature": temp,
+                "top_p": p_val,
                 "num_ctx": OLLAMA_NUM_CTX,
                 "num_predict": 450,
             }

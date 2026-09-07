@@ -43,6 +43,8 @@ class ResponseComposer:
             route_result.source.startswith("interceptor:")
             or route_result.source == "guardrail:price"
             or route_result.source == "guardrail:discount"
+            or route_result.source == "route:qualification"
+            or active_route == RouteName.QUALIFICATION
             or active_route == RouteName.BUSINESS_INFO
         ):
             return route_result.reply

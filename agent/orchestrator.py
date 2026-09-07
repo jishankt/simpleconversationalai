@@ -71,17 +71,14 @@ class Orchestrator:
             nlp_result["intent"] = intercept_result.intent or ""
             source = "guardrail_rule" if intercept_result.intent in ("price_inquiry", "discount_inquiry") else f"interceptor:{intercept_result.intent}"
             
-            # Greetings, endings, empty messages, and resets must NEVER return product cards!
-            if intercept_result.intent in ("price_inquiry", "discount_inquiry"):
-                cards_to_return = state.candidate_products[:4] if state.candidate_products else []
-            else:
-                cards_to_return = []
-                if intercept_result.intent in ("greeting", "reset"):
-                    state.candidate_products = []
-                    state.active_product = None
-                    state.requirements = {}
-                    state.category = None
-                    state.stage = "open"
+            # Never spam product recommendation cards during price/discount inquiries or general FAQs
+            cards_to_return = []
+            if intercept_result.intent in ("greeting", "reset"):
+                state.candidate_products = []
+                state.active_product = None
+                state.requirements = {}
+                state.category = None
+                state.stage = "open"
 
             return self._build_response(
                 reply=intercept_result.response,
@@ -93,6 +90,7 @@ class Orchestrator:
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
             )
+
 
         # ── 3. LLM Understanding ────────────────────────────────────────
         state_summary = state.to_dict()

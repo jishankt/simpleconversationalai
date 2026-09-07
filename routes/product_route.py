@@ -42,13 +42,13 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                     state.category = "photo_booth"
 
             p_name = product.get("name", model_code)
+            p_url = product.get("website_url") or product.get("web_url") or f"https://www.keplertechllc.com/product/{product.get('id', '')}/"
             return RouteResult(
-                reply=f"Here are the verified specifications for the {p_name}:",
+                reply=f"Here are the verified specifications for [{p_name}]({p_url}):",
                 product_cards=cards,
                 source="tool:get_product_specs",
-                needs_composition=True,
+                needs_composition=False,
                 evidence=[product],
-                instruction=f"Describe the key specifications of {p_name} based on the evidence.",
             )
 
     # ── Product question on active product ───────────────────────────────
@@ -70,74 +70,68 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
 
         return RouteResult(
             reply=reply,
-            product_cards=[product],
+            product_cards=[],
             source="tool:get_product_specs",
             needs_composition=True,
             evidence=[product],
             instruction=f"Answer the customer's question about {p_name} using the verified specifications: width={width}, speed={speed}, ink={ink}.",
         )
 
-    # ── Catalog search based on state requirements ───────────────────────
-    search_terms = []
-    cat_filter = None
 
-    if state.category == "scanner":
-        cat_filter = "Scanner"
-        st = state.requirements.get("scanner_type")
-        if st == "document_sheetfed":
-            search_terms.append("high speed network duplex document scanner")
-        elif st == "flatbed_a3":
-            search_terms.append("A3 large format flatbed scanner")
-        elif st == "business":
-            search_terms.append("compact business scanner")
-        else:
-            search_terms.append("document scanner")
+    # ── Catalog search and Grounded Recommendation ──────────────────────
+    from catalog.repository import catalog_repository
+    from recommendation.eligibility import eligibility_engine
+    from recommendation.ranker import product_ranker
+    from recommendation.evidence_builder import build_recommendation_evidence
 
-    elif state.category == "photo_booth":
-        cat_filter = "Printer"
-        search_terms.append("Citizen photo printer CX CY")
+    # 1. Fetch category candidates
+    all_cat_products = catalog_repository.get_by_category(state.category) if state.category else catalog_repository.get_all()
+    if not all_cat_products:
+        all_cat_products = catalog_repository.get_all()
 
-    elif state.category == "photo_fine_art":
-        cat_filter = "Printer"
-        search_terms.append("Epson SureColor P photo fine art printer")
+    # 2. Hard Eligibility Filter
+    eligible_assessments = eligibility_engine.filter_candidates(all_cat_products, state.requirements)
 
-    elif state.category == "technical_cad":
-        cat_filter = "Printer"
-        size = state.requirements.get("print_size", "")
-        scan = "MFP scanner" if state.requirements.get("scan_required") else "plotter"
-        search_terms.append(f"Epson SureColor T CAD {size} {scan}")
+    # 3. Deterministic Python Ranking
+    ranked_tuples = product_ranker.rank_candidates(eligible_assessments, state.requirements)
 
-    elif state.category == "office_enterprise":
-        cat_filter = "Printer"
-        search_terms.append("Epson WorkForce Enterprise office MFP")
+    if ranked_tuples:
+        top_product, top_score, _ = ranked_tuples[0]
+        state.active_product = top_product.to_dict()
+        
+        # Build cards
+        cards = []
+        for p, score, _ in ranked_tuples[:4]:
+            cards.append(p.to_dict())
+        state.candidate_products = cards
 
+        # 4. Build Grounded Evidence Object
+        evidence = [build_recommendation_evidence(top_product, state.requirements, top_score, ["print_size", "scan_required", "application"])]
+        
+        cat_name = state.category.replace("_", " ") if state.category else "equipment"
+        top_url = top_product.source.website_url or f"https://www.keplertechllc.com/product/{top_product.id}/"
+        reply = f"Here are the verified specifications for [{top_product.name}]({top_url}):"
+
+        return RouteResult(
+            reply=reply,
+            product_cards=cards[:1] if len(cards) == 1 or not state.category else cards,
+            source="recommendation:grounded_engine",
+            needs_composition=False,
+            evidence=evidence,
+        )
     else:
-        search_terms.append(raw_message or "printer")
+        # Fallback if no product matched strictly
+        search_terms = [raw_message or "printer"]
+        query_str = " ".join(search_terms)
+        search_res = catalog_tool_executor.execute_tool(
+            "search_catalog",
+            {"query": query_str, "limit": 4}
+        )
+        candidates = search_res.get("product_cards", [])
+        state.candidate_products = candidates
+        return RouteResult(
+            reply="I couldn't find a product in our verified catalog that satisfies all those criteria simultaneously. Here are related options:",
+            product_cards=candidates,
+            source="tool:search_catalog",
+        )
 
-    query_str = " ".join(search_terms)
-    search_res = catalog_tool_executor.execute_tool(
-        "search_catalog",
-        {"query": query_str, "category": cat_filter, "limit": 4}
-    )
-
-    candidates = search_res.get("product_cards", [])
-    if candidates and state.requirements:
-        from rag.reranker import requirement_reranker
-        candidates = requirement_reranker.rerank(candidates, state.requirements, limit=4)
-
-    state.candidate_products = candidates
-    if candidates:
-        state.active_product = candidates[0]
-
-    cat_name = state.category.replace("_", " ") if state.category else "printing equipment"
-
-    if candidates:
-        reply = f"Based on your requirements, here are our recommended {cat_name} options:"
-    else:
-        reply = "I would be glad to help you find the ideal solution. Could you tell me more about your specific requirements?"
-
-    return RouteResult(
-        reply=reply,
-        product_cards=candidates,
-        source="tool:search_catalog",
-    )
