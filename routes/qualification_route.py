@@ -59,21 +59,29 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     extracted = requirement_extractor.extract_and_validate(raw_message, state)
     if extracted:
         state.requirements.update(extracted)
+        if state.awaiting_field and state.awaiting_field in extracted:
+            state.awaiting_field = None
         state.active_product = None
         state.candidate_products = []
 
     # Handle volume numbers (e.g. "10000 per month", "50 per day", "20")
-    vol_match = re.search(r"\b(\d{1,6})\b", msg_lower)
-    if vol_match:
-        try:
-            val = int(vol_match.group(1))
-            if "month" in msg_lower:
-                val = max(1, val // 30)  # Convert monthly to approximate daily
-            state.requirements["daily_volume"] = "high" if val >= 50 else ("medium" if val >= 10 else "low")
-            if state.awaiting_field == "daily_volume":
-                state.awaiting_field = None
-        except ValueError:
-            pass
+    is_awaiting_volume = state.awaiting_field in ("daily_volume", "print_volume", "volume")
+    has_volume_keyword = any(k in msg_lower for k in ["per day", "a day", "daily", "per month", "a month", "monthly", "drawings per", "pages per", "prints per", "volume"])
+    if is_awaiting_volume or has_volume_keyword:
+        # Strip dimensions (e.g. "594 x 841 mm" or "24 inch") so dimensions aren't treated as volume
+        msg_no_dims = re.sub(r"\b\d+\s*(?:x|\*)\s*\d+\b", "", msg_lower)
+        msg_no_dims = re.sub(r"\b\d+\s*(?:mm|cm|inch|\"|gsm|dpi|ml)\b", "", msg_no_dims)
+        vol_match = re.search(r"\b(\d{1,6})\b", msg_no_dims)
+        if vol_match:
+            try:
+                val = int(vol_match.group(1))
+                if "month" in msg_lower:
+                    val = max(1, val // 30)  # Convert monthly to approximate daily
+                state.requirements["daily_volume"] = "high" if val >= 50 else ("medium" if val >= 10 else "low")
+                if state.awaiting_field == "daily_volume":
+                    state.awaiting_field = None
+            except ValueError:
+                pass
 
     # Handle scanner-specific keywords
     if state.category == "scanner":

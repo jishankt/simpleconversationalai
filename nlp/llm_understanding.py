@@ -91,23 +91,25 @@ class LLMUnderstandingEngine:
         if not words:
             return True
 
-        # Pure short qualification answers (<= 4 words)
-        if len(words) <= 4:
-            # Boolean
-            if any(w in msg_l for w in ["yes", "no", "yep", "nope", "need scanner", "no scanner", "without scanner", "with scanner", "print only"]):
-                return True
-            # Size
-            if any(s in msg_l for s in ["a0", "a1", "a2", "a3", "4x6", "6x8", "24\"", "36\""]) or "mostly 4x6" in msg_l:
-                return True
-            # Volume
-            if any(ch.isdigit() for ch in msg_l) and (any(w in msg_l for w in ["drawing", "print", "day", "daily", "around", "about", "approx"]) or len(words) == 1):
-                return True
-            # Corrections
-            if "actually" in msg_l:
-                return True
-            # Recommendations
-            if any(k in msg_l for k in ["recommend now", "recommend", "show options", "give me options", "show another", "show another one"]):
-                return True
+        # Boolean & Scanner answers
+        if any(w in msg_l for w in [
+            "yes", "no", "yep", "nope", "need scanner", "no scanner", "without scanner", "with scanner", 
+            "print only", "both", "both printing and scanning", "both print and scan", "printing and scanning",
+            "printing & scanning", "print and scan", "print & scan", "scannin", "scaning", "scanner too", "scanning too"
+        ]):
+            return True
+        # Size
+        if any(s in msg_l for s in ["a0", "a1", "a2", "a3", "4x6", "6x8", "24\"", "36\""]) or "mostly 4x6" in msg_l:
+            return True
+        # Volume
+        if any(ch.isdigit() for ch in msg_l) and (any(w in msg_l for w in ["drawing", "print", "day", "daily", "around", "about", "approx"]) or len(words) == 1):
+            return True
+        # Corrections
+        if "actually" in msg_l:
+            return True
+        # Recommendations
+        if any(k in msg_l for k in ["recommend now", "recommend", "show options", "give me options", "show another", "show another one"]):
+            return True
 
         # Pronoun questions on active product
         if any(p in msg_l for p in ["does it", "can it", "what size can it", "what ink does it", "what ink does the", "why this one", "which is better"]):
@@ -183,10 +185,20 @@ class LLMUnderstandingEngine:
                 action = "search_products"
 
         # Scanner preference
-        if any(w in msg_l for w in ["no scanner", "without scanner", "print only"]):
+        if any(w in msg_l for w in ["no scanner", "without scanner", "print only", "only print", "printing only", "no scan"]):
             entities["scan_required"] = False
-        elif any(w in msg_l for w in ["need scanner", "with scanner", "has scanner", "yes scanner"]):
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "continue_qualification"
+        elif any(w in msg_l for w in [
+            "need scanner", "with scanner", "has scanner", "yes scanner", 
+            "both", "both printing and scanning", "both print and scan", 
+            "printing and scanning", "print and scan", "scannin", "scaning", "scanner too", "scanning too"
+        ]):
             entities["scan_required"] = True
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "continue_qualification"
 
         # Corrections
         if "actually" in msg_l:
@@ -195,7 +207,7 @@ class LLMUnderstandingEngine:
 
         # Confirmations / Rejections
         if intent == Intent.UNCLEAR:
-            if any(w in msg_l for w in ["yes", "yep", "yeah", "sure", "need scanner", "with scanner"]):
+            if any(w in msg_l for w in ["yes", "yep", "yeah", "sure", "need scanner", "with scanner", "both"]):
                 intent = Intent.CONFIRMATION
                 action = "continue_qualification"
             elif any(w in msg_l for w in ["no", "nope", "no scanner", "without scanner", "print only"]):

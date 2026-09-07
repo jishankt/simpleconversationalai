@@ -222,8 +222,12 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # ── Direct answer to awaiting field (volume, size, etc.) ────────────
     vol_cand = re.search(r"\b\d+\b", msg_lower)
+    is_scan_ans = state.awaiting_field == "scan_required" and any(k in msg_lower for k in [
+        "yes", "no", "yep", "nope", "both", "scanning", "scannin", "scaning", "scanner", "scan", "print only", "only print", "printing only"
+    ])
     if state.awaiting_field and (
         vol_cand or
+        is_scan_ans or
         any(s in msg_lower for s in ["a0", "a1", "a2", "a3", "4x6", "6x8", "24\"", "36\""]) or
         understanding.dialogue_act.value in ("informing", "answering_question")
     ):

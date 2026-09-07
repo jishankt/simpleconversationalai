@@ -35,18 +35,27 @@ class RequirementExtractor:
             extracted["scan_required"] = False
         elif any(pos in msg_lower for pos in [
             "with scanner", "need scanner", "scanner required", "built-in scan", 
-            "integrated scan", "scanning as well", "scan as well", "multifunction", "mfp"
-        ]):
+            "integrated scan", "scanning as well", "scan as well", "multifunction", "mfp",
+            "both", "both printing and scanning", "both print and scan", "printing and scanning",
+            "printing & scanning", "print and scan", "print & scan", "scannin", "scaning", "scanner too", "scanning too"
+        ]) or (state.awaiting_field == "scan_required" and any(k in msg_lower for k in ["yes", "yep", "yeah", "sure", "both", "need", "scanner", "scanning", "scannin", "scaning", "scan", "include"])):
             extracted["scan_required"] = True
+        elif state.awaiting_field == "scan_required" and any(k in msg_lower for k in ["no", "nope", "print only", "only print", "printing only", "no scanner", "just print"]):
+            extracted["scan_required"] = False
 
         # ── 3. Volume Extraction ─────────────────────────────────────────────
-        # Only extract if explicitly mentioned
-        if any(hv in msg_lower for hv in ["high volume", "heavy duty", "50+", "50 drawings", "production volume", "100+"]):
-            extracted["daily_volume"] = "high"
-        elif any(mv in msg_lower for mv in ["medium volume", "10-50", "20 drawings", "30 drawings", "moderate"]):
-            extracted["daily_volume"] = "medium"
-        elif any(lv in msg_lower for lv in ["low volume", "1-10", "occasional", "few prints", "5 drawings"]):
-            extracted["daily_volume"] = "low"
+        # Only extract if awaiting volume or explicitly in volume context
+        is_volume_context = (
+            state.awaiting_field in ("daily_volume", "print_volume", "volume")
+            or any(vkw in msg_lower for vkw in ["volume", "per day", "a day", "daily", "per month", "monthly", "drawings per", "pages per", "workload", "heavy duty", "production volume"])
+        )
+        if is_volume_context:
+            if any(hv in msg_lower for hv in ["high volume", "heavy duty", "50+", "50 drawings", "production volume", "100+"]):
+                extracted["daily_volume"] = "high"
+            elif any(mv in msg_lower for mv in ["medium volume", "10-50", "20 drawings", "30 drawings", "moderate"]):
+                extracted["daily_volume"] = "medium"
+            elif any(lv in msg_lower for lv in ["low volume", "1-10", "occasional", "few prints", "5 drawings", "rarely"]):
+                extracted["daily_volume"] = "low"
 
         # ── 4. Speed Extraction ──────────────────────────────────────────────
         if any(hs in msg_lower for hs in ["60-100", "high speed", "fast", "100 ppm", "75 ppm", "60 ppm"]):

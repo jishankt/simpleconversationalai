@@ -60,7 +60,8 @@ class ConversationalAiTestCase(unittest.TestCase):
 
     def test_switch_from_scanner_to_technical_cad(self):
         """Customer asks for scanner, then switches to 'i want technical cad printer'."""
-        sess_id = "test-scanner-to-cad-switch"
+        import uuid
+        sess_id = f"test-scanner-to-cad-{uuid.uuid4().hex[:8]}"
         # Turn 1: Ask for scanner
         resp1 = self.client.post("/api/chat", json={
             "message": "i need a scanner",
@@ -78,6 +79,47 @@ class ConversationalAiTestCase(unittest.TestCase):
         data2 = resp2.get_json()
         self.assertIn("print size", data2["reply"].lower())
         self.assertNotIn("scan", data2["reply"].lower())
+
+
+    def test_cad_qualification_with_both_printing_and_scanning(self):
+        """Customer qualifies for CAD with size and answers 'Both printing and scanning'."""
+        import uuid
+        sess_id = f"test-cad-flow-{uuid.uuid4().hex[:8]}"
+        # Turn 1: Ask for technical CAD printer
+        resp1 = self.client.post("/api/chat", json={
+            "message": "i want technical cad printer",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp1.status_code, 200)
+        self.assertIn("print size", resp1.get_json()["reply"].lower())
+
+        # Turn 2: Give size with dimensions
+        resp2 = self.client.post("/api/chat", json={
+            "message": "I mainly need A1 drawings (594 x 841 mm), but I may also need A0 (841 x 1189 mm) occasionally",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp2.status_code, 200)
+        self.assertIn("scanning as well", resp2.get_json()["reply"].lower())
+
+        # Turn 3: Answer with 'Both printing and scanning' (with typo or standard)
+        resp3 = self.client.post("/api/chat", json={
+            "message": "Both printing and scanning",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp3.status_code, 200)
+        data3 = resp3.get_json()
+        # Must NOT repeat the same scanning question! It must ask the next question (volume)
+        self.assertNotIn("scanning as well, or printing only", data3["reply"].lower())
+        self.assertIn("drawings or pages", data3["reply"].lower())
+
+        # Turn 4: Answer volume
+        resp4 = self.client.post("/api/chat", json={
+            "message": "around 20 drawings per day",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp4.status_code, 200)
+        data4 = resp4.get_json()
+        self.assertIn("recommended", data4["reply"].lower())
 
 
 if __name__ == "__main__":
