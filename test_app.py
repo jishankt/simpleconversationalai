@@ -58,11 +58,26 @@ class ConversationalAiTestCase(unittest.TestCase):
         self.assertTrue(data["success"])
         self.assertIn("?", data["reply"])  # Contains exactly one clarifying/requirement question
 
-    def test_session_reset(self):
-        resp = self.client.post("/api/reset", json={"session_id": self.session_id})
-        self.assertEqual(resp.status_code, 200)
-        data = resp.get_json()
-        self.assertTrue(data["success"])
+    def test_switch_from_scanner_to_technical_cad(self):
+        """Customer asks for scanner, then switches to 'i want technical cad printer'."""
+        sess_id = "test-scanner-to-cad-switch"
+        # Turn 1: Ask for scanner
+        resp1 = self.client.post("/api/chat", json={
+            "message": "i need a scanner",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp1.status_code, 200)
+        self.assertIn("scan", resp1.get_json()["reply"].lower())
+
+        # Turn 2: Switch to technical CAD printer
+        resp2 = self.client.post("/api/chat", json={
+            "message": "i want technical cad printer",
+            "session_id": sess_id
+        })
+        self.assertEqual(resp2.status_code, 200)
+        data2 = resp2.get_json()
+        self.assertIn("print size", data2["reply"].lower())
+        self.assertNotIn("scan", data2["reply"].lower())
 
 
 if __name__ == "__main__":

@@ -177,9 +177,15 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         if state.category == "scanner" or not state.category:
             new_category = "technical_cad"
 
-    is_explicit_switch = "switch" in msg_lower or ("actually" in msg_lower and any(kw in msg_lower for kw in ["need", "want", "switch", "printer", "plotter", "booth", "photo", "cad", "office"])) or any(k in msg_lower for k in ["want buy a printer", "buy a printer", "want a printer", "need a printer"])
+    is_explicit_switch = (
+        "switch" in msg_lower 
+        or "instead" in msg_lower
+        or ("actually" in msg_lower and any(kw in msg_lower for kw in ["need", "want", "switch", "printer", "plotter", "booth", "photo", "cad", "office", "scanner"]))
+        or any(k in msg_lower for k in ["want buy a printer", "buy a printer", "want a printer", "need a printer", "want printer", "i want", "i need", "looking for"])
+        or (new_category and state.category and new_category != state.category)
+    )
     if new_category and (not state.category or is_explicit_switch):
-        if not (state.category == "technical_cad" and new_category == "scanner" and not is_explicit_switch):
+        if not (state.category == "technical_cad" and new_category == "scanner" and "scanner" not in msg_lower):
             state.reset_category(new_category)
             return RouteDecision(
                 route=RouteName.QUALIFICATION,
