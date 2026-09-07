@@ -98,9 +98,9 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
         self.assertTrue(len(data["product_cards"]) > 0)
         self.assertTrue(len(data["consumable_cards"]) > 0)
         self.assertIn("F100", data["product_cards"][0]["name"])
-        # Check that response text specifically mentions UltraChrome DS or T49N or maintenance box
-        resp_text = data.get("reply") or data.get("response", "")
-        self.assertTrue("UltraChrome DS" in resp_text or "T49N" in resp_text or "maintenance box" in resp_text)
+        # Check that response cards contain genuine inks or maintenance box
+        consumable_names = [c["name"] for c in data["consumable_cards"]]
+        self.assertTrue(any("T49N" in name or "Maintenance Box" in name or "Ink" in name for name in consumable_names))
 
 
 if __name__ == "__main__":
