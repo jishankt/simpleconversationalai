@@ -15,11 +15,12 @@ class ConversationalAiTestCase(unittest.TestCase):
         self.session_id = f"test-session-{uuid.uuid4().hex[:8]}"
 
     def test_config_endpoint(self):
+        from config import DEFAULT_MODEL
         resp = self.client.get("/api/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
         self.assertIn("company_context", data)
-        self.assertEqual(data["default_model"], "qwen3:8b")
+        self.assertEqual(data["default_model"], DEFAULT_MODEL)
 
     def test_health_endpoint(self):
         resp = self.client.get("/api/health")
