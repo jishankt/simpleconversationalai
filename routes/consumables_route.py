@@ -62,8 +62,9 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         if m:
             target = m.group(0).upper()
 
-    # If asking generally for ink ("i want ink", "need ink") without model code, do not assume previous active product
-    is_general_ink_req = any(raw_lower == g for g in ["i want ink", "need ink", "want ink", "ink", "inks", "i need ink", "buy ink", "cartridges"])
+    # If asking generally for ink ("i want to buy a ink", "need ink", "i want ink") without explicit model code, do not assume previous active product
+    has_model_mention = bool(model_code or m)
+    is_general_ink_req = not has_model_mention and any(k in raw_lower for k in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon"])
     if not is_general_ink_req:
         # If no explicit model code in query, rely on active printer context from previous turn
         if not target and state.active_printer_for_consumables:
