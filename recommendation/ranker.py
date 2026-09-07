@@ -57,12 +57,27 @@ class ProductRanker:
 
             # 4. Daily Volume / Workload (15 pts)
             req_vol = requirements.get("daily_volume")
-            if req_vol == "high" and ("production" in p.name.lower() or "5700" in p.id or "350ml" in (specs.cartridge_capacities or "")):
-                score += 15.0
-                score_breakdown["volume"] = 15.0
-            elif req_vol in ("low", "medium") and ("desktop" in (specs.footprint or "").lower() or "t3100" in p.id or "t5100" in p.id):
-                score += 15.0
-                score_breakdown["volume"] = 15.0
+            p_name_l = p.name.lower()
+            if req_vol == "high":
+                if any(k in p_name_l for k in ["production", "enterprise", "high-speed", "ds-530", "ds-570", "ds-870", "ds-970", "am-c4000", "am-c550", "5700", "p9500", "p7500"]):
+                    score += 15.0
+                    score_breakdown["volume"] = 15.0
+                elif any(k in p_name_l for k in ["ds-70", "ds-80w", "mobile"]):
+                    score += 0.0
+                    score_breakdown["volume"] = 0.0
+                elif "350ml" in (specs.cartridge_capacities or ""):
+                    score += 15.0
+                    score_breakdown["volume"] = 15.0
+                else:
+                    score += 5.0
+                    score_breakdown["volume"] = 5.0
+            elif req_vol in ("low", "medium"):
+                if "desktop" in (specs.footprint or "").lower() or "t3100" in p.id or "t5100" in p.id or "ds-530" in p_name_l:
+                    score += 15.0
+                    score_breakdown["volume"] = 15.0
+                else:
+                    score += 10.0
+                    score_breakdown["volume"] = 10.0
             else:
                 score += 5.0
                 score_breakdown["volume"] = 5.0

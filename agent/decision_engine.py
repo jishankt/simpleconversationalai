@@ -126,20 +126,23 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     new_category = None
     if any(k in msg_lower for k in ["photo booth", "dye-sub", "citizen cx", "citizen cy"]):
         new_category = "photo_booth"
-    elif any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing"]):
+    elif any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing", "large format"]):
         new_category = "technical_cad"
     elif any(k in msg_lower for k in ["photo fine art", "fine art", "gallery", "exhibition", "p900", "p700"]):
         new_category = "photo_fine_art"
-    elif any(k in msg_lower for k in ["office printer", "workforce", "copier", "am-c4000"]):
+    elif any(k in msg_lower for k in ["office printer", "workforce", "copier", "am-c4000", "enterprise printer"]):
         new_category = "office_enterprise"
     elif not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["document scanner", "sheetfed scanner", "flatbed scanner", "standalone scanner", "dedicated scanner"]):
         new_category = "scanner"
     elif not state.category and not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["scanner", "document scan", "scanning"]):
         new_category = "scanner"
+    elif any(k in msg_lower for k in ["want a printer", "buy a printer", "looking for a printer", "need a printer", "want buy a printer", "buy printer", "need printer"]):
+        if state.category == "scanner" or not state.category:
+            new_category = "technical_cad"
 
-    is_explicit_switch = "switch" in msg_lower or ("actually" in msg_lower and any(kw in msg_lower for kw in ["need", "want", "switch", "printer", "plotter", "booth", "photo", "cad", "office"]))
+    is_explicit_switch = "switch" in msg_lower or ("actually" in msg_lower and any(kw in msg_lower for kw in ["need", "want", "switch", "printer", "plotter", "booth", "photo", "cad", "office"])) or any(k in msg_lower for k in ["want buy a printer", "buy a printer", "want a printer", "need a printer"])
     if new_category and (not state.category or is_explicit_switch):
-        if not (state.category == "technical_cad" and new_category == "scanner"):
+        if not (state.category == "technical_cad" and new_category == "scanner" and not is_explicit_switch):
             state.reset_category(new_category)
             return RouteDecision(
                 route=RouteName.QUALIFICATION,

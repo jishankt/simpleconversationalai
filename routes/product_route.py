@@ -43,8 +43,10 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
 
             p_name = product.get("name", model_code)
             p_url = product.get("website_url") or product.get("web_url") or f"https://www.keplertechllc.com/product/{product.get('id', '')}/"
+            desc = product.get("description") or product.get("intended_usage") or "genuine verified equipment from Kepler Tech LLC"
+            reply = f"Here are the verified specifications for [{p_name}]({p_url}) — {desc.rstrip('.')}."
             return RouteResult(
-                reply=f"Here are the verified specifications for [{p_name}]({p_url}):",
+                reply=reply,
                 product_cards=cards,
                 source="tool:get_product_specs",
                 needs_composition=False,
@@ -53,29 +55,38 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
 
     # ── Product question on active product ───────────────────────────────
     if state.active_product and not model_code:
-        product = state.active_product
-        p_name = product.get("name", "")
-        width = product.get("width", "")
-        speed = product.get("speed", "")
-        ink = product.get("ink_technology", "")
+        # Check if the user is genuinely asking a question about the active product or making a new inquiry
+        is_question_about_active = any(w in (raw_message or "").lower().split() for w in ["it", "this", "its", "that", "speed", "size", "width", "ink", "scanner", "resolution", "specs", "specifications", "how", "what", "does", "can"])
         
-        reply_parts = [f"The {p_name} is an authorized system from Kepler Tech LLC."]
-        if width:
-            reply_parts.append(f"It supports print sizes up to {width}.")
-        if speed:
-            reply_parts.append(f"Print speed: {speed}.")
-        if ink:
-            reply_parts.append(f"Ink system: {ink}.")
-        reply = " ".join(reply_parts)
+        if is_question_about_active:
+            product = state.active_product
+            p_name = product.get("name", "")
+            width = product.get("width", "")
+            speed = product.get("speed", "")
+            ink = product.get("ink_technology", "")
+            
+            reply_parts = [f"Regarding the {p_name}:"]
+            if width:
+                reply_parts.append(f"It supports print sizes up to {width}.")
+            if speed:
+                reply_parts.append(f"Print speed: {speed}.")
+            if ink:
+                reply_parts.append(f"Ink system: {ink}.")
+            if not width and not speed and not ink:
+                reply_parts.append(f"{product.get('description', 'High performance system engineered for professional production.')}")
+            reply = " ".join(reply_parts)
 
-        return RouteResult(
-            reply=reply,
-            product_cards=[],
-            source="tool:get_product_specs",
-            needs_composition=True,
-            evidence=[product],
-            instruction=f"Answer the customer's question about {p_name} using the verified specifications: width={width}, speed={speed}, ink={ink}.",
-        )
+            return RouteResult(
+                reply=reply,
+                product_cards=[],
+                source="tool:get_product_specs",
+                needs_composition=True,
+                evidence=[product],
+                instruction=f"Answer the customer's question about {p_name} using the verified specifications: width={width}, speed={speed}, ink={ink}.",
+            )
+        else:
+            # Active product was from a previous unrelated turn; clear and re-route
+            state.active_product = None
 
 
     # ── Catalog search and Grounded Recommendation ──────────────────────
@@ -110,7 +121,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
         
         cat_name = state.category.replace("_", " ") if state.category else "equipment"
         top_url = top_product.source.website_url or f"https://www.keplertechllc.com/product/{top_product.id}/"
-        reply = f"Here are the verified specifications for [{top_product.name}]({top_url}):"
+        top_desc = top_product.description or top_product.comparison_highlights or "engineered for reliable, high-precision performance"
+        reply = f"Based on your requirements, here is our recommended match — [{top_product.name}]({top_url}) ({top_desc.rstrip('.')}):"
 
         return RouteResult(
             reply=reply,
