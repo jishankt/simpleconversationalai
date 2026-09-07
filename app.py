@@ -63,6 +63,7 @@ def index():
     return render_template("landing.html")
 
 
+@app.route("/chat")
 @app.route("/chat-widget")
 def chat_widget():
     """Serves the embedded chat widget interface for the modal."""
