@@ -25,7 +25,8 @@ class ConsumablesEngine:
         """Dynamically identifies hardware printer model code or token from user text."""
         STOP_WORDS = {
             "the", "printer", "scanner", "inks", "ink", "consumables", "consumable",
-            "for", "with", "what", "need", "want", "epson", "citizen", "surecolor", "workforce",
+            "for", "with", "what", "need", "want", "buy", "get", "to", "a", "an", "some", "me", "give",
+            "epson", "citizen", "surecolor", "workforce",
             "cartridge", "cartridges", "tank", "box", "maintenance",
             "yellow", "cyan", "magenta", "black", "matte", "photo", "grey", "gray", "violet", "orange", "green", "red", "color", "colours", "colors"
         }

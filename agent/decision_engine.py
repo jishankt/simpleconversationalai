@@ -96,15 +96,17 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     )
     if is_consumable_query:
         args = {}
+        # Only inject printer_identifier if the message contains a model code or user is answering the model/color
+        is_general_ink = not model_code and any(k in msg_lower for k in ["i want", "need", "buy", "looking for", "have"]) and any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon"])
         if model_code:
             args["printer_identifier"] = model_code
-        elif state.active_printer_for_consumables:
+        elif not is_general_ink and state.active_printer_for_consumables:
             args["printer_identifier"] = state.active_printer_for_consumables
-        elif state.active_product:
+        elif not is_general_ink and state.active_product:
             args["printer_identifier"] = state.active_product.get("name", "")
         return RouteDecision(
             route=RouteName.CONSUMABLES,
-            tool="get_compatible_consumables",
+            tool="get_compatible_consumables" if args.get("printer_identifier") else None,
             tool_arguments=args,
             reason="Consumables query or model clarification answer",
         )
