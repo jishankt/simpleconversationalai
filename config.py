@@ -16,7 +16,7 @@ if not (raw_ollama_url.startswith("http://") or raw_ollama_url.startswith("https
     raw_ollama_url = f"http://{raw_ollama_url}"
 
 OLLAMA_BASE_URL = raw_ollama_url
-DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
 TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
 # Advanced Ollama settings for /api/chat methods
