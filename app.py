@@ -8,7 +8,10 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import uuid
 import logging
-from config import PORT, DEBUG, DEFAULT_COMPANY_CONTEXT, DEFAULT_MODEL, OLLAMA_BASE_URL
+from config import (
+    PORT, DEBUG, DEFAULT_COMPANY_CONTEXT, DEFAULT_MODEL, OLLAMA_BASE_URL,
+    SECRET_KEY, ALLOWED_MODELS, CORS_ORIGINS, MAX_REQUEST_BYTES
+)
 from prompts import build_system_prompt, format_generate_prompt, format_evidence_grounded_prompt
 from guardrails import check_user_intent_for_pricing_or_discount, validate_and_sanitize_response, PRICE_REFUSAL, DISCOUNT_REFUSAL
 from ollama_client import OllamaClient
@@ -42,7 +45,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("conversational_ai")
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-CORS(app)
+app.secret_key = SECRET_KEY
+CORS(app, origins=CORS_ORIGINS)
+
+
+@app.after_request
+def add_security_headers(response):
+    """Attach security headers to every response."""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 # Session store: session_id -> list of {"role": "user"|"assistant", "content": str}
 SESSIONS = {}
@@ -147,6 +161,10 @@ def chat():
     - Validates zero-hallucinations against verified knowledge base
     - Returns sanitized reply, interactive suggestion chips, product cards, and retrieved RAG sources
     """
+    # Guard: reject oversized request bodies
+    if request.content_length and request.content_length > MAX_REQUEST_BYTES:
+        return jsonify({"error": "Request body too large"}), 413
+
     data = request.get_json()
     if not data or "message" not in data:
         return jsonify({"error": "Missing 'message' field"}), 400
@@ -154,8 +172,17 @@ def chat():
     raw_message = data["message"].strip()
     session_id = data.get("session_id") or str(uuid.uuid4())
     company_context = data.get("company_context") or DEFAULT_COMPANY_CONTEXT
-    model_name = data.get("model") or DEFAULT_MODEL
-    ollama_url = data.get("ollama_base_url") or OLLAMA_BASE_URL
+
+    # Guard: SSRF / model-injection — only allow models on the allowlist
+    requested_model = data.get("model") or DEFAULT_MODEL
+    if requested_model not in ALLOWED_MODELS:
+        logger.warning(f"Blocked disallowed model request: {requested_model}")
+        requested_model = DEFAULT_MODEL
+    model_name = requested_model
+
+    # Guard: SSRF — only allow the configured Ollama base URL
+    requested_url = data.get("ollama_base_url") or OLLAMA_BASE_URL
+    ollama_url = OLLAMA_BASE_URL if requested_url != OLLAMA_BASE_URL else requested_url
 
     # 1. NLP Analysis: Normalization, Intent Classification, Entity Extraction
     nlp_result = analyze_input(raw_message)

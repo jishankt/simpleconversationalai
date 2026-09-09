@@ -8,6 +8,27 @@ except ImportError:
 # Server Configuration
 PORT = int(os.getenv("PORT", 5055))
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production-use-a-long-random-string")
+
+# Security: Allowlist of models that the API may use (SSRF / model-injection guard)
+ALLOWED_MODELS = [
+    m.strip()
+    for m in os.getenv(
+        "ALLOWED_MODELS",
+        "qwen2.5:32b,qwen2.5:14b,qwen2.5:0.5b,qwen3:30b,qwen3:14b,qwen3:8b,gpt-oss:20b,llama3.1:latest,llama3:latest"
+    ).split(",")
+    if m.strip()
+]
+
+# Security: Allowed CORS origins (comma-separated list)
+CORS_ORIGINS = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", "http://localhost:5055,http://127.0.0.1:5055").split(",")
+    if o.strip()
+]
+
+# Security: Maximum accepted request body size in bytes (default 64 KB)
+MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", str(64 * 1024)))
 
 # Ollama Endpoint Configuration & Protocol Normalization
 raw_ollama_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434"
