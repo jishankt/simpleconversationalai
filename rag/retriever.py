@@ -15,6 +15,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 PRODUCTS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "products.json")
 CORPUS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "kepler_product_corpus.json")
 
+# Confidence thresholds for retrieval gating
+EXACT_MATCH_THRESHOLD = 0.95       # Treat as a definitive match
+PRODUCT_SEARCH_THRESHOLD = 0.35    # Minimum score for hardware product queries
+UNKNOWN_QUERY_THRESHOLD = 0.20     # Below this — return empty (unknown / off-topic)
+
 
 class RagRetriever:
     def __init__(self, products_path: str = PRODUCTS_PATH, corpus_path: str = CORPUS_PATH):
@@ -235,11 +240,13 @@ class RagRetriever:
         return results
 
     def retrieve(self, query: str, nlp_context: dict = None, top_k: int = 3) -> list:
-        """Backward-compatible RAG retriever method with NLP entity boosting."""
+        """Backward-compatible RAG retriever method with NLP entity boosting and confidence gating."""
         cat = None
         if nlp_context and nlp_context.get("categories"):
             cat = nlp_context["categories"][0]
-        return self.search(query=query, category=cat, limit=top_k)
+        results = self.search(query=query, category=cat, limit=top_k)
+        # Apply UNKNOWN_QUERY_THRESHOLD gate: discard results below minimum confidence
+        return [r for r in results if r.get("similarity_score", 0) >= UNKNOWN_QUERY_THRESHOLD]
 
     def get_by_sku(self, sku: str) -> Optional[Dict[str, Any]]:
         """Finds a product directly by SKU."""

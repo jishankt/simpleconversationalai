@@ -129,56 +129,132 @@ class OutputValidator:
     def validate_numbers(self, text: str, evidence: Dict[str, Any]) -> Tuple[bool, str]:
         """
         Validates that numeric resolution claims in output match verified evidence.
+        Accepts a single evidence dict with verified_specs or specs subkeys.
         """
+        specs = evidence.get("verified_specs") or evidence.get("specs") or {}
+        verified_res = specs.get("resolution") or specs.get("print_resolution") or evidence.get("verified_value") or ""
+
         dpi_matches = re.findall(r"(\d{3,4})\s*(?:x|×)\s*(\d{3,4})\s*dpi", text.lower())
-        if dpi_matches:
-            verified_res = evidence.get("verified_specs", {}).get("resolution") or evidence.get("verified_value") or ""
+        if dpi_matches and verified_res:
             for match in dpi_matches:
                 res_str = f"{match[0]} x {match[1]}"
-                res_str_alt = f"{match[0]} × {match[1]}"
-                if res_str not in verified_res.lower() and res_str_alt not in verified_res.lower():
-                    # Check if standard 300x600 or 2400x1200 or 5760x1440
-                    if not any(match[0] in v and match[1] in v for v in ["300 x 600", "2400 x 1200", "5760 x 1440"]):
-                        return False, f"Hallucinated resolution claim: {match[0]}x{match[1]} dpi"
+                res_str_alt = f"{match[0]}x{match[1]}"
+                if res_str.lower() not in verified_res.lower() and res_str_alt.lower() not in verified_res.lower():
+                    return False, f"Hallucinated resolution claim: {match[0]}x{match[1]} dpi (verified: {verified_res})"
 
+        return True, "OK"
+
+    def validate_speed(self, text: str, evidence: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validates print speed claims against evidence."""
+        specs = evidence.get("verified_specs") or evidence.get("specs") or {}
+        verified_speed = specs.get("print_speed") or ""
+        if not verified_speed:
+            return True, "OK"
+        # Extract any "N sec" or "N sec/A1" patterns from the text
+        speed_matches = re.findall(r"(\d+)\s*sec", text.lower())
+        if speed_matches:
+            verified_secs = re.findall(r"(\d+)\s*sec", verified_speed.lower())
+            for claimed_sec in speed_matches:
+                if verified_secs and claimed_sec not in verified_secs:
+                    return False, f"Hallucinated speed claim: {claimed_sec} sec (verified: {verified_speed})"
+        return True, "OK"
+
+    def validate_width(self, text: str, evidence: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validates max print width claims against evidence."""
+        specs = evidence.get("verified_specs") or evidence.get("specs") or {}
+        verified_width = specs.get("max_print_width") or ""
+        if not verified_width:
+            return True, "OK"
+        # Extract inch-based claims like "44-inch" or "36 inch" or "24 inch"
+        width_matches = re.findall(r"(\d+)\s*-?\s*inch", text.lower())
+        if width_matches:
+            verified_inches = re.findall(r"(\d+)\s*-?\s*inch", verified_width.lower())
+            for claimed_w in width_matches:
+                if verified_inches and claimed_w not in verified_inches:
+                    return False, f"Hallucinated width claim: {claimed_w}-inch (verified: {verified_width})"
         return True, "OK"
 
     def validate_spec_claims(self, text: str, evidence: Dict[str, Any]) -> Tuple[bool, str]:
-        """
-        Validates that scanner claims match evidence.
-        """
-        has_scanner_evidence = evidence.get("verified_specs", {}).get("has_scanner")
+        """Validates that scanner claims match evidence."""
+        specs = evidence.get("verified_specs") or evidence.get("specs") or {}
+        has_scanner_evidence = specs.get("has_scanner")
         if has_scanner_evidence is False:
-            if any(term in text.lower() for term in ["integrated scanner", "includes scanner", "built-in scanner", "with scanner"]):
+            text_lower = text.lower()
+            # Catch any form of scanner/scanning capability claim on a print-only device
+            scanner_terms = [
+                "integrated scanner", "includes scanner", "built-in scanner",
+                "with scanner", "has scanner", "features.*scanner", "scanner.*built",
+                "cis scanner", "flatbed scanner", "scanning capability", "can scan"
+            ]
+            has_scanner_claim = any(
+                re.search(term, text_lower) for term in scanner_terms
+            ) or "scanner" in text_lower
+            if has_scanner_claim:
                 return False, "Output claims scanner exists on a verified print-only device."
-
         return True, "OK"
 
-    def validate_all(self, text: str, evidence: Optional[Dict[str, Any]] = None, product_id: Optional[str] = None) -> Tuple[bool, str]:
-        """Runs the complete suite of anti-hallucination and claim validation checks."""
+    def validate_all(
+        self,
+        text: str,
+        evidence: Optional[Any] = None,
+        product_id: Optional[str] = None
+    ) -> Tuple[bool, str, List[str]]:
+        """
+        Runs the complete suite of anti-hallucination and claim validation checks.
+        Accepts evidence as either a single dict or a list of dicts.
+        Returns (is_valid, reason, violations).
+        """
+        violations: List[str] = []
+
         ok_slug, msg_slug = self.validate_model_slugs(text)
         if not ok_slug:
-            return False, msg_slug
+            violations.append(msg_slug)
 
-        ok_speed, msg_speed = self.validate_speed_size_pairing(text, product_id)
-        if not ok_speed:
-            return False, msg_speed
+        ok_speed_size, msg_speed_size = self.validate_speed_size_pairing(text, product_id)
+        if not ok_speed_size:
+            violations.append(msg_speed_size)
 
         ok_weight, msg_weight = self.validate_weights(text, product_id)
         if not ok_weight:
-            return False, msg_weight
+            violations.append(msg_weight)
 
-        if evidence:
-            ok_num, msg_num = self.validate_numbers(text, evidence)
+        # Normalize evidence to a list of dicts
+        evidence_list: List[Dict[str, Any]] = []
+        if evidence is not None:
+            if isinstance(evidence, list):
+                evidence_list = evidence
+            elif isinstance(evidence, dict):
+                evidence_list = [evidence]
+
+        for ev in evidence_list:
+            ok_num, msg_num = self.validate_numbers(text, ev)
             if not ok_num:
-                return False, msg_num
+                violations.append(msg_num)
 
-            ok_spec, msg_spec = self.validate_spec_claims(text, evidence)
+            ok_spd, msg_spd = self.validate_speed(text, ev)
+            if not ok_spd:
+                violations.append(msg_spd)
+
+            ok_wid, msg_wid = self.validate_width(text, ev)
+            if not ok_wid:
+                violations.append(msg_wid)
+
+            ok_spec, msg_spec = self.validate_spec_claims(text, ev)
             if not ok_spec:
-                return False, msg_spec
+                violations.append(msg_spec)
 
-        return True, "OK"
+        if violations:
+            return False, violations[0], violations
+        return True, "OK", []
+
+    def sanitize(self, text: str, evidence: Optional[Any] = None, fallback: str = "") -> str:
+        """
+        Returns the original text if it passes validation, or the fallback if any violation is found.
+        """
+        is_valid, _, _ = self.validate_all(text, evidence)
+        return text if is_valid else fallback
 
 
 claim_validator = OutputValidator()
 output_validator = claim_validator
+

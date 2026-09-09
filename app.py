@@ -8,7 +8,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import uuid
 import logging
-from config import PORT, DEBUG, DEFAULT_COMPANY_CONTEXT, DEFAULT_MODEL, OLLAMA_BASE_URL
+from config import PORT, DEBUG, DEFAULT_COMPANY_CONTEXT, DEFAULT_MODEL, OLLAMA_BASE_URL, ALLOWED_MODELS, CORS_ORIGINS, MAX_REQUEST_BYTES
 from prompts import build_system_prompt, format_generate_prompt, format_evidence_grounded_prompt
 from guardrails import check_user_intent_for_pricing_or_discount, validate_and_sanitize_response, PRICE_REFUSAL, DISCOUNT_REFUSAL
 from ollama_client import OllamaClient
@@ -42,7 +42,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("conversational_ai")
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
+
+# Security: enforce maximum request payload size (1 MB)
+app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
 
 # Session store: session_id -> list of {"role": "user"|"assistant", "content": str}
 SESSIONS = {}
@@ -55,6 +58,26 @@ ollama_client = OllamaClient(base_url=OLLAMA_BASE_URL, default_model=DEFAULT_MOD
 new_orchestrator.ollama_client = ollama_client
 new_orchestrator.llm_engine.client = ollama_client
 new_orchestrator.response_composer.ollama_client = ollama_client
+
+
+@app.after_request
+def add_security_headers(response):
+    """Attach standard security headers to every response."""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
+@app.errorhandler(413)
+def payload_too_large(e):
+    return jsonify({"error": "Request payload too large (max 1 MB)"}), 413
+
+
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify({"error": str(e)}), 400
 
 
 @app.route("/")
@@ -91,6 +114,26 @@ def health_check():
     """Returns status of Ollama connection and installed models."""
     health_data = ollama_client.check_health()
     return jsonify(health_data)
+
+
+@app.route("/health/live", methods=["GET"])
+def liveness():
+    """Liveness probe — confirms the server process is alive."""
+    return jsonify({"status": "alive", "service": "kepler-salesai"}), 200
+
+
+@app.route("/health/ready", methods=["GET"])
+def readiness():
+    """Readiness probe — confirms catalog loaded and Ollama is reachable."""
+    from catalog.repository import catalog_repository
+    catalog_ok = len(catalog_repository.get_all()) > 0
+    ollama_ok = ollama_client.check_health().get("ollama_available", False)
+    status = "ready" if (catalog_ok and ollama_ok) else "not_ready"
+    return jsonify({
+        "status": status,
+        "catalog_count": len(catalog_repository.get_all()),
+        "ollama_ok": ollama_ok
+    }), 200
 
 
 from persistence import state_repository
@@ -147,24 +190,29 @@ def chat():
     - Validates zero-hallucinations against verified knowledge base
     - Returns sanitized reply, interactive suggestion chips, product cards, and retrieved RAG sources
     """
-    data = request.get_json()
-    if not data or "message" not in data:
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Missing or invalid JSON body"}), 400
+
+    # Security: Model allowlist enforcement — checked before message validation
+    if data.get("model") and data["model"] not in ALLOWED_MODELS:
+        return jsonify({"error": f"Model not allowed: '{data['model']}'. Permitted models: {ALLOWED_MODELS}"}), 400
+
+    if "message" not in data:
         return jsonify({"error": "Missing 'message' field"}), 400
 
     raw_message = data["message"].strip()
     session_id = data.get("session_id") or str(uuid.uuid4())
     company_context = data.get("company_context") or DEFAULT_COMPANY_CONTEXT
+
+    # Security: SSRF protection — ignore client-supplied ollama_base_url
+    # Ollama endpoint is strictly controlled via server environment variables only
     model_name = data.get("model") or DEFAULT_MODEL
-    ollama_url = data.get("ollama_base_url") or OLLAMA_BASE_URL
 
     # 1. NLP Analysis: Normalization, Intent Classification, Entity Extraction
     nlp_result = analyze_input(raw_message)
     normalized_msg = nlp_result["normalized_text"]
     detected_intent = nlp_result["intent"]
-
-    # Update client target if client supplied custom base URL
-    if ollama_url != ollama_client.base_url:
-        ollama_client.base_url = ollama_url.rstrip("/")
 
     # Initialize session history and canonical state (with SQLite persistence recovery)
     if session_id not in STATE_STORE or session_id not in SESSIONS:

@@ -124,18 +124,18 @@ class TestGroundedRecommendationEngine(unittest.TestCase):
 
         # Valid text
         valid_text = "The Epson T5100 prints at 2400 x 1200 dpi."
-        ok, msg = output_validator.validate_all(valid_text, evidence)
+        ok, msg, _ = output_validator.validate_all(valid_text, evidence)
         self.assertTrue(ok)
 
         # Hallucinated resolution
         fake_res_text = "The Epson T5100 has an ultra-high 4800 x 2400 dpi resolution."
-        ok, msg = output_validator.validate_all(fake_res_text, evidence)
+        ok, msg, _ = output_validator.validate_all(fake_res_text, evidence)
         self.assertFalse(ok)
         self.assertIn("Hallucinated resolution", msg)
 
         # Hallucinated scanner on print-only
         fake_scanner_text = "This unit includes an integrated scanner for drawings."
-        ok, msg = output_validator.validate_all(fake_scanner_text, evidence)
+        ok, msg, _ = output_validator.validate_all(fake_scanner_text, evidence)
         self.assertFalse(ok)
         self.assertIn("claims scanner exists", msg)
 

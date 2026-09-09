@@ -17,6 +17,18 @@ if not (raw_ollama_url.startswith("http://") or raw_ollama_url.startswith("https
 
 OLLAMA_BASE_URL = raw_ollama_url
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
+
+# Security Configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "kepler-tech-salesai-default-secret-change-in-production")
+ALLOWED_MODELS = os.getenv(
+    "ALLOWED_MODELS",
+    "qwen2.5:32b,qwen2.5:14b,qwen2.5:0.5b,qwen3:30b,qwen3:14b,qwen3:8b,gpt-oss:20b,llama3.1:latest,llama3:latest"
+).split(",")
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "https://ai.kylesolutions.in,https://www.kylesolutions.in,http://localhost:5050,http://127.0.0.1:5050,http://localhost:5055,http://127.0.0.1:5055"
+).split(",")
+MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", 65536))  # 64 KB
 TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
 # Advanced Ollama settings for /api/chat methods
