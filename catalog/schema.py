@@ -78,6 +78,9 @@ class NormalizedProduct:
     stock: Optional[int] = None
     image_url: Optional[str] = None
     description: Optional[str] = None
+    full_description: Optional[str] = None
+    feature_headings: List[str] = field(default_factory=list)
+    specifications_table: Dict[str, str] = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
     consumables: List[str] = field(default_factory=list)
     comparison_highlights: Optional[str] = None
@@ -86,6 +89,8 @@ class NormalizedProduct:
         img = self.image_url or "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
         src_url = self.source.website_url or "https://www.keplertechllc.com/"
         real_sku = self.sku or self.id
+        price_str = f"AED {self.price:,.2f}" if (self.price is not None and self.price > 0) else "Price on Request"
+        vat_note = "(Excl. VAT)" if (self.price is not None and self.price > 0) else ""
         return {
             "id": self.id,
             "sku": real_sku,
@@ -96,6 +101,10 @@ class NormalizedProduct:
             "verified": self.verified.to_dict(),
             "source": self.source.to_dict(),
             "price": self.price,
+            "price_formatted": price_str,
+            "price_str": price_str,
+            "vat_note": vat_note,
+            "currency": "AED",
             "stock": self.stock,
             "image_url": img,
             "image": img,
@@ -104,8 +113,20 @@ class NormalizedProduct:
             "website_url": src_url,
             "web_url": src_url,
             "description": self.description,
+            "full_description": self.full_description or self.description,
+            "feature_headings": list(self.feature_headings),
+            "specifications_table": dict(self.specifications_table),
             "tags": list(self.tags),
             "consumables": list(self.consumables),
             "comparison_highlights": self.comparison_highlights,
+            "width": self.verified.max_width_label,
+            "print_sizes": self.verified.max_width_label,
+            "speed": getattr(self.verified, "speed", None),
+            "print_speed": getattr(self.verified, "speed", None),
+            "weight": self.verified.weight,
+            "capacity": self.verified.cartridge_capacities,
+            "roll_capacity": self.verified.cartridge_capacities,
+            "ink_technology": self.verified.ink_technology,
+            "has_scanner": self.verified.has_scanner,
         }
 

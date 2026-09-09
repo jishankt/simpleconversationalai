@@ -107,55 +107,67 @@ class CatalogRepository:
                 "sku": "C11CF11301A0",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
-                "consumables": ["C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440", "C13S210055"]
+                "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"]
             },
             "epson-t5100": {
                 "sku": "C11CF12301A0",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
-                "consumables": ["C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440", "C13S210055"]
+                "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"]
             },
             "epson-t5400m": {
                 "sku": "C11CH65301A0",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/SC-T5100M.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
-                "consumables": ["C13T41F540", "C13T41F240", "C13T41F340", "C13T41F440", "C13S210055"]
+                "consumables": ["C13S210057", "C13T41F540", "C13T41F240", "C13T41F340", "C13T41F440"]
             },
             "epson-t5700d": {
                 "sku": "C11CH81301A0",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
-                "consumables": ["C13T50U100", "C13T50U200", "C13T50U300", "C13T50U400", "C13S210115"]
+                "consumables": ["C13S210115", "C13T50U100", "C13T50U200", "C13T50U300", "C13T50U400"]
             },
             "epson-p700": {
                 "sku": "C11CH38401",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
-                "consumables": ["C13T46S100", "C13T46S200", "C13T46S300", "C13T46S400", "C12C935711"]
+                "consumables": ["C12C935711", "C13T46S100", "C13T46S200", "C13T46S300", "C13T46S400"]
             },
             "epson-p900": {
                 "sku": "C11CH37401",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
-                "consumables": ["C13T47A100", "C13T47A200", "C13T47A300", "C13T47A400", "C12C935711"]
+                "consumables": ["C12C935711", "C13T47A100", "C13T47A200", "C13T47A300", "C13T47A400"]
             },
             "epson-p7500-p9500": {
                 "sku": "C11CH13301A0",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-                "consumables": ["C13T44J140", "C13T44J240", "C13T44J340", "C13T44J440", "C13T699700"]
+                "consumables": ["C13T699700", "C13T44J140", "C13T44J240", "C13T44J340", "C13T44J440"]
             },
             "citizen-cx-02": {
                 "sku": "CX02-PHOTO",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp",
                 "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
-                "consumables": ["CX2.4x6", "CX2.6x8"]
+                "consumables": ["CX2.4x6", "CX2.6X8"]
             },
             "citizen-cy-02": {
                 "sku": "CY02-PHOTO",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
-                "consumables": ["CY02Bag"]
+                "consumables": ["CY-MS46", "CY-MS68"]
+            },
+            "citizen-cz-01": {
+                "sku": "CZ01-PHOTO",
+                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer-600x600.webp",
+                "website_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+                "consumables": ["CZ-MS46", "CZ-MS458", "CZ01-MEDIA-4X6"]
+            },
+            "citizen-cx-02w": {
+                "sku": "CX02W-PHOTO",
+                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer-300x300.webp",
+                "website_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
+                "consumables": ["CX2W 812"]
             },
             "epson-sc-f100": {
                 "sku": "C11CJ80301",
@@ -182,6 +194,85 @@ class CatalogRepository:
                     prod.source.website_url = media_info["website_url"]
                 if media_info.get("consumables"):
                     prod.consumables = media_info["consumables"]
+
+        # 2b. Populate verified prices for all products
+        from catalog.price_resolver import price_resolver
+        for pid, prod in self.products_by_id.items():
+            price_info = price_resolver.get_price_info(identifier=pid, prod={"name": prod.name, "sku": prod.sku, "id": prod.id})
+            if price_info.get("price") is not None:
+                prod.price = price_info["price"]
+
+        # 2c. Populate verified full descriptions and specs from verified_descriptions.json
+        desc_path = Path(__file__).parent.parent / "data" / "verified_descriptions.json"
+        if desc_path.exists():
+            try:
+                import re
+                with open(desc_path, "r", encoding="utf-8") as f:
+                    descriptions_data = json.load(f)
+                    for d_key, d_info in descriptions_data.items():
+                        d_key_norm = re.sub(r"[\s\-_/]+", "", d_key.lower())
+                        matched = False
+                        for pid, prod in self.products_by_id.items():
+                            p_id_norm = re.sub(r"[\s\-_/]+", "", pid.lower())
+                            p_name_norm = re.sub(r"[\s\-_/]+", "", prod.name.lower())
+                            if p_id_norm == d_key_norm or d_key_norm in p_id_norm or d_key_norm in p_name_norm:
+                                matched = True
+                                if d_info.get("full_description"):
+                                    prod.full_description = d_info["full_description"]
+                                    if not prod.description or len(prod.description) < 150:
+                                        prod.description = d_info.get("short_description") or d_info["full_description"][:300]
+                                if d_info.get("feature_headings"):
+                                    prod.feature_headings = d_info["feature_headings"]
+                                if d_info.get("specifications_table"):
+                                    prod.specifications_table = d_info["specifications_table"]
+                                if d_info.get("image_url") and not prod.image_url:
+                                    prod.image_url = d_info["image_url"]
+
+                        if not matched and d_info.get("full_description"):
+                            # Index as canonical product
+                            brand_val = "Citizen" if "citizen" in d_key else "Epson"
+                            cat_val = "photo_booth" if "citizen" in d_key or "f100" in d_key else ("scanner" if "ds-" in d_key or "12000xl" in d_key else "technical_cad")
+                            media_entry = VERIFIED_HARDWARE_MEDIA.get(d_key, {})
+                            img_val = media_entry.get("image_url") or d_info.get("image_url")
+                            sku_val = media_entry.get("sku") or d_key.upper()
+                            w_lbl = None
+                            w_mm = None
+                            if "cx-02w" in d_key:
+                                w_lbl = "8x10, 8x12 inches"
+                                w_mm = 203
+                            elif "cx-02" in d_key or "cy-02" in d_key:
+                                w_lbl = "4x6, 5x7, 6x8 inches"
+                                w_mm = 152
+                            elif "cz-01" in d_key:
+                                w_lbl = "4x6, 4.5x8 inches"
+                                w_mm = 114
+
+                            new_prod = NormalizedProduct(
+                                id=d_key,
+                                brand=brand_val,
+                                model=d_info.get("title", d_key),
+                                name=d_info.get("title", d_key),
+                                category=cat_val,
+                                sku=sku_val,
+                                verified=VerifiedSpecs(
+                                    ink_technology="Dye-Sublimation Thermal Transfer" if "citizen" in d_key else None,
+                                    applications=["Photo Booth", "Event Photography", "Studio"] if "citizen" in d_key else [],
+                                    max_width_label=w_lbl,
+                                    max_width_mm=w_mm,
+                                ),
+                                source=ProductSource(website_url=media_entry.get("website_url") or d_info.get("url")),
+                                full_description=d_info.get("full_description"),
+                                description=d_info.get("short_description") or d_info.get("full_description", "")[:300],
+                                feature_headings=d_info.get("feature_headings", []),
+                                specifications_table=d_info.get("specifications_table", {}),
+                                image_url=img_val
+                            )
+                            price_info = price_resolver.get_price_info(identifier=d_key, prod={"name": new_prod.name})
+                            if price_info.get("price") is not None:
+                                new_prod.price = price_info["price"]
+                            self.products_by_id[d_key] = new_prod
+            except Exception as e:
+                logger.error(f"Error loading verified descriptions from {desc_path}: {e}")
 
 
         # 3. Index standalone scanners from products.json if not already in corpus
@@ -253,6 +344,7 @@ class CatalogRepository:
 
         # Width calculation
         width_str = item.get("width", "")
+        full_text = (item.get("name", "") + " " + width_str + " " + item.get("intended_usage", "")).lower()
         max_width_mm = None
         max_width_label = width_str if width_str else None
         if "36" in width_str or "a0" in width_str.lower():
@@ -267,9 +359,21 @@ class CatalogRepository:
         elif "13" in width_str or "a3" in width_str.lower():
             max_width_mm = 329
             max_width_label = "13-inch (A3+)"
+        elif "a4" in full_text or "8.3" in width_str:
+            max_width_mm = 210
+            max_width_label = "A4"
         elif "44" in width_str:
             max_width_mm = 1118
             max_width_label = "44-inch Production"
+        elif "cx-02w" in p_id or "cx02w" in p_id:
+            max_width_mm = 203
+            max_width_label = "8x10, 8x12 inches"
+        elif "cx-02" in p_id or "cx02" in p_id or "cy-02" in p_id:
+            max_width_mm = 152
+            max_width_label = "4x6, 5x7, 6x8 inches"
+        elif "cz-01" in p_id or "cz01" in p_id:
+            max_width_mm = 114
+            max_width_label = "4x6, 4.5x8 inches"
 
         # Scanner: strict 3-valued logic (True / False / None)
         name_desc = (item.get("name", "") + " " + item.get("media_handling", "") + " " + item.get("comparison_highlights", "")).lower()
@@ -307,13 +411,14 @@ class CatalogRepository:
             max_width_label=max_width_label,
             has_scanner=has_scanner,
             resolution=item.get("max_resolution"),
-            speed=item.get("speed"),
+            speed=item.get("speed") or item.get("print_speed"),
             ink_technology=item.get("ink_technology"),
             connectivity=connectivity,
             applications=apps,
-            cartridge_capacities=item.get("cartridge_capacities"),
+            cartridge_capacities=item.get("capacity") or item.get("cartridge_capacities"),
             media_handling=item.get("media_handling"),
             footprint=item.get("footprint"),
+            weight=item.get("weight"),
         )
 
         return NormalizedProduct(

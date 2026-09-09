@@ -120,7 +120,7 @@ VERIFIED_PRODUCTS = {
     "dye_sub_photo": [
         {
             "brand": "Citizen",
-            "model": "Citizen CX-02 / CX-02S",
+            "model": "Citizen CX-02",
             "category": "Dye-Sublimation Event Photo Printer",
             "sizes": "4x6, 6x8 inches (ribbon + media rolls)",
             "intended_use": "Event photography, photo booths, retail kiosks, passport and ID studios",

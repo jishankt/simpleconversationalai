@@ -45,8 +45,12 @@ def validate_grounding(response_text: str, user_normalized_text: str, intent_dat
                 "notes": notes
             }
 
-    # 2. Check for fictitious pricing or numeric currency in response
-    if re.search(r"\b(?:aed|usd|\$|dirhams?)\s*\d+", lower_resp) or re.search(r"\d+\s*(?:aed|usd|dirhams?)", lower_resp):
+    # 2. Check for unverified price leak when intent is not an official price inquiry
+    if (
+        (re.search(r"\b(?:aed|usd|\$|dirhams?)\s*\d+", lower_resp) or re.search(r"\d+\s*(?:aed|usd|dirhams?)", lower_resp))
+        and intent_data.get("intent") != "PRICE_INQUIRY"
+        and not any(p in lower_resp for p in ["officially listed", "catalog price", "official price", "excl. vat", "official standard", "standard list", "standard rate", "list price"])
+    ):
         notes.append("Hallucinated price or currency intercepted in output.")
         return {
             "is_grounded": False,
@@ -54,6 +58,29 @@ def validate_grounding(response_text: str, user_normalized_text: str, intent_dat
             "sanitized_response": "I can help you find the right option based on your requirements, but pricing isn’t available through this chat.",
             "notes": notes
         }
+
+    # 3. Check for unauthorized discount promises or price negotiations
+    discount_promise = [
+        r"\b(?:i can give (?:you )?(?:a )?discount|we can offer (?:you )?(?:a )?discount)\b",
+        r"\b(?:we can negotiate|i can reduce the price|special discount for you|special deal for you)\b",
+        r"\b(?:negotiate the price|lower the price for you)\b"
+    ]
+    for dp in discount_promise:
+        if re.search(dp, lower_resp):
+            notes.append("Unauthorized discount or negotiation concession intercepted.")
+            from guardrails import DISCOUNT_REFUSAL
+            return {
+                "is_grounded": False,
+                "status": "DISCOUNT_NEGOTIATION_PREVENTED",
+                "sanitized_response": DISCOUNT_REFUSAL,
+                "notes": notes
+            }
+
+    # 3. Prevent non-AED foreign currency hallucinations (e.g. USD, EUR, INR)
+    if re.search(r"[$€£₹]\s*\d+", lower_resp) or re.search(r"\b\d+\s*(?:usd|eur|inr|gbp)\b", lower_resp):
+        notes.append("Non-AED currency hallucination intercepted.")
+        response_text = re.sub(r"[$€£₹]\s*\d+", "", response_text)
+        response_text = re.sub(r"\b\d+\s*(?:usd|eur|inr|gbp)\b", "", response_text)
 
     # 3. Check for invented budget questions
     if re.search(r"\b(?:what is your budget|what's your budget|whats your budget|how much are you looking to spend)\b", lower_resp):
@@ -64,7 +91,12 @@ def validate_grounding(response_text: str, user_normalized_text: str, intent_dat
             response_text
         )
 
-    # 4. Verify model references if present
+    # 4. Prevent spec cross-pollination between models
+    if "cx-02" in lower_resp and "700" in lower_resp and "cy-02" not in lower_resp:
+        notes.append("Spec cross-pollination intercepted: 700 prints erroneously attributed to CX-02.")
+        response_text = re.sub(r"(?i)700\s*(?:prints?|rolls?)?", "400 prints", response_text)
+
+    # 5. Verify model references if present
     # Check if any model mentioned in response exists in verified catalog
     known_models = ["t3100", "t5100", "t5400", "p700", "p900", "p7500", "p9500", "am-c4000", "am-c550", "wf-c879r", "cx-02", "cy-02", "ifa 11", "ifa 13", "olm 68", "olm 70"]
     models_found = [m for m in known_models if m in lower_resp]

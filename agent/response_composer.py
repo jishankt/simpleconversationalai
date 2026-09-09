@@ -59,6 +59,7 @@ class ResponseComposer:
         evidence: Dict[str, Any] = {
             "route": active_route.value if hasattr(active_route, "value") else str(active_route),
             "base_response_template": route_result.reply,
+            "customer_requirements": state.requirements,
             "product_count": len(route_result.product_cards),
         }
 

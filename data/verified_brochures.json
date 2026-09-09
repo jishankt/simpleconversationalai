@@ -1,0 +1,116 @@
+{
+  "citizen-cx-02": {
+    "name": "Citizen CX-02 Digital Photo Printer",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX-02-Photo-Printer-Datasheet.pdf",
+    "aliases": ["cx02", "cx-02", "citizen cx02", "citizen cx-02"]
+  },
+  "citizen-cy-02": {
+    "name": "Citizen CY-02 Photo Printer",
+    "url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CY-02-Photo-Printer-Datasheet.pdf",
+    "aliases": ["cy02", "cy-02", "citizen cy02", "citizen cy-02"]
+  },
+  "citizen-cz-01": {
+    "name": "Citizen CZ-01 Photo Printer",
+    "url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CZ-01-Photo-Printer-Datasheet.pdf",
+    "aliases": ["cz01", "cz-01", "citizen cz01", "citizen cz-01"]
+  },
+  "citizen-cx-02w": {
+    "name": "Citizen CX-02W 8\" Large Photo Printer",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX-02W-Large-Format-Photo-Printer-Datasheet.pdf",
+    "aliases": ["cx02w", "cx-02w", "citizen cx02w", "citizen cx-02w"]
+  },
+  "epson-am-c4000": {
+    "name": "Epson WorkForce Enterprise AM-C4000 MFP",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Epson-WorkForce-Enterprise-WF-AM-C4000-Printer-Datasheet.pdf",
+    "aliases": ["am-c4000", "amc4000", "c4000"]
+  },
+  "epson-am-c550": {
+    "name": "Epson WorkForce AM-C550 A4 Multifunction Printer",
+    "url": "https://www.keplertechllc.com/product/epson-wf-am-c550-a4-multifunction-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2025/01/Epson-WorkForce-AM-C550-A4-Color-Multifunction-Printer.pdf",
+    "aliases": ["am-c550", "amc550", "c550"]
+  },
+  "epson-t3100": {
+    "name": "Epson SureColor SC-T3100 Wireless Technical Plotter",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-Printer-Datasheet.pdf",
+    "aliases": ["t3100", "sc-t3100", "t3100n", "t3100m"]
+  },
+  "epson-t5100": {
+    "name": "Epson SureColor SC-T5100 36\" Large Format Plotter",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer-datasheet.pdf",
+    "aliases": ["t5100", "sc-t5100", "t5100n"]
+  },
+  "epson-t5400m": {
+    "name": "Epson SureColor SC-T5100M / T5400M MFP Technical Plotter",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2026/01/Epson-SureColor-SC-T5100M-MFP-Brochure.pdf",
+    "aliases": ["t5400m", "t5100m", "t5400", "sc-t5400m"]
+  },
+  "epson-t5700d": {
+    "name": "Epson SureColor SC-T5700D Dual-Roll Technical Plotter",
+    "url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-Sure-Color-SC-T5700D-Printer-Datasheet.pdf",
+    "aliases": ["t5700d", "t5700", "sc-t5700d"]
+  },
+  "epson-p700": {
+    "name": "Epson SureColor SC-P700 13\" Photo Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P700-13-Photo-Printer-Datasheet.pdf",
+    "aliases": ["p700", "sc-p700"]
+  },
+  "epson-p900": {
+    "name": "Epson SureColor SC-P900 17\" Photo Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-P900-Photo-Printer-Datasheet.pdf",
+    "aliases": ["p900", "sc-p900"]
+  },
+  "epson-p5000": {
+    "name": "Epson SureColor SC-P5000 17\" Commercial Photo Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureCOlor-P5000-Printer-1.pdf",
+    "aliases": ["p5000", "sc-p5000"]
+  },
+  "epson-p6000": {
+    "name": "Epson SureColor SC-P6000 24\" Large Format Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-P6000-Product-Datasheet.pdf",
+    "aliases": ["p6000", "sc-p6000"]
+  },
+  "epson-p8000": {
+    "name": "Epson SureColor SC-P8000 44\" Large Format Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p8000-large-format-inkjet-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-P8000-Large-Format-Inkjet-Printer-Datasheet.pdf",
+    "aliases": ["p8000", "sc-p8000"]
+  },
+  "epson-p9000": {
+    "name": "Epson SureColor SC-P9000 44\" Large Format Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p9000-large-format-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-P9000-Printer.pdf",
+    "aliases": ["p9000", "sc-p9000"]
+  },
+  "epson-p7500": {
+    "name": "Epson SureColor SC-P7500 / SC-P9500 12-Color Large Format Photo Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2025/09/epson-surecolor-sc-p7500-datasheet-kepler-tech.pdf",
+    "aliases": ["p7500", "p9500", "sc-p7500", "sc-p9500"]
+  },
+  "epson-sc-f100": {
+    "name": "Epson SureColor SC-F100 Desktop Dye-Sublimation Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-F100-Printer-Datasheet.pdf",
+    "aliases": ["f100", "sc-f100"]
+  },
+  "epson-sc-f500": {
+    "name": "Epson SureColor SC-F500 24\" Dye-Sublimation Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2026/04/surecolor-sc-f500-datasheet-kepler.pdf",
+    "aliases": ["f500", "sc-f500"]
+  }
+}

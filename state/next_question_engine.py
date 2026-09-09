@@ -22,16 +22,45 @@ class NextQuestionEngine:
 
         if not cat:
             state.awaiting_field = "category"
-            return {
-                "field": "category",
-                "question": "Welcome to Kepler Tech! What type of printer or printing solution are you looking for?",
-                "pills": [
-                    "CAD & Technical Plotters",
+            last_resp = (state.last_assistant_response or "").lower()
+            has_welcomed = bool(
+                state.last_assistant_response
+                or getattr(state, "turn_count", 0) > 0
+                or (hasattr(state, "history_turns") and len(state.history_turns) > 0)
+            )
+            already_asked_cat = "printing or scanning solution" in last_resp or "type of print" in last_resp
+
+            if already_asked_cat:
+                q_text = "We offer four specialized printing categories. What will you primarily be printing?"
+                pills = [
+                    "Office & Business Documents",
+                    "CAD & Technical Blueprints",
                     "Photo & Fine Art",
-                    "Enterprise Office MFP",
+                    "Photo Booth / Events"
+                ]
+            elif has_welcomed:
+                q_text = "What type of printing or scanning solution are you looking for?"
+                pills = [
+                    "Office Enterprise Printers",
+                    "Photo & Fine Art",
+                    "CAD & Technical Plotters",
                     "Photo Booth / Dye-Sub",
                     "Document Scanners"
                 ]
+            else:
+                q_text = "Welcome to Kepler Tech! What type of printing or scanning solution are you looking for?"
+                pills = [
+                    "Office Enterprise Printers",
+                    "Photo & Fine Art",
+                    "CAD & Technical Plotters",
+                    "Photo Booth / Dye-Sub",
+                    "Document Scanners"
+                ]
+
+            return {
+                "field": "category",
+                "question": q_text,
+                "pills": pills
             }
 
         # 1. Technical CAD & Blueprint Plotters
@@ -40,7 +69,7 @@ class NextQuestionEngine:
                 state.awaiting_field = "print_size"
                 return {
                     "field": "print_size",
-                    "question": "What maximum drawing size do you normally print?",
+                    "question": "What maximum drawing or print size do you normally print?",
                     "pills": ["24-inch (A1)", "36-inch (A0)"]
                 }
 
@@ -82,7 +111,7 @@ class NextQuestionEngine:
                 state.awaiting_field = "daily_volume"
                 return {
                     "field": "daily_volume",
-                    "question": "Approximately how many pages or drawings do you print per day?",
+                    "question": "Approximately how many pages or documents do you print per day?",
                     "pills": ["Low (1-50 pages/day)", "Medium (50-200 pages/day)", "High Volume (200+ pages/day)"]
                 }
 
@@ -108,8 +137,8 @@ class NextQuestionEngine:
                 state.awaiting_field = "print_size"
                 return {
                     "field": "print_size",
-                    "question": "What photo print size do you primarily require?",
-                    "pills": ["4x6\" Standard", "5x7\"", "6x8\" Strips"]
+                    "question": "What photo print size do you primarily require (e.g., 4x6 inches, 6x8 inches, or 8x12 inches)?",
+                    "pills": ["4x6 inches", "6x8 inches", "8x12 inches"]
                 }
 
             state.awaiting_field = None

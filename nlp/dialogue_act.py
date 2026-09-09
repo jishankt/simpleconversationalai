@@ -58,10 +58,8 @@ def classify_dialogue_act(
             target_cat = "office_enterprise"
         elif any(k in low for k in ["scanner", "scanners", "flatbed"]):
             target_cat = "scanner"
-        elif any(k in low for k in ["ink", "consumable", "consumables", "cartridge", "cartridges"]):
+        elif any(re.search(rf"\b{re.escape(k)}\b", low) for k in ["ink", "inks", "consumable", "consumables", "cartridge", "cartridges"]):
             target_cat = "consumable"
-        elif any(k in low for k in ["printer", "printers"]):
-            target_cat = "technical_cad"
 
         if target_cat:
             return {"act": ACT_CHANGING_TOPIC, "params": {"target_category": target_cat}}
@@ -93,16 +91,10 @@ def classify_dialogue_act(
             }
 
     # 3. Consumable questions (e.g. "what ink does it use?", "what consumables and inks are compatible with...", "inks for SC-T3100")
-    # NOTE: exclude "scanner"/"scanners" from triggering consumables — they contain "scan" substring but are NOT consumable queries
     _consumable_keywords = ["ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "ribbon", "ribbons", "maintenance tank", "waste box", "toner"]
-    _is_consumable_query = any(k in low for k in _consumable_keywords)
-    # If message is really about scanners (contains "scanner"/"scanners" but none of the real consumable words), skip
-    if _is_consumable_query:
-        _real_consumable_words = ["ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "ribbon", "ribbons", "maintenance tank", "waste box", "toner"]
-        _has_real_consumable_word = any(w in low.split() or w in low for w in _real_consumable_words if w not in ("scan",))
-        # "scanner" contains "scan" but should NOT trigger consumable detection
-        if not _has_real_consumable_word and any(s in low for s in ["scanner", "scanners"]):
-            _is_consumable_query = False
+    _is_consumable_query = any(re.search(rf"\b{re.escape(k)}\b", low) for k in _consumable_keywords)
+    if _is_consumable_query and any(s in low for s in ["scanner", "scanners"]) and not any(re.search(rf"\b{re.escape(w)}\b", low) for w in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon", "consumable", "consumables"]):
+        _is_consumable_query = False
 
     if _is_consumable_query:
         item_ref = None
@@ -169,6 +161,12 @@ def classify_dialogue_act(
                 return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A0"}}
             elif re.search(r"\b(?:a1|24\s*inch|24\"|a1\s*size)\b", low):
                 return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A1"}}
+            elif re.search(r"\b(?:a2|17\s*inch|17\"|a2\s*size)\b", low):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A2"}}
+            elif re.search(r"\b(?:a3\+?|13\s*inch|13\"|a3\s*size)\b", low):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A3+"}}
+            elif re.search(r"\b(?:a4|a4\s*size)\b", low):
+                return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A4"}}
             elif re.search(r"\b(?:4x6|5x7|6x8)\b", low):
                 m = re.search(r"\b(?:4x6|5x7|6x8)\b", low).group(0)
                 return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": m}}
@@ -176,7 +174,7 @@ def classify_dialogue_act(
         elif awaiting_field == "scan_required":
             if any(k in low for k in ["yes", "yeah", "yep", "sure", "need scanner", "scanner needed", "integrated"]):
                 return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scan_required", "value": True}}
-            elif any(k in low for k in ["no", "nope", "print only", "not needed", "dont need", "don't need"]):
+            elif any(k in low for k in ["no", "nope", "print only", "printer only", "only print", "only printer", "just print", "just printer", "no scanner", "without scanner", "no scan", "not needed", "dont need", "don't need"]):
                 return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "scan_required", "value": False}}
 
         elif awaiting_field in ("daily_volume", "speed"):
@@ -214,6 +212,12 @@ def classify_dialogue_act(
         return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A0"}}
     if re.search(r"\b(?:a1|24\s*inch|24\")\b", low) and not any(k in low for k in ["compare", "vs"]):
         return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A1"}}
+    if re.search(r"\b(?:a2|17\s*inch|17\")\b", low) and not any(k in low for k in ["compare", "vs"]):
+        return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A2"}}
+    if re.search(r"\b(?:a3\+?|13\s*inch|13\")\b", low) and not any(k in low for k in ["compare", "vs"]):
+        return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A3+"}}
+    if re.search(r"\b(?:a4|a4\s*size)\b", low) and not any(k in low for k in ["compare", "vs"]):
+        return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": "A4"}}
     if re.search(r"\b(?:4x6|5x7|6x8)\b", low):
         m = re.search(r"\b(?:4x6|5x7|6x8)\b", low).group(0)
         return {"act": ACT_ANSWERING_QUESTION, "params": {"field": "print_size", "value": m}}

@@ -41,7 +41,7 @@ class LLMUnderstandingEngine:
         """
         if not self.client:
             logger.warning("No Ollama client configured — returning fallback understanding.")
-            return self._fallback()
+            return self._fallback(customer_message)
 
         # Check fast path to bypass 12s LLM classify when answer is deterministic
         if self.is_deterministic_fast_path(customer_message, state_summary):
@@ -91,45 +91,34 @@ class LLMUnderstandingEngine:
         if not words:
             return True
 
-        # Boolean & Scanner answers
+        # Direct comparison, superlative queries, specifications, and website lookups can be handled deterministically
         if any(w in msg_l for w in [
-            "yes", "no", "yep", "nope", "need scanner", "no scanner", "without scanner", "with scanner", 
-            "print only", "both", "both printing and scanning", "both print and scan", "printing and scanning",
-            "printing & scanning", "print and scan", "print & scan", "scannin", "scaning", "scanner too", "scanning too"
+            "fastest", "faster", "highest speed", "print speed", "quickest", "print faster",
+            "highest capacity", "largest roll", "most prints", "max capacity", "print capacity",
+            "most portable", "lightest", "smallest", "most compact", "how heavy", "weight of",
+            "widest", "highest resolution", "max resolution", "print 8x12", "8 inch citizen", "8-inch citizen",
+            "compare", " vs ", " versus ", "difference between", "differences between", "difference",
+            "which is better", "which is best", "which one is better", "which one should i choose",
+            "ribbon rewind", "inkjet or dye sub", "dye sub or inkjet",
+            "specifications", "description", "datasheet", "brochure", "website",
+            "product description", "detailed specs", "technical specs"
         ]):
             return True
-        # Size
-        if any(s in msg_l for s in ["a0", "a1", "a2", "a3", "4x6", "6x8", "24\"", "36\""]) or "mostly 4x6" in msg_l:
-            return True
-        # Volume
-        if any(ch.isdigit() for ch in msg_l) and (any(w in msg_l for w in ["drawing", "print", "day", "daily", "around", "about", "approx"]) or len(words) == 1):
-            return True
-        # Corrections
-        if "actually" in msg_l:
-            return True
-        # Recommendations
-        if any(k in msg_l for k in ["recommend now", "recommend", "show options", "give me options", "show another", "show another one"]):
+
+        # If user is speaking in full conversational sentences (more than 3 words) or correcting, always let LLM classify
+        if len(words) > 3 or any(w in words for w in ["sorry", "actually", "instead", "think", "thought", "mean", "meant"]):
+            return False
+
+        # Isolated Boolean & Scanner answers
+        if msg_l in ["yes", "no", "yep", "nope", "both", "print only", "printer only", "only print", "only printer", "just print", "just printer", "no scanner", "with scanner", "need scanner"]:
             return True
 
-        # Pronoun questions on active product
-        if any(p in msg_l for p in ["does it", "can it", "what size can it", "what ink does it", "what ink does the", "why this one", "which is better"]):
+        # Isolated Size answers
+        if msg_l in ["a0", "a1", "a2", "a3", "a4", "4x6", "6x8", "8x12", "24\"", "36\"", "44\"", "small", "large", "compact", "big", "smaller", "larger"]:
             return True
 
-        # Specific model codes
-        import re
-        if re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3}[a-z]?|cx-?\d{2}|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?)\b", msg_l):
-            return True
-
-        # Product comparison
-        if any(w in msg_l for w in ["compare", " vs ", " versus "]):
-            return True
-
-        # Consumables / Inks / Colors
-        if any(w in msg_l for w in ["yellow", "cyan", "magenta", "black", "matte black", "photo black", "gray", "grey", "violet", "orange", "green", "ink", "inks", "cartridge", "cartridges", "maintenance box", "ribbon"]):
-            return True
-
-        # Business info questions
-        if any(w in msg_l for w in ["delivery", "shipping", "deliver", "ship", "address", "location", "dubai", "where are you", "office hours", "timings", "contact number", "phone number", "whatsapp", "email", "companies", "brands you provide", "what brands"]):
+        # Pure isolated volume numbers (e.g. "60", "150", "10 pages")
+        if len(words) <= 2 and any(ch.isdigit() for ch in msg_l):
             return True
 
         return False
@@ -142,12 +131,146 @@ class LLMUnderstandingEngine:
         action = "ask_clarification"
 
         import re
-        # Model codes
-        m_code = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3}[a-z]?|cx-?\d{2}|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?)\b", msg_l)
-        if m_code:
-            entities["model_code"] = m_code.group(0).upper()
-            intent = Intent.PRODUCT_QUESTION
-            action = "show_product_specs"
+
+        # 1. Model detection for comparisons
+        comp_model_matches = re.findall(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?)\b", msg_l)
+        unique_comp_models = []
+        for cm in comp_model_matches:
+            clean_cm = re.sub(r"[\s\-_]+", "", cm.lower())
+            if clean_cm not in [re.sub(r"[\s\-_]+", "", u.lower()) for u in unique_comp_models]:
+                unique_comp_models.append(cm.lower())
+
+        is_comp = (
+            len(unique_comp_models) >= 2
+            or any(w in msg_l for w in [
+                "compare", " vs ", " versus ", "difference", "differences", "difference between",
+                "which is better", "which is best", "which one is better", "which one should i choose",
+                "how do they compare", "how does", "contrast", "epson or citizen", "citizen or epson"
+            ])
+        )
+
+        # Consumables check before superlative attribute check
+        has_ink_kw = any(re.search(rf"\b{re.escape(k)}\b", msg_l) for k in [
+            "consumable", "consumables", "ink", "inks", "cartridge", "cartridges",
+            "toner", "ribbon", "what ink", "which ink", "maintenance box", "maintenance tank",
+            "paper roll", "photo paper", "media", "yellow", "cyan", "magenta", "photo black",
+            "matte black", "light cyan", "light magenta", "gray", "grey", "violet", "orange", "green"
+        ]) or "compatible with" in msg_l
+        is_negating_ink = any(k in msg_l for k in ["not ink", "no ink", "dont want ink", "don't want ink", "printer only", "only printer"])
+        is_pure_consumable = has_ink_kw and not is_negating_ink and not any(rw in msg_l for rw in ["ribbon rewind", "rewind", "inkjet or dye sub", "use ink or ribbon"])
+
+        if is_pure_consumable:
+            logger.info("Fallback NLU: classified as intent=consumables_query action=show_consumables")
+            return LLMUnderstanding(
+                intent=Intent.CONSUMABLES_QUERY,
+                dialogue_act="questioning",
+                product_related=True,
+                confidence=0.95,
+                sentiment="neutral",
+                language="en",
+                entities=entities,
+                requested_action="show_consumables",
+            )
+
+        # Explicit model specification or inquiry check
+        from catalog.product_resolver import resolve_canonical_id
+        canon_model = entities.get("model_code") or resolve_canonical_id(customer_message)
+        if canon_model and any(w in msg_l for w in ["spec", "specification", "detail", "about", "what is", "price", "speed", "size", "show me", "tell me", "description", "overview", "brochure", "datasheet", "website", "find"]):
+            entities["model_code"] = canon_model
+            return LLMUnderstanding(
+                intent=Intent.PRODUCT_QUESTION,
+                dialogue_act="questioning",
+                product_related=True,
+                confidence=0.95,
+                sentiment="neutral",
+                language="en",
+                entities=entities,
+                requested_action="answer_product_attribute",
+                tool_request={"name": "get_product_specs", "arguments": {"product_identifier": canon_model}}
+            )
+
+        is_superlative_attribute = any(w in msg_l for w in [
+            "price", "what is the price", "what does it cost", "how much", "rate", "cost", "how much is it",
+            "fastest", "highest speed", "how fast", "print speed", "quickest", "print faster",
+            "highest capacity", "largest roll", "most prints", "max capacity", "print capacity",
+            "most portable", "lightest", "how heavy", "weight of", "most compact", "smallest",
+            "ribbon rewind", "print 8x12", "prints 8x12", "8 inch citizen", "8-inch citizen",
+            "which citizen", "which epson", "which printer is", "does it have", "can it print", "can it scan",
+            "what size", "specs", "specification", "specifications", "description", "overview", "details",
+            "why this one", "inkjet or dye sub", "use ink or ribbon"
+        ])
+
+        is_general_web_spec_query = any(p in msg_l for p in [
+            "description and specifications", "specifications and description",
+            "product description", "product specifications", "product specs",
+            "find the product description", "find product description",
+            "go the website", "go to the website", "go to website",
+            "from website", "from the website", "on the website", "check the website",
+            "check website", "website specifications"
+        ])
+
+        if is_comp:
+            logger.info("Fallback NLU: classified as intent=product_comparison action=compare_products reason=direct_comparison_inquiry")
+            return LLMUnderstanding(
+                intent=Intent.PRODUCT_COMPARISON,
+                dialogue_act="questioning",
+                product_related=True,
+                confidence=0.95,
+                sentiment="neutral",
+                language="en",
+                entities=entities,
+                requested_action="compare_products",
+            )
+
+        if is_superlative_attribute or is_general_web_spec_query:
+            logger.info("Fallback NLU: classified as intent=product_question action=answer_product_attribute reason=superlative_or_spec_inquiry")
+            return LLMUnderstanding(
+                intent=Intent.PRODUCT_QUESTION,
+                dialogue_act="questioning",
+                product_related=True,
+                confidence=0.95,
+                sentiment="neutral",
+                language="en",
+                entities=entities,
+                requested_action="answer_product_attribute",
+                tool_request={"name": "answer_product_attribute", "arguments": {"query": customer_message}}
+            )
+
+
+        # Brands & Categories
+        if any(c in msg_l for c in ["citizen", "cx-02", "cx02", "cz-01", "cz01", "cy-02", "cy02", "photo booth", "dye-sub"]):
+            entities["brand"] = "Citizen"
+            entities["product_category"] = "photo_booth"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif "epson" in msg_l:
+            entities["brand"] = "Epson"
+        if any(c in msg_l for c in ["cad", "technical", "blueprint", "architect", "plotter"]):
+            entities["product_category"] = "technical_cad"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif any(c in msg_l for c in ["photo fine art", "photo printer", "photography", "fine art", "gallery"]):
+            if "citizen" not in msg_l:
+                entities["product_category"] = "photo_fine_art"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif any(c in msg_l for c in ["office", "enterprise", "workforce", "copier", "am-c", "mfp"]):
+            entities["product_category"] = "office_enterprise"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif (
+            not any(neg in msg_l for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner", "print only", "printer only"])
+            and not any(ans in msg_l for ans in ["yes need scanner", "with scanner", "has scanner", "need scanner", "scanner needed", "integrated scanner", "yes scanner", "scanner too"])
+            and any(c in msg_l for c in ["scanner", "document scan", "scanning"])
+        ):
+            entities["product_category"] = "scanner"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
 
         # Business info
         if any(w in msg_l for w in ["delivery", "shipping", "deliver", "ship", "address", "location", "dubai", "where are you", "office hours", "timings", "open", "contact", "phone", "email", "whatsapp", "companies", "what brands"]):
@@ -155,13 +278,28 @@ class LLMUnderstandingEngine:
             action = "provide_business_info"
 
         # Sizes
-        if "a0" in msg_l or "36-inch" in msg_l or "36\"" in msg_l:
+        if "a0" in msg_l or "36" in msg_l or "36\"" in msg_l:
             entities["print_size"] = "A0"
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "ask_qualification_question"
-        elif "a1" in msg_l or "24-inch" in msg_l or "24\"" in msg_l:
+        elif "a1" in msg_l or "24" in msg_l or "24\"" in msg_l:
             entities["print_size"] = "A1"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif "a2" in msg_l or "17" in msg_l or "17\"" in msg_l:
+            entities["print_size"] = "A2"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif "a3" in msg_l or "13" in msg_l or "13\"" in msg_l:
+            entities["print_size"] = "A3"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif "a4" in msg_l:
+            entities["print_size"] = "A4"
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "ask_qualification_question"
@@ -171,21 +309,23 @@ class LLMUnderstandingEngine:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "ask_qualification_question"
 
-        # Volume
-        vol = re.search(r"\b(\d{1,4})\b", msg_l)
-        if vol and any(vkw in msg_l for vkw in ["print", "drawing", "day", "daily", "around", "about", "approx", "volume"]):
+        # Volume (ignore dimension patterns like 594 x 841 mm)
+        clean_vol_text = re.sub(r"\b\d+\s*[x×*]\s*\d+\s*(?:mm|cm|in|inch|inches)?\b", "", msg_l)
+        clean_vol_text = re.sub(r"\b\d+\s*(?:mm|cm|in|inch|inches)\b", "", clean_vol_text)
+        vol = re.search(r"\b(\d{1,4})\b", clean_vol_text)
+        if vol and any(vkw in clean_vol_text for vkw in ["print", "drawing", "day", "daily", "around", "about", "approx", "volume"]):
             entities["daily_volume"] = int(vol.group(1))
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "search_products"
-        elif vol and len(msg_l.split()) <= 3 and any(ch.isdigit() for ch in msg_l):
+        elif vol and len(clean_vol_text.split()) <= 3 and any(ch.isdigit() for ch in clean_vol_text):
             entities["daily_volume"] = int(vol.group(1))
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "search_products"
 
         # Scanner preference
-        if any(w in msg_l for w in ["no scanner", "without scanner", "print only", "only print", "printing only", "no scan"]):
+        if any(w in msg_l for w in ["no scanner", "without scanner", "print only", "printer only", "only print", "only printer", "just print", "just printer", "printing only", "no scan"]):
             entities["scan_required"] = False
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
@@ -214,23 +354,25 @@ class LLMUnderstandingEngine:
                 intent = Intent.REJECTION
                 action = "continue_qualification"
 
-        # Comparisons
-        if any(w in msg_l for w in ["compare", " vs ", " versus ", "which is better", "which is best", "epson or citizen", "citizen or epson"]):
-            intent = Intent.PRODUCT_COMPARISON
-            action = "compare_products"
-
-        # Pronoun question on product
-        elif any(w in msg_l for w in ["does it", "can it", "what size", "how fast", "specs", "why this one"]):
-            intent = Intent.PRODUCT_QUESTION
-            action = "show_product_specs"
+        # Model detection for multi-model comparisons
+        comp_model_matches = re.findall(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?)\b", msg_l)
+        unique_comp_models = []
+        for m in comp_model_matches:
+            clean_m = re.sub(r"[\s\-_]+", "", m.lower())
+            if clean_m not in [re.sub(r"[\s\-_]+", "", u.lower()) for u in unique_comp_models]:
+                unique_comp_models.append(m.lower())
 
 
-        # Consumables / Colors
-        if any(k in msg_l for k in [
+
+        # Consumables / Colors / Media
+        has_ink_kw = any(re.search(rf"\b{re.escape(k)}\b", msg_l) for k in [
             "consumable", "consumables", "ink", "inks", "cartridge", "cartridges",
-            "toner", "ribbon", "what ink", "which ink", "maintenance box",
-            "yellow", "cyan", "magenta", "photo black", "matte black", "light cyan", "light magenta", "gray", "grey", "violet", "orange", "green"
-        ]):
+            "toner", "ribbon", "what ink", "which ink", "maintenance box", "maintenance tank",
+            "paper roll", "photo paper", "media", "yellow", "cyan", "magenta", "photo black",
+            "matte black", "light cyan", "light magenta", "gray", "grey", "violet", "orange", "green"
+        ]) or "compatible with" in msg_l
+        is_negating_ink = any(k in msg_l for k in ["not ink", "no ink", "dont want ink", "don't want ink", "printer only", "only printer"])
+        if (intent in (Intent.UNCLEAR, Intent.PRODUCT_DISCOVERY, Intent.PRODUCT_QUESTION)) and has_ink_kw and not is_negating_ink and intent != Intent.PRODUCT_COMPARISON and action != "answer_product_attribute" and not any(rw in msg_l for rw in ["ribbon rewind", "rewind", "ribbon feature", "technology", "or ribbon"]):
             intent = Intent.CONSUMABLES_QUERY
             action = "show_consumables"
 

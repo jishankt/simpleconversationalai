@@ -1,23 +1,35 @@
 import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Server Configuration
-PORT = int(os.getenv("PORT", 5050))
+PORT = int(os.getenv("PORT", 5055))
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-# Ollama Endpoint Configuration
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+# Ollama Endpoint Configuration & Protocol Normalization
+raw_ollama_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://192.168.0.110:11434"
+raw_ollama_url = raw_ollama_url.strip().rstrip("/")
+if not (raw_ollama_url.startswith("http://") or raw_ollama_url.startswith("https://")):
+    raw_ollama_url = f"http://{raw_ollama_url}"
+
+OLLAMA_BASE_URL = raw_ollama_url
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
-TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "4"))
+TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
 # Advanced Ollama settings for /api/chat methods
-OLLAMA_CONNECT_TIMEOUT = int(os.getenv("OLLAMA_CONNECT_TIMEOUT", "5"))
-OLLAMA_READ_TIMEOUT = int(os.getenv("OLLAMA_READ_TIMEOUT", "90"))
+OLLAMA_CONNECT_TIMEOUT = float(os.getenv("OLLAMA_CONNECT_TIMEOUT", "2.5"))
+OLLAMA_READ_TIMEOUT = float(os.getenv("OLLAMA_READ_TIMEOUT", "30"))
+OLLAMA_MAX_RETRIES = int(os.getenv("OLLAMA_MAX_RETRIES", "1"))
 OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "10m")
 OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "4096"))
 OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", "0.0"))
 OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", "0.8"))
 OLLAMA_CLASSIFIER_TEMPERATURE = float(os.getenv("OLLAMA_CLASSIFIER_TEMPERATURE", str(OLLAMA_TEMPERATURE)))
 OLLAMA_RESPONSE_TEMPERATURE = float(os.getenv("OLLAMA_RESPONSE_TEMPERATURE", str(OLLAMA_TEMPERATURE)))
+
 
 # Verified Company Context from https://www.keplertechllc.com/
 DEFAULT_COMPANY_CONTEXT = {

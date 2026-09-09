@@ -42,41 +42,43 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                 source="tool:get_direct_consumable_sku",
             )
 
-    # 2. Extract Color if customer mentioned one (or retrieve saved color from previous turn)
-    extracted_color = None
+    # 2. Extract Colors if customer mentioned any (or retrieve saved color from previous turn)
+    extracted_colors = []
     for color in sorted(KNOWN_COLORS, key=lambda c: len(c), reverse=True):
         if re.search(r"\b" + re.escape(color) + r"\b", raw_lower):
-            extracted_color = color
-            break
+            # Avoid duplicate sub-strings (e.g., "black" inside "photo black")
+            if not any(color in ec for ec in extracted_colors):
+                extracted_colors.append(color)
 
-    if extracted_color:
-        state.requested_ink_color = extracted_color
+    if extracted_colors:
+        state.requested_ink_color = extracted_colors[0]
     elif state.requested_ink_color:
-        extracted_color = state.requested_ink_color
+        extracted_colors = [state.requested_ink_color]
 
     # 3. Determine target printer / hardware model with exact full-word matching
     target = None
+    m = None
     # If the user explicitly provided a model code in this turn
     if model_code:
         target = model_code
     elif raw_message:
         m = re.search(
-            r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{2}|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?|12000xl)\b",
+            r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?|12000xl)\b",
             raw_lower
         )
         if m:
             target = m.group(0).upper()
 
     # If asking generally for ink ("i want to buy a ink", "need ink", "i want ink") without explicit model code, do not assume previous active product
+    has_pronoun_ref = bool(re.search(r"\b(?:this|that|it|these|those)\b", raw_lower))
     has_model_mention = bool(model_code or m)
-    has_pronoun_ref = any(p in raw_lower for p in ["for this", "for it", "for that", "this printer", "that printer", "for the printer"])
-    is_general_ink_req = not has_model_mention and not has_pronoun_ref and any(k in raw_lower for k in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon"])
+    is_general_ink_req = not has_model_mention and not has_pronoun_ref and bool(re.search(r"\b(?:ink|inks|cartridge|cartridges|toner|ribbon)\b", raw_lower))
     if not is_general_ink_req:
-        # If no explicit model code in query, rely on active printer context from previous turn
-        if not target and (has_pronoun_ref or not is_general_ink_req) and state.active_product:
-            target = state.active_product.get("name") or state.active_product.get("sku")
+        # Prioritize the printer actively discussed in consumables flow first!
         if not target and state.active_printer_for_consumables:
             target = state.active_printer_for_consumables
+        elif not target and (has_pronoun_ref or not is_general_ink_req) and state.active_product:
+            target = state.active_product.get("name") or state.active_product.get("sku")
 
     # If no printer identified, ask user for the exact model
     if not target:
@@ -92,13 +94,20 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             needs_composition=False,
         )
 
+    # Clean composite target string (e.g. "CX-02, CX-02S" or "CX-02 / CX-02S" -> extract primary model like "CX-02")
+    if target:
+        m_primary = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?|12000xl)\b", str(target), re.IGNORECASE)
+        if m_primary:
+            target = m_primary.group(0).upper()
+
     # Cache active printer for follow-up questions
     state.active_printer_for_consumables = target
+
 
     # 4. Fetch compatible consumables via tool executor
     res = catalog_tool_executor.execute_tool(
         "get_compatible_consumables",
-        {"printer_identifier": target, "limit": 12}
+        {"printer_identifier": target, "limit": 16}
     )
     all_consumables = res.get("consumable_cards", [])
     product_cards = res.get("product_cards", [])
@@ -110,57 +119,130 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             source="tool:get_compatible_consumables",
         )
 
-    # 5. Check if user asked specifically for ink without specifying a color
-    is_ink_query = any(k in raw_lower for k in ["ink", "cartridge", "inks", "cartridges", "tank"]) or state.awaiting_field in ("printer_model", "ink_color") or state.category == "consumable"
-    
-    # Filter by color if color was specified
-    if extracted_color:
+    # 5. Filter by color if color was specified
+    if extracted_colors:
         state.awaiting_field = None
         state.requested_ink_color = None  # Clear once fulfilled
-        matched_color_cards = [
-            c for c in all_consumables 
-            if extracted_color in c.get("name", "").lower() or extracted_color in c.get("description", "").lower()
-        ]
+        matched_color_cards = []
+        for c in all_consumables:
+            c_text = (c.get("name", "") + " " + c.get("description", "")).lower()
+            if any(re.search(r"\b" + re.escape(clr) + r"\b", c_text) for clr in extracted_colors):
+                matched_color_cards.append(c)
+
         if matched_color_cards:
-            item_names = ", ".join([c["name"] for c in matched_color_cards])
+            colors_formatted = ", ".join([c.title() for c in extracted_colors[:-1]]) + (" and " if len(extracted_colors) > 1 else "") + extracted_colors[-1].title()
+            plural = "inks" if len(extracted_colors) > 1 or len(matched_color_cards) > 1 else "ink"
             return RouteResult(
-                reply=f"Here is the genuine **{extracted_color.title()}** ink for {printer_name}:",
+                reply=f"Here are the genuine **{colors_formatted}** {plural} for {printer_name}:",
                 product_cards=[],
                 consumable_cards=matched_color_cards,
                 source="tool:get_compatible_consumables_by_color",
                 needs_composition=False,
             )
 
-    # If asking for ink generally and there are multiple colors, prompt for color with chips
+    # Extract ONLY the genuine colors that this printer's consumables actually have
+    COLOR_CANDIDATES = [
+        "Photo Black", "Matte Black", "Light Black", "Light Light Black",
+        "Light Cyan", "Light Magenta", "Vivid Magenta", "Vivid Light Magenta",
+        "Dark Grey", "Light Grey", "Grey", "Gray",
+        "Black", "Cyan", "Magenta", "Yellow", "Violet", "Orange", "Green", "Red"
+    ]
     available_ink_colors = []
     for c in all_consumables:
-        c_name = c.get("name", "").lower()
-        for clr in ["Black", "Photo Black", "Matte Black", "Cyan", "Magenta", "Yellow", "Grey", "Violet"]:
-            if clr.lower() in c_name and clr not in available_ink_colors:
-                available_ink_colors.append(clr)
+        c_name_l = c.get("name", "").lower()
+        if any(k in c_name_l for k in ["ink", "cartridge", "tank", "pack", "bottle"]):
+            for clr in COLOR_CANDIDATES:
+                if re.search(r"\b" + re.escape(clr.lower()) + r"\b", c_name_l):
+                    if clr not in available_ink_colors:
+                        available_ink_colors.append(clr)
+                    break
 
-    # If customer asked specifically to see both the printer AND inks, attach product card
+    is_citizen_dyesub = any(b in printer_name.lower() for b in ["citizen", "cx-02", "cx02", "cy-02", "cz-01", "cx-02w"]) or any(b in str(target).lower() for b in ["citizen", "cx-02", "cx02", "cy-02", "cz-01", "cx-02w"])
+    is_epson_dyesub = any(b in printer_name.lower() for b in ["sc-f100", "sc-f500", "f100", "f500"]) or any(b in str(target).lower() for b in ["sc-f100", "sc-f500", "f100", "f500"])
     user_wanted_printer_card = any(k in raw_lower for k in ["show me the", "printer and its inks", "printer and inks", "and the printer", "show the printer"])
     hw_cards_to_show = product_cards if user_wanted_printer_card else []
 
-    if (is_ink_query or len(available_ink_colors) >= 2) and not extracted_color:
-        state.awaiting_field = "ink_color"
+    is_ink_cartridge_question = any(w in raw_lower for w in ["does it use ink", "use ink cartridges", "use cartridges", "use ink", "need ink", "have ink", "liquid ink", "use ribbon"])
+
+    # For Citizen dye-sub photo printers: they use paper/ribbon rolls, NEVER ask for ink colors
+    if is_citizen_dyesub:
+        items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables])
+        if is_ink_cartridge_question:
+            reply = (
+                f"No, the **{printer_name}** does not use liquid ink cartridges. It is a thermal dye-sublimation photo printer that uses all-in-one ribbon and paper media sets (each pack includes both the photo paper roll and the thermal ribbon).\n\n"
+                f"Here are the genuine compatible media sets:\n\n{items_list}\n\n"
+                f"*(Each media pack produces instant-dry, smudge-proof lab quality prints with glossy or matte finish without changing paper).*"
+            )
+        else:
+            reply = (
+                f"Here are the genuine compatible photo media sets for **{printer_name}**:\n\n"
+                f"{items_list}\n\n"
+                f"*(Note: Citizen media packs include both the dye-sub paper roll and matching thermal ribbon).*"
+            )
         return RouteResult(
-            reply=f"Which ink color do you need for the **{printer_name}**? (Black, Cyan, Magenta, Yellow, etc.)",
-            suggested_chips=available_ink_colors[:5] + ["All Colors"],
+            reply=reply,
+            product_cards=hw_cards_to_show,
+            consumable_cards=all_consumables,
+            source="tool:get_compatible_consumables",
+        )
+
+    # For Epson dye-sublimation printers (SC-F100, SC-F500): use 140ml UltraChrome DS bottles & maintenance box
+    if is_epson_dyesub:
+        items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables])
+        if is_ink_cartridge_question:
+            reply = (
+                f"The **{printer_name}** uses genuine Epson 140ml UltraChrome DS dye-sublimation ink bottles (T49N series) and a maintenance box, rather than traditional sealed cartridges.\n\n"
+                f"Here are the verified genuine inks and consumables:\n\n{items_list}"
+            )
+        else:
+            reply = (
+                f"Here are the genuine compatible inks and consumables for **{printer_name}**:\n\n"
+                f"{items_list}\n\n"
+                f"*(Uses genuine 140ml UltraChrome DS ink refill bottles for Black, Cyan, Magenta, and Yellow, along with the dedicated maintenance box).*"
+            )
+        return RouteResult(
+            reply=reply,
+            product_cards=hw_cards_to_show,
+            consumable_cards=all_consumables,
+            source="tool:get_compatible_consumables",
+        )
+
+    # For inkjet printers when asked if it uses ink cartridges
+    if is_ink_cartridge_question and not is_dyesub:
+        items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables[:6]])
+        colors_display = ", ".join(available_ink_colors) if available_ink_colors else "genuine ink cartridges"
+        reply = (
+            f"Yes, the **{printer_name}** uses genuine ink cartridges ({colors_display}).\n\n"
+            f"Here are the verified compatible consumables:\n\n{items_list}"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=hw_cards_to_show,
+            consumable_cards=all_consumables[:6],
+            source="tool:get_compatible_consumables",
+        )
+
+    # If user specifically asks for replacement ink or says "buy ink", ask for color if multiple exist:
+    is_asking_all_or_compatible = any(w in raw_lower for w in ["what consumables", "which consumables", "compatible with", "media compatible", "all consumables", "show consumables", "what ink does it use", "what inks does it use"])
+    if len(available_ink_colors) >= 2 and not extracted_colors and not is_asking_all_or_compatible and any(b in raw_lower for b in ["buy ink", "need ink", "order ink", "refill", "cartridge"]):
+        state.awaiting_field = "ink_color"
+        colors_display = ", ".join(available_ink_colors)
+        return RouteResult(
+            reply=f"Which ink color do you need for the **{printer_name}**? ({colors_display})",
+            suggested_chips=available_ink_colors[:6] + ["All Colors"],
             product_cards=hw_cards_to_show,
             consumable_cards=all_consumables[:6],
             source="route:consumables:ask_color",
             needs_composition=False,
         )
 
-    # Default: Return verified compatible consumables
-    items = ", ".join([c["name"] for c in all_consumables[:3]])
-    reply = f"Here are the genuine compatible consumables for {printer_name} (including {items}):"
+    # Default: Return verified compatible consumables / media with clean bullet points
+    items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables[:6]])
+    reply = f"Here are the verified genuine consumables and media for **{printer_name}**:\n\n{items_list}"
 
     return RouteResult(
         reply=reply,
-        product_cards=product_cards,
+        product_cards=hw_cards_to_show,
         consumable_cards=all_consumables[:6],
         source="tool:get_compatible_consumables",
     )

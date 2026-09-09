@@ -80,6 +80,9 @@ class Orchestrator:
                 state.category = None
                 state.stage = "open"
 
+            state.last_assistant_response = intercept_result.response
+            state.increment_turn()
+
             return self._build_response(
                 reply=intercept_result.response,
                 source=source,
@@ -107,17 +110,132 @@ class Orchestrator:
         logger.info(f"[{session_id[:8]}] Understanding: intent={understanding.intent.value} "
                      f"confidence={understanding.confidence:.2f} action={understanding.requested_action}")
 
-        # ── 3b. Apply customer name from entities ────────────────────────
-        if understanding.entities.get("customer_name") and not state.customer_name:
-            state.customer_name = understanding.entities["customer_name"]
+        # ── 3b. Apply entities & requirement updates from LLM ─────────────
+        # Ingest requirement_updates extracted directly by the LLM
+        if understanding.requirement_updates:
+            for k, v in understanding.requirement_updates.items():
+                if v is not None and v != "":
+                    state.requirements[k] = v
+                    if state.awaiting_field == k:
+                        state.awaiting_field = None
+                    logger.info(f"[{session_id[:8]}] Applied requirement_update from LLM: {k}={v}")
+
+        if understanding.entities:
+            ents = understanding.entities
+            if ents.get("customer_name") and not state.customer_name:
+                state.customer_name = ents["customer_name"]
+
+            # Category switch from LLM
+            import re
+            llm_cat = ents.get("product_category")
+            has_explicit_model = bool(ents.get("model_code") or re.search(r"\b(?:p\d{3,4}|t\d{3,4}|am-?c\d{3,4}|ds-?\d{3,4}|f100|cx-?\d{2}|cy-?\d{2})\b", normalized_msg.lower()))
+            is_general_printer_inquiry = (
+                not has_explicit_model
+                and state.awaiting_field != "category"
+                and bool(re.search(r"\b(?:want|buy|need|looking for|get|require)\b.*?\b(?:a\s*printer|aprinter|printers?|plotters?)\b", normalized_msg.lower()))
+                and not any(k in normalized_msg.lower() for k in ["cad", "photo", "blueprint", "office", "booth", "scanner", "dyesub"])
+            )
+
+            if is_general_printer_inquiry:
+                state.reset_category(None)
+                state.awaiting_field = "category"
+                logger.info("General printer inquiry detected — category reset to None to prompt customer.")
+            elif state.awaiting_field == "category":
+                # Customer is responding to the category prompt
+                msg_raw_l = normalized_msg.lower().strip()
+                resolved_cat = None
+                if any(k in msg_raw_l for k in ["cad", "plotter", "technical", "blueprint"]):
+                    resolved_cat = "technical_cad"
+                elif any(k in msg_raw_l for k in ["photo fine art", "fine art", "photo", "gallery"]):
+                    resolved_cat = "photo_fine_art"
+                elif any(k in msg_raw_l for k in ["photo booth", "booth", "dye-sub", "dyesub"]):
+                    resolved_cat = "photo_booth"
+                elif any(k in msg_raw_l for k in ["scanner", "scanning"]):
+                    resolved_cat = "scanner"
+                elif any(k in msg_raw_l for k in ["printer", "printers", "office", "enterprise", "document", "normal", "standard", "regular", "business"]):
+                    resolved_cat = "office_enterprise"
+                
+                if resolved_cat:
+                    state.reset_category(resolved_cat)
+                    state.awaiting_field = None
+                    logger.info(f"Category resolved from awaiting_field response to: {resolved_cat}")
+            elif llm_cat in ("technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner", "consumable"):
+                if llm_cat == "scanner" and (
+                    state.awaiting_field == "scan_required"
+                    or (state.category in ("technical_cad", "office_enterprise") and any(sw in normalized_msg.lower() for sw in ["need scanner", "with scanner", "has scanner", "scanner too", "yes scanner"]))
+                ):
+                    pass
+                else:
+                    if not state.category or (state.category != llm_cat and any(w in normalized_msg.lower() for w in ["want", "need", "switch", "instead", "printer", "photo", "cad", "scanner", "office", "booth"])):
+                        state.reset_category(llm_cat)
+                        logger.info(f"Category set/switched via LLM understanding to: {llm_cat}")
+
+            # Print size from LLM
+            if ents.get("print_size") and ents["print_size"].strip():
+                state.requirements["print_size"] = ents["print_size"].strip()
+                if state.awaiting_field == "print_size":
+                    state.awaiting_field = None
+
+            # Scanner requirement from LLM
+            if ents.get("scan_required") is not None and ents.get("scan_required") != "":
+                state.requirements["scan_required"] = bool(ents["scan_required"])
+                if state.awaiting_field == "scan_required":
+                    state.awaiting_field = None
+            elif ents.get("scanner_type") in ("no", "none", "false", "without"):
+                state.requirements["scan_required"] = False
+                if state.awaiting_field == "scan_required":
+                    state.awaiting_field = None
+
+            # Daily volume from LLM
+            if ents.get("daily_volume") is not None and ents.get("daily_volume") != "":
+                v = ents["daily_volume"]
+                if isinstance(v, (int, float)) and v > 0:
+                    state.requirements["daily_volume"] = int(v)
+                elif isinstance(v, str) and v.lower() in ("low", "medium", "high"):
+                    state.requirements["daily_volume"] = v.lower()
+                if state.awaiting_field in ("daily_volume", "speed", "volume"):
+                    state.awaiting_field = None
+
+        # ── 3c. Extract deterministic requirements (Brand, Sizes, Scan, Volume) ──
+        from conversation.requirement_extractor import requirement_extractor
+        extracted_reqs = requirement_extractor.extract_and_validate(normalized_msg, state)
+        if extracted_reqs:
+            for rk, rv in extracted_reqs.items():
+                if rv is not None and rv != "":
+                    state.requirements[rk] = rv
+                    if state.awaiting_field == rk:
+                        state.awaiting_field = None
+                    logger.info(f"[{session_id[:8]}] Applied requirement from extractor: {rk}={rv}")
+
+            if "brand" in extracted_reqs:
+                req_brand = extracted_reqs["brand"]
+                state.requirements["brand"] = req_brand
+                if req_brand == "Citizen" and state.category in ("photo_fine_art", "technical_cad", "office_enterprise", None):
+                    state.category = "photo_booth"
+                    state.active_product = None
+                    state.candidate_products = []
+                    req_sz = str(state.requirements.get("print_size", "")).lower()
+                    if any(w in req_sz for w in ["large", "wide", "24-inch", "44-inch", "a0", "a1", "8x12", "8x10"]):
+                        state.requirements["print_size"] = "8x12 inches"
+                    else:
+                        state.requirements["print_size"] = "4x6 inches"
+                elif req_brand == "Epson" and state.category == "photo_booth":
+                    state.category = "photo_fine_art"
+                    state.active_product = None
+                    state.candidate_products = []
+                    if state.requirements.get("print_size") in ("4x6", "4x6 inches", "5x7", "6x8"):
+                        state.requirements["print_size"] = "A3+"
+
 
         # ── 4. Decision Engine ───────────────────────────────────────────
         decision = decide(understanding, state, raw_message=normalized_msg)
-        logger.info(f"[{session_id[:8]}] Decision: route={decision.route.value} "
-                     f"tool={decision.tool} reason={decision.reason}")
 
-        state.active_route = decision.route.value
-        state.last_intent = understanding.intent.value
+        route_val = decision.route.value if hasattr(decision.route, "value") else str(decision.route)
+        intent_val = understanding.intent.value if hasattr(understanding.intent, "value") else str(understanding.intent)
+        logger.info(f"[{session_id[:8]}] Decision: route={route_val} tool={decision.tool} reason={decision.reason}")
+
+        state.active_route = route_val
+        state.last_intent = intent_val
 
         # ── 5. Route Handler ─────────────────────────────────────────────
         handler = get_handler(decision.route)
@@ -126,7 +244,7 @@ class Orchestrator:
         if handler:
             # Pass normalized_msg for routes that need it
             try:
-                if decision.route in (RouteName.PRODUCT, RouteName.BUSINESS_INFO, RouteName.QUALIFICATION, RouteName.CONSUMABLES):
+                if decision.route in (RouteName.PRODUCT, RouteName.BUSINESS_INFO, RouteName.QUALIFICATION, RouteName.CONSUMABLES, RouteName.COMPARISON):
                     route_result = handler.handle(understanding, state, raw_message=normalized_msg)
                 else:
                     route_result = handler.handle(understanding, state)
@@ -152,19 +270,22 @@ class Orchestrator:
             )
 
         # ── 6b. Natural Response Composition ─────────────────────────────
-        composed_reply = self.response_composer.compose_response(
-            customer_message=raw_message,
-            route_result=route_result,
-            state=state,
-            active_route=decision.route,
-            model_name=model_name,
-        )
+        if not route_result.needs_composition:
+            composed_reply = route_result.reply
+        else:
+            composed_reply = self.response_composer.compose_response(
+                customer_message=raw_message,
+                route_result=route_result,
+                state=state,
+                active_route=decision.route,
+                model_name=model_name,
+            )
 
         # ── 7. Validate, Sanitize & Ground ──────────────────────────────
         val_result = validate_response(
             response=composed_reply,
             previous_response=state.last_assistant_response,
-            context_intent=understanding.intent.value,
+            context_intent=understanding.intent.value if hasattr(understanding.intent, "value") else str(understanding.intent),
         )
         candidate_text = val_result.sanitized_response or composed_reply
 
@@ -173,7 +294,7 @@ class Orchestrator:
 
         # ── 8. Update state ──────────────────────────────────────────────
         state.last_assistant_response = grounding_result["sanitized_response"]
-        state.last_dialogue_act = understanding.dialogue_act.value
+        state.last_dialogue_act = understanding.dialogue_act.value if hasattr(understanding.dialogue_act, "value") else str(understanding.dialogue_act or "")
         state.increment_turn()
 
         latency_ms = int((time.time() - start_time) * 1000)

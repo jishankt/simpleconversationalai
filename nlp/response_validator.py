@@ -17,11 +17,11 @@ class ValidationResult:
     sanitized_response: str = ""
 
 
-# Price/discount patterns that should never appear in responses
-_PRICE_PATTERNS = [
-    re.compile(r"[$₹€£]\s*\d+", re.IGNORECASE),
-    re.compile(r"\b\d+\s*(?:aed|dirhams|dollars|usd|eur|inr)\b", re.IGNORECASE),
-    re.compile(r"\b(?:costs?|priced?\s+at|starting\s+at|from)\s*[$₹€£]?\s*\d+", re.IGNORECASE),
+# Discount and negotiation patterns that should never be promised by assistant
+_DISCOUNT_NEGOTIATION_PATTERNS = [
+    re.compile(r"\b(?:i can give (?:you )?(?:a )?discount|i can offer (?:you )?(?:a )?discount)\b", re.IGNORECASE),
+    re.compile(r"\b(?:we can negotiate|i can reduce the price|special discount for you)\b", re.IGNORECASE),
+    re.compile(r"\b(?:what is your budget|what's your budget|how much are you looking to spend)\b", re.IGNORECASE),
 ]
 
 
@@ -60,10 +60,10 @@ def validate_response(
     if question_marks > 1:
         result.violations.append("multiple_questions")
 
-    # ── 3. Price leakage ─────────────────────────────────────────────────
-    for pattern in _PRICE_PATTERNS:
+    # ── 3. Discount / Negotiation violation ──────────────────────────────
+    for pattern in _DISCOUNT_NEGOTIATION_PATTERNS:
         if pattern.search(text):
-            result.violations.append("price_leakage")
+            result.violations.append("unauthorized_discount_or_negotiation")
             break
 
     # ── 4. Excessive length ──────────────────────────────────────────────

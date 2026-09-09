@@ -24,10 +24,28 @@ class CatalogToolExecutor:
         if os.path.exists(self.products_path):
             with open(self.products_path, "r", encoding="utf-8") as f:
                 self.products = json.load(f)
-            self.sku_map = {str(p.get("sku", "")).upper(): p for p in self.products if p.get("sku")}
+                for p in self.products:
+                    for k in ["sku", "_id", "id"]:
+                        v = p.get(k)
+                        if v:
+                            self.sku_map[str(v).upper().strip()] = p
+        self.corpus_map = {}
+        corpus_path = os.path.join(os.path.dirname(__file__), "..", "data", "kepler_product_corpus.json")
+        if os.path.exists(corpus_path):
+            try:
+                with open(corpus_path, "r", encoding="utf-8") as f:
+                    corpus_data = json.load(f)
+                    for item in corpus_data:
+                        if item.get("id"):
+                            self.corpus_map[item["id"]] = item
+            except Exception as e:
+                pass
 
     def format_card(self, prod: Dict[str, Any], card_type: str = "hardware") -> Dict[str, Any]:
         """Formats a catalog product into a clean card for frontend display."""
+        from catalog.brochure_resolver import brochure_resolver
+        from catalog.price_resolver import price_resolver
+
         name = prod.get("name", "")
         sku = prod.get("sku", "VERIFIED-KEPLER")
         image_url = prod.get("image_url") or prod.get("image")
@@ -42,6 +60,16 @@ class CatalogToolExecutor:
             slug = re.sub(r"[\s_]+", "-", slug)
             product_url = f"https://www.keplertechllc.com/product/{slug}/"
 
+        brochure_info = brochure_resolver.get_brochure(name) or brochure_resolver.get_brochure(str(prod.get("id", ""))) or brochure_resolver.get_brochure(str(sku))
+        pdf_url = brochure_info.get("pdf") if brochure_info else prod.get("pdf_url")
+        if brochure_info and brochure_info.get("url"):
+            product_url = brochure_info["url"]
+
+        price_info = price_resolver.get_price_info(identifier=sku, prod=prod)
+        price_val = price_info.get("price")
+        price_formatted = price_info.get("price_str", "Price on Request")
+        vat_note = price_info.get("vat_note", "")
+
         tags = prod.get("tags", [])
         badge = "Hardware" if card_type == "hardware" else "Consumable"
         if any("Ink" in t for t in tags):
@@ -51,21 +79,41 @@ class CatalogToolExecutor:
         elif any("Media" in t for t in tags) or "media" in name.lower():
             badge = "Print Media"
 
+        width_val = prod.get("width") or prod.get("print_sizes")
+        speed_val = prod.get("speed") or prod.get("print_speed")
+        tech_val = prod.get("ink_technology") or prod.get("technology")
+
         return {
-            "id": prod.get("_id") or prod.get("sku"),
+            "id": prod.get("_id") or prod.get("sku") or prod.get("id"),
             "name": name,
             "title": name,
             "sku": sku,
+            "price": price_val,
+            "price_formatted": price_formatted,
+            "price_str": price_formatted,
+            "vat_note": vat_note,
+            "currency": "AED",
             "image": image_url,
             "image_url": image_url,
             "url": product_url,
+            "pdf_url": pdf_url,
+            "brochure_url": pdf_url,
             "source_url": product_url,
             "website_url": product_url,
             "web_url": product_url,
             "badge": badge,
             "card_type": card_type,
             "description": prod.get("description") or f"Official verified {badge.lower()} from Kepler Tech LLC.",
+            "full_description": prod.get("full_description") or prod.get("description"),
+            "feature_headings": prod.get("feature_headings", []),
+            "specifications_table": prod.get("specifications_table", {}),
             "category": prod.get("category", "Hardware"),
+            "width": width_val,
+            "speed": speed_val,
+            "ink_technology": tech_val,
+            "weight": prod.get("weight"),
+            "capacity": prod.get("capacity"),
+            "comparison_highlights": prod.get("comparison_highlights"),
             "has_consumables": (card_type == "hardware")
         }
 
@@ -123,7 +171,20 @@ class CatalogToolExecutor:
 
     def _get_product_specs(self, identifier: str) -> Dict[str, Any]:
         """Finds a product and extracts detailed specs."""
-        prod = rag_retriever.get_by_sku(identifier) or rag_retriever.get_by_name(identifier)
+        from catalog.repository import catalog_repository
+        norm_p = catalog_repository.get_by_id(identifier.lower())
+        if not norm_p:
+            for p in catalog_repository.get_all():
+                if identifier.lower() in p.id.lower() or identifier.lower() in p.name.lower():
+                    norm_p = p
+                    break
+
+        prod = None
+        if norm_p:
+            prod = norm_p.to_dict()
+
+        if not prod:
+            prod = rag_retriever.get_by_sku(identifier) or rag_retriever.get_by_name(identifier)
         if not prod:
             # Fallback search top match
             s = rag_retriever.search(identifier, limit=1)
@@ -134,6 +195,10 @@ class CatalogToolExecutor:
             return {"success": False, "error": f"Product '{identifier}' not found in catalog."}
 
         card = self.format_card(prod, card_type="hardware")
+        for k in ["feature_headings", "full_description", "specifications_table", "price_formatted", "vat_note", "url", "pdf_url"]:
+            if card.get(k) and not prod.get(k):
+                prod[k] = card[k]
+
         return {
             "success": True,
             "product": prod,
@@ -167,15 +232,42 @@ class CatalogToolExecutor:
                 "consumables_summary": ""
             }
 
+        # 0. Check catalog_repository first for clean hardware printers
+        from catalog.repository import catalog_repository
+        q_tokens = [re.sub(r"[\s\-_]+", "", part).replace("citizen", "").replace("epson", "") for part in re.split(r"[,/]+", q_clean) if part.strip()]
+        
+        # Pass 1: exact match
+        for cand in catalog_repository.get_all():
+            cand_id_norm = re.sub(r"[\s\-_]+", "", cand.id.lower()).replace("citizen", "").replace("epson", "")
+            cand_name_norm = re.sub(r"[\s\-_]+", "", cand.name.lower()).replace("citizen", "").replace("epson", "")
+            for q_tok in q_tokens:
+                if q_tok and (q_tok == cand_id_norm or q_tok == cand_name_norm):
+                    target_printer = cand.to_dict()
+                    break
+            if target_printer:
+                break
+
+        # Pass 2: substring match only if exact match not found
+        if not target_printer:
+            for cand in catalog_repository.get_all():
+                cand_id_norm = re.sub(r"[\s\-_]+", "", cand.id.lower()).replace("citizen", "").replace("epson", "")
+                cand_name_norm = re.sub(r"[\s\-_]+", "", cand.name.lower()).replace("citizen", "").replace("epson", "")
+                for q_tok in q_tokens:
+                    if q_tok and (q_tok in cand_id_norm or q_tok in cand_name_norm):
+                        target_printer = cand.to_dict()
+                        break
+                if target_printer:
+                    break
+
         # 1. Exact SKU
-        if q_raw.upper() in self.sku_map:
+        if not target_printer and q_raw.upper() in self.sku_map:
             target_printer = self.sku_map[q_raw.upper()]
 
         # 2. Direct retrieve by name / SKU from rag_retriever (prioritizes hardware)
         if not target_printer:
             target_printer = rag_retriever.get_by_sku(q_raw) or rag_retriever.get_by_name(q_raw)
 
-        # 3. Match by specific model token
+        # 3. Match by specific model token among genuine hardware printers only
         if not target_printer:
             GENERIC_WORDS = {
                 "epson", "surecolor", "workforce", "printer", "scanner", "series",
@@ -185,8 +277,12 @@ class CatalogToolExecutor:
             # Look for model codes like c4000, t3100, p900, cx02, etc.
             specific_tokens = [t for t in re.findall(r"[a-z0-9]+", q_clean) if len(t) >= 3 and t not in GENERIC_WORDS]
             
-            # Prioritize matching printer category products
-            candidate_printers = [p for p in self.products if "printer" in p.get("category", "").lower()]
+            # Filter strictly for genuine hardware printers (exclude media rolls, inks, accessories)
+            candidate_printers = [
+                p for p in self.products
+                if "printer" in p.get("category", "").lower()
+                and not any(k in p.get("name", "").lower() for k in ["media", "paper", "ribbon", "ink", "cartridge", "cleaning", "pen", "bag", "maintenance"])
+            ]
             if not candidate_printers:
                 candidate_printers = self.products
 
@@ -275,6 +371,15 @@ class CatalogToolExecutor:
                     if len(consumable_items) >= limit:
                         break
 
+        if target_brand:
+            consumable_items = [
+                c for c in consumable_items
+                if target_brand in c.get("name", "").lower()
+                or target_brand in " ".join(c.get("tags", [])).lower()
+                or target_brand in str(c.get("category", "")).lower()
+                or any(str(c.get("sku", "")).upper().startswith(pfx) for pfx in ["CX", "CY", "CZ", "CITIZEN"])
+            ]
+
         consumable_cards = [self.format_card(c, card_type="consumable") for c in consumable_items]
         p_name = target_printer.get("name") if target_printer else q_raw
         hw_cards = [self.format_card(target_printer, card_type="hardware")] if target_printer else []
@@ -291,15 +396,60 @@ class CatalogToolExecutor:
 
     def _compare_products(self, model_a: str, model_b: str) -> Dict[str, Any]:
         """Compares two models from the live catalog."""
-        prod_a = rag_retriever.get_by_name(model_a) or rag_retriever.get_by_sku(model_a)
-        if not prod_a:
-            s_a = rag_retriever.search(model_a, limit=1)
-            prod_a = s_a[0] if s_a else None
+        def find_hardware(identifier: str):
+            from catalog.repository import catalog_repository
+            p = None
+            q_clean = identifier.lower().strip()
+            id_norm = re.sub(r"[\s\-_]+", "", q_clean).replace("citizen", "").replace("epson", "")
 
-        prod_b = rag_retriever.get_by_name(model_b) or rag_retriever.get_by_sku(model_b)
-        if not prod_b:
-            s_b = rag_retriever.search(model_b, limit=1)
-            prod_b = s_b[0] if s_b else None
+            # 1. Check catalog_repository first for normalized hardware products
+            norm_p = catalog_repository.get_by_id(q_clean)
+            if not norm_p:
+                for cand in catalog_repository.get_all():
+                    cand_id_norm = re.sub(r"[\s\-_]+", "", cand.id.lower()).replace("citizen", "").replace("epson", "")
+                    cand_name_norm = re.sub(r"[\s\-_]+", "", cand.name.lower()).replace("citizen", "").replace("epson", "")
+                    if id_norm and (id_norm == cand_id_norm or id_norm == cand_name_norm):
+                        norm_p = cand
+                        break
+            if not norm_p:
+                for cand in catalog_repository.get_all():
+                    cand_id_norm = re.sub(r"[\s\-_]+", "", cand.id.lower()).replace("citizen", "").replace("epson", "")
+                    if id_norm and id_norm in cand_id_norm:
+                        norm_p = cand
+                        break
+            if norm_p:
+                return norm_p.to_dict()
+
+            for cid, cdata in self.corpus_map.items():
+                cid_norm = re.sub(r"[\s\-_]+", "", cid.lower()).replace("citizen", "").replace("epson", "")
+                if id_norm and id_norm == cid_norm:
+                    p = dict(cdata)
+                    break
+
+            if not p:
+                cand = rag_retriever.get_by_name(identifier) or rag_retriever.get_by_sku(identifier)
+                if cand and cand.get("category") not in ["Consumables", "Ink Cartridge", "Media", "Maintenance Box", "Inks"]:
+                    p = dict(cand)
+                else:
+                    results = rag_retriever.search(identifier, limit=6)
+                    hw_results = [r for r in results if r.get("category") not in ["Consumables", "Ink Cartridge", "Media", "Maintenance Box", "Inks"]]
+                    p = dict(hw_results[0]) if hw_results else (dict(results[0]) if results else None)
+
+            if p:
+                p_name_norm = re.sub(r"[\s\-_]+", "", p.get("name", "").lower())
+                p_id_norm = re.sub(r"[\s\-_]+", "", str(p.get("id", "")).lower())
+                for cid, cdata in self.corpus_map.items():
+                    cid_norm = re.sub(r"[\s\-_]+", "", cid.lower()).replace("citizen", "").replace("epson", "")
+                    if cid_norm and (cid_norm in p_name_norm or cid_norm in p_id_norm):
+                        for k, v in cdata.items():
+                            if k not in p or not p[k]:
+                                p[k] = v
+                        p["id"] = cid
+                        break
+            return p
+
+        prod_a = find_hardware(model_a)
+        prod_b = find_hardware(model_b)
 
         if not prod_a or not prod_b:
             return {"success": False, "error": f"Could not find both products for comparison ({model_a}, {model_b})."}
@@ -314,15 +464,21 @@ class CatalogToolExecutor:
                 "model_a": {
                     "name": prod_a.get("name"),
                     "category": prod_a.get("category"),
-                    "width": prod_a.get("width", "Standard"),
-                    "speed": prod_a.get("speed", "N/A"),
+                    "width": prod_a.get("width") or prod_a.get("print_sizes", "Standard"),
+                    "speed": prod_a.get("speed") or prod_a.get("print_speed", "N/A"),
+                    "weight": prod_a.get("weight", "N/A"),
+                    "capacity": prod_a.get("capacity", "Standard"),
+                    "highlights": prod_a.get("comparison_highlights", ""),
                     "intended": prod_a.get("intended_usage", "Professional production")
                 },
                 "model_b": {
                     "name": prod_b.get("name"),
                     "category": prod_b.get("category"),
-                    "width": prod_b.get("width", "Standard"),
-                    "speed": prod_b.get("speed", "N/A"),
+                    "width": prod_b.get("width") or prod_b.get("print_sizes", "Standard"),
+                    "speed": prod_b.get("speed") or prod_b.get("print_speed", "N/A"),
+                    "weight": prod_b.get("weight", "N/A"),
+                    "capacity": prod_b.get("capacity", "Standard"),
+                    "highlights": prod_b.get("comparison_highlights", ""),
                     "intended": prod_b.get("intended_usage", "Professional production")
                 }
             }

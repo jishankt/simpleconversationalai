@@ -32,14 +32,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusPill = document.getElementById('ollamaStatusPill');
   const statusText = document.getElementById('ollamaStatusText');
 
-  // State - use sessionStorage so each browser tab/window gets a fresh, clean conversation session
-  let sessionId = sessionStorage.getItem('cra_session_id') || generateUUID();
+  // State - always generate a fresh session ID on page load/refresh so the backend starts clean
+  let sessionId = generateUUID();
   sessionStorage.setItem('cra_session_id', sessionId);
   let isAwaitingReply = false;
 
   // Initialize
   checkHealth();
   renderInitialGreeting();
+
+  // Clear Chat button
+  if (clearChatBtn) {
+    clearChatBtn.addEventListener('click', () => {
+      sessionId = generateUUID();
+      sessionStorage.setItem('cra_session_id', sessionId);
+      messagesContainer.innerHTML = '';
+      renderInitialGreeting();
+    });
+  }
 
   // Close widget button (communicates with parent page)
   if (closeChatBtn) {
@@ -288,20 +298,32 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'product-card-item';
         const cardImg = p.image_url || p.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
         const cardUrl = p.source_url || p.url || p.website_url || '#';
+        const priceStr = p.price_formatted || (p.price ? 'AED ' + Number(p.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'Price on Request');
+        const isReq = priceStr === 'Price on Request';
+        const vatLabel = (!isReq && p.vat_note) ? p.vat_note : (!isReq ? '(Excl. VAT)' : '');
+
         card.innerHTML = `
           <div class="card-img-wrap" title="Click to enlarge image">
             <span class="card-sku-badge">${p.sku || 'VERIFIED'}</span>
             <img src="${cardImg}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
           </div>
           <div class="card-title" title="${p.name}">${p.name}</div>
+          <div class="card-price-wrap ${isReq ? 'card-price-request' : ''}">
+            <span class="card-price-val">${priceStr}</span>
+            ${vatLabel ? `<span class="card-price-vat">${vatLabel}</span>` : ''}
+          </div>
           <div class="card-desc">${p.description || ''}</div>
           <div class="card-actions">
-            <button type="button" class="card-btn view-consumables-btn" data-printer="${p.name}">
-              ↳ View Compatible Consumables
-            </button>
-            <a href="${cardUrl}" target="_blank" class="card-btn" style="background: transparent; border-color: rgba(255,255,255,0.1); color: #94a3b8;">
-              View on keplertechllc.com ↗
+            <a href="${cardUrl}" target="_blank" class="card-btn card-btn-kepler" style="background: #1877f2; border-color: #1877f2; color: #ffffff; font-weight: 600; text-decoration: none;">
+              🌐 View on Kepler ↗
             </a>
+            <button type="button" class="card-btn view-consumables-btn" data-printer="${p.name}">
+              ⚡ View Compatible Consumables
+            </button>
+            ${p.pdf_url ? `
+            <a href="${p.pdf_url}" target="_blank" rel="noopener noreferrer" class="card-btn card-btn-pdf" style="background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; text-decoration: none; font-weight: 600;">
+              📄 Product Data Sheet (PDF) ↗
+            </a>` : ''}
           </div>
         `;
 
@@ -313,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // View Consumables action
         card.querySelector('.view-consumables-btn').addEventListener('click', () => {
           if (!isAwaitingReply) {
-            const query = `What consumables and inks are compatible with ${p.name}?`;
+            const query = `What consumables and media are compatible with ${p.name}?`;
             messageInput.value = query;
             sendMessage(query);
           }
@@ -372,12 +394,15 @@ document.addEventListener('DOMContentLoaded', () => {
         cCard.className = 'consumable-card';
         const cImg = c.image_url || c.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
         const cUrl = c.source_url || c.url || c.website_url || '#';
+        const cPriceStr = c.price_formatted || (c.price ? 'AED ' + Number(c.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '');
+
         cCard.innerHTML = `
           <div class="consumable-img-wrap" title="Click to enlarge">
             <img src="${cImg}" alt="${c.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
           </div>
           <div class="consumable-title" title="${c.name}">${c.name}</div>
           <div class="consumable-sku">${c.sku}</div>
+          ${cPriceStr ? `<div class="consumable-price-wrap"><span class="consumable-price-val">${cPriceStr}</span> <span class="card-price-vat">(Excl. VAT)</span></div>` : ''}
           <div class="consumable-actions" style="margin-top: auto; padding-top: 4px;">
             <a href="${cUrl}" target="_blank" class="card-btn" style="color: var(--chat-blue); font-size: 0.68rem; padding: 4px 6px; text-align: center; text-decoration: none; background: #f0f2f5;">
               View on Website ↗

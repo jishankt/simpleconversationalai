@@ -51,10 +51,9 @@ REQUIREMENT_SCHEMAS: Dict[str, Dict[str, List[str]]] = {
         "critical": [
             "print_size",
         ],
-        "important": [
-            "print_volume",
-        ],
+        "important": [],
         "optional": [
+            "print_volume",
             "portability",
         ]
     },
@@ -62,10 +61,9 @@ REQUIREMENT_SCHEMAS: Dict[str, Dict[str, List[str]]] = {
         "critical": [
             "print_size",
         ],
-        "important": [
-            "color_gamut",
-        ],
+        "important": [],
         "optional": [
+            "color_gamut",
             "roll_support",
         ]
     },

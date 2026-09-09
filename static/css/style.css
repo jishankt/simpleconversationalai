@@ -418,6 +418,57 @@ body {
   overflow: hidden;
 }
 
+.card-price-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 3px 0 4px;
+  padding: 3px 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 5px;
+}
+
+.card-price-val {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.card-price-vat {
+  font-size: 0.6rem;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.card-price-request {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.card-price-request .card-price-val {
+  font-size: 0.74rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.consumable-price-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 2px 0 4px;
+  padding: 2px 4px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+}
+
+.consumable-price-val {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
 .card-desc {
   font-size: 0.66rem;
   color: #65676b;
@@ -454,6 +505,31 @@ body {
 
 .card-btn:hover {
   background: #e4e6eb;
+}
+
+.card-btn-kepler {
+  background: var(--chat-blue) !important;
+  border-color: var(--chat-blue) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(24, 119, 242, 0.2);
+}
+
+.card-btn-kepler:hover {
+  background: #1464cc !important;
+  border-color: #1464cc !important;
+}
+
+.card-btn-pdf {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
+}
+
+.card-btn-pdf:hover {
+  background: #dbeafe !important;
+  border-color: #93c5fd !important;
 }
 
 /* Consumables Carousel */

@@ -15,11 +15,15 @@ INTENT_COMPARISON = "PRODUCT_COMPARISON"
 INTENT_TROUBLESHOOTING = "TROUBLESHOOTING"
 INTENT_BUSINESS_INFO = "BUSINESS_INFORMATION"
 INTENT_SERVICE_INFO = "SERVICE_INFORMATION"
+INTENT_CONSUMABLES = "CONSUMABLES_QUERY"
 INTENT_ENDING = "CONVERSATION_ENDING"
 INTENT_UNCLEAR = "UNCLEAR_REQUEST"
 
 # Intent regex rules
 INTENT_RULES = [
+    (INTENT_CONSUMABLES, [
+        r"\b(?:consumable|consumables|ink|inks|cartridge|cartridges|toner|ribbon|paper roll|photo paper|maintenance box|maintenance tank|compatible with)\b"
+    ]),
     (INTENT_DISCOUNT, [
         r"\b(?:discount|discounts|offer|offers|bargain|promo|coupon|deal|cheaper rate|best price)\b"
     ]),
@@ -37,7 +41,7 @@ INTENT_RULES = [
         r"\b(?:error|issue|problem|broken|jam|jammed|paper jam|streak|line|faint|blurry|clog|clogged|nozzle|not working|failed)\b"
     ]),
     (INTENT_COMPARISON, [
-        r"\b(?:compare|difference between|versus|vs|better than|which one is better)\b"
+        r"\b(?:compare|comparison|difference|differences|difference between|versus|vs|better than|which one is better|which is better|how do they compare|how does .* compare)\b"
     ]),
     (INTENT_SERVICE_INFO, [
         r"\b(?:warranty|installation|maintenance|amc|contract|training|repair|service)\b"

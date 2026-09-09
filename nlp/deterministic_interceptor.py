@@ -37,11 +37,18 @@ _RESET_PATTERN = re.compile(
 )
 
 _INJECTION_PATTERNS = [
-    re.compile(r"ignore\s+(?:previous|earlier|all)\s+(?:instructions?|context)", re.IGNORECASE),
-    re.compile(r"tell\s+me\s+your\s+(?:prompt|system\s+prompt|instructions?)", re.IGNORECASE),
-    re.compile(r"what\s+(?:is|are)\s+your\s+(?:instructions?|rules?|system\s+prompt)", re.IGNORECASE),
-    re.compile(r"(?:act|pretend|behave)\s+as\s+(?:if|a|an)", re.IGNORECASE),
-    re.compile(r"you\s+are\s+now\s+(?:a|an|the)", re.IGNORECASE),
+    re.compile(r"(?:ignore|disregard|forget)\s+(?:previous|earlier|all|prior|everything)\s*(?:instructions?|context|prompts?)?", re.IGNORECASE),
+    re.compile(r"(?:tell|show|output|reveal|print|repeat)\s+(?:me\s+)?(?:your\s+)?(?:system\s+prompt|developer\s+prompt|base\s+instructions?|initial\s+prompt|rules?)", re.IGNORECASE),
+    re.compile(r"what\s+(?:is|are)\s+your\s+(?:instructions?|rules?|system\s+prompt|developer\s+prompt|prompt)", re.IGNORECASE),
+    re.compile(r"(?:act|pretend|behave)\s+as\s+(?:if|a|an|dan|developer|terminal)", re.IGNORECASE),
+    re.compile(r"you\s+are\s+now\s+(?:a|an|the|dan|unrestricted|in\s+developer\s+mode)", re.IGNORECASE),
+    re.compile(r"\b(?:jailbreak|dan\s+mode|developer\s+mode|prompt\s+injection|override\s+(?:rules|system))\b", re.IGNORECASE),
+    re.compile(r"repeat\s+(?:the\s+)?(?:text\s+)?above", re.IGNORECASE),
+]
+
+_UNRELATED_PATTERNS = [
+    re.compile(r"\b(?:recipe|cook|bake|cooking|weather|forecast|who won|football|cricket|basketball|movie|song|poem|joke|horoscope|capital of|president of|prime minister of)\b", re.IGNORECASE),
+    re.compile(r"\b(?:write code in|python script to hack|generate password|bitcoin|crypto trading|flight booking|hotel booking)\b", re.IGNORECASE),
 ]
 
 _EMPTY_THRESHOLD = 2  # Messages with <= this many non-whitespace chars are "empty"
@@ -104,7 +111,18 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
             suggested_chips=[],
         )
 
-    # ── 3. Prompt injection / adversarial attempts ───────────────────────
+    # ── 4. Explicitly unrelated out-of-scope questions ──────────────────
+    for pattern in _UNRELATED_PATTERNS:
+        if pattern.search(text):
+            return InterceptResult(
+                matched=True,
+                intent="out_of_scope",
+                response="I am a specialized product assistant for Kepler Tech LLC. I can assist you with large format technical plotters, photo printers, office enterprise MFPs, document scanners, and genuine consumables. How can I assist you with your printing requirements today?",
+                should_continue=False,
+                suggested_chips=["Large Format Plotters", "Photo Printers", "Office MFPs", "Document Scanners"],
+            )
+
+    # ── 5. Prompt injection / adversarial attempts ───────────────────────
     for pattern in _INJECTION_PATTERNS:
         if pattern.search(text):
             return InterceptResult(

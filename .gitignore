@@ -10,3 +10,4 @@ htmlcov/
 scratch/
 .env
 data/conversations.db
+*.db
