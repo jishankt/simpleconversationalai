@@ -152,9 +152,13 @@ class EligibilityEngine:
                     is_eligible = False
                     rejection_reason = "Product does not have an integrated scanner (customer requires scanning)."
             elif req_scan is False:
-                # Customer does NOT need scanner
-                if specs.has_scanner is False or specs.has_scanner is None or specs.has_scanner is True:
+                # Customer explicitly does NOT want a scanner (print-only requested)
+                if specs.has_scanner is False or specs.has_scanner is None:
                     matched.append("scan_required")
+                else:
+                    failed.append("scan_required")
+                    is_eligible = False
+                    rejection_reason = "Product includes an integrated scanner (customer specified print only / no scanner)."
 
         # ── 3. Application Match ─────────────────────────────────────────────
         req_app = requirements.get("application")

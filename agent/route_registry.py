@@ -13,10 +13,13 @@ from routes import (
     support_route,
     business_info_route,
 )
+from routes.help_and_guardrail_route import conversation_help_route, guardrail_route
 
 # Route name → handler module mapping
 ROUTE_HANDLERS = {
     RouteName.SOCIAL: social_route,
+    RouteName.CONVERSATION_HELP: conversation_help_route,
+    RouteName.GUARDRAIL: guardrail_route,
     RouteName.QUALIFICATION: qualification_route,
     RouteName.PRODUCT: product_route,
     RouteName.COMPARISON: comparison_route,

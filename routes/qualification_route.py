@@ -72,7 +72,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                 state.active_product = None
                 state.candidate_products = []
 
-    if entities:
+    if not is_explicit_cat_switch and entities:
         for ek in ["print_size", "scan_required", "daily_volume", "speed"]:
             val = entities.get(ek)
             if val is not None and val != "":
@@ -128,11 +128,11 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             state.active_product = None
             state.candidate_products = []
 
-    # ── 3. Check for recommendation triggers or skip ─────────────────────
+    # ── 3. Check for recommendation triggers or completed qualification ───
     rec_keywords = ["recommend now", "recommend", "show options", "show recommendations",
                     "what do you recommend", "suggest options", "show me options",
                     "give me options", "just show"]
-    if any(k in msg_lower for k in rec_keywords):
+    if any(k in msg_lower for k in rec_keywords) or qualification_complete(state):
         state.stage = "recommending"
         state.awaiting_field = None
         return RouteResult(

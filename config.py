@@ -10,13 +10,13 @@ PORT = int(os.getenv("PORT", 5055))
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # Ollama Endpoint Configuration & Protocol Normalization
-raw_ollama_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://192.168.0.110:11434"
+raw_ollama_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434"
 raw_ollama_url = raw_ollama_url.strip().rstrip("/")
 if not (raw_ollama_url.startswith("http://") or raw_ollama_url.startswith("https://")):
     raw_ollama_url = f"http://{raw_ollama_url}"
 
 OLLAMA_BASE_URL = raw_ollama_url
-DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
 TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
 # Advanced Ollama settings for /api/chat methods

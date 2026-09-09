@@ -118,19 +118,34 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
 
     entities = understanding.entities
     model_code = entities.get("model_code")
-    from catalog.product_resolver import resolve_canonical_id
+    from catalog.product_resolver import resolve_canonical_id, normalize_model_identifier
     canonical_id = resolve_canonical_id(raw_message)
-    if not model_code and canonical_id:
+    if canonical_id:
         model_code = canonical_id
-    elif not model_code and raw_message:
+    elif model_code:
+        cand_norm = normalize_model_identifier(model_code)
+        msg_norm = re.sub(r"[^a-z0-9]", "", msg_lower)
+        if not cand_norm or cand_norm not in msg_norm:
+            model_code = None
+    if not model_code and raw_message:
         m = re.search(r"\b(?:sc-?)?([tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?|12000xl|f100|f500)\b", raw_message.lower())
         if m:
             model_code = m.group(0).upper()
 
     # ── Specific product spec query ──────────────────────────────────────
     if model_code:
-        # First check rich specs from universal product_spec_engine
+        # Check single-attribute answer first
         from catalog.product_spec_engine import product_spec_engine
+        from catalog.repository import catalog_repository
+        single_attr_res = product_spec_engine.answer_single_attribute(model_code, raw_message)
+        if single_attr_res:
+            p_obj = catalog_repository.get_by_id(model_code)
+            if p_obj:
+                state.active_product = p_obj.to_dict()
+                state.candidate_products = single_attr_res.product_cards
+            return single_attr_res
+
+        # Retrieve rich specs from universal product_spec_engine
         detailed_specs = product_spec_engine.get_product_detailed_specs(model_code, raw_message)
 
         res = catalog_tool_executor.execute_tool(
@@ -180,9 +195,18 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             else:
                 reply = f"Here are the verified specifications for [{p_name}]({p_url}) — {desc.rstrip('.')}."
 
+            consumable_cards = []
+            if any(w in q_lower for w in ["ink", "inks", "cartridge", "cartridges", "consumable", "consumables", "ribbon", "paper roll", "supplies"]):
+                cons_res = catalog_tool_executor.execute_tool(
+                    "get_compatible_consumables", {"printer_identifier": model_code or product.get("name", "")}
+                )
+                if cons_res.get("success"):
+                    consumable_cards = cons_res.get("consumable_cards", [])
+
             return RouteResult(
                 reply=reply,
                 product_cards=cards,
+                consumable_cards=consumable_cards,
                 source="tool:get_product_specs",
                 needs_composition=False,
                 evidence=[product],
@@ -200,6 +224,12 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
         is_question_about_active = any(w in (raw_message or "").lower().split() for w in ["it", "this", "its", "that", "speed", "size", "width", "ink", "scanner", "resolution", "specs", "specifications", "how", "what", "does", "can", "price", "cost", "much", "rate"])
         
         if is_question_about_active:
+            from catalog.product_spec_engine import product_spec_engine
+            active_id = state.active_product.get("id") or state.active_product.get("name")
+            single_attr_res = product_spec_engine.answer_single_attribute(active_id, raw_message)
+            if single_attr_res:
+                return single_attr_res
+
             product = state.active_product
             p_name = product.get("name", "")
             width = product.get("width", "")
@@ -447,18 +477,21 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             evidence=evidence,
         )
     else:
-        # Fallback if no product matched strictly
-        search_terms = [raw_message or "printer"]
-        query_str = " ".join(search_terms)
-        search_res = catalog_tool_executor.execute_tool(
-            "search_catalog",
-            {"query": query_str, "limit": 4}
-        )
-        candidates = search_res.get("product_cards", [])
-        state.candidate_products = candidates
+        state.candidate_products = []
+        req_details = []
+        if state.requirements.get("print_size"):
+            req_details.append(f"print size {state.requirements['print_size']}")
+        if state.requirements.get("scan_required") is True:
+            req_details.append("integrated scanner")
+        elif state.requirements.get("scan_required") is False:
+            req_details.append("print-only (no scanner)")
+        if state.requirements.get("brand"):
+            req_details.append(f"brand {state.requirements['brand']}")
+        criteria_str = f" ({', '.join(req_details)})" if req_details else ""
         return RouteResult(
-            reply="I couldn't find a product in our verified catalog that satisfies all those criteria simultaneously. Here are related options:",
-            product_cards=candidates,
-            source="tool:search_catalog",
+            reply=f"None of our authorized Kepler Tech models simultaneously satisfy all your specified requirements{criteria_str}. Rather than suggesting an incompatible unit, please let me know if you would like to adjust your size or scanner preferences, or contact our sales team at sales@keplertechllc.com for customized equipment options.",
+            product_cards=[],
+            suggested_chips=["Adjust Requirements", "View All Plotters", "Contact Sales Team"],
+            source="recommendation:honest_rejection",
         )
 

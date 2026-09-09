@@ -3,7 +3,7 @@ Requirement Extractor & Python-Grounded Validator.
 Extracts explicit facts without allowing the model to hallucinate missing values.
 """
 import re
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
 from domain.conversation_state import ConversationState
 
 
@@ -158,5 +158,55 @@ class RequirementExtractor:
         return extracted
 
 
+CATEGORY_RULES = {
+    "technical_cad": [
+        "cad", "architect", "blueprint", "engineering drawing",
+        "technical drawing", "plotter", "gis"
+    ],
+    "photo_booth": [
+        "photo booth", "event photo", "instant photo",
+        "citizen photo printer", "dye sublimation photo"
+    ],
+    "photo_fine_art": [
+        "fine art", "gallery", "exhibition",
+        "professional photography", "p700", "p900",
+        "p7500", "p9500"
+    ],
+    "office_enterprise": [
+        "office printer", "workgroup", "copier",
+        "enterprise mfp", "pages per day"
+    ],
+    "scanner": [
+        "document scanner", "sheetfed scanner",
+        "flatbed scanner", "scan documents", "adf"
+    ]
+}
+
+
+def classify_category(text: str) -> Optional[str]:
+    """
+    Classify product category based on strong domain phrases.
+    Guardrail: Does NOT use 'photo' alone to decide fine-art printing,
+    nor 'pages' alone to decide office printing.
+    """
+    msg_lower = (text or "").lower()
+
+    # Check negative scanner context first
+    has_no_scanner = any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"])
+
+    for cat, phrases in CATEGORY_RULES.items():
+        if cat == "scanner" and has_no_scanner:
+            continue
+        for phrase in phrases:
+            # Word boundary check for acronyms/short words like cad, adf, gis
+            if len(phrase) <= 4:
+                if re.search(rf"\b{re.escape(phrase)}\b", msg_lower):
+                    return cat
+            elif phrase in msg_lower:
+                return cat
+
+    return None
+
 
 requirement_extractor = RequirementExtractor()
+

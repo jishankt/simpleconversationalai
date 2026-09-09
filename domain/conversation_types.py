@@ -23,6 +23,7 @@ class Intent(str, Enum):
     CONFIRMATION = "confirmation"
     REJECTION = "rejection"
     CONVERSATION_ENDING = "conversation_ending"
+    CONVERSATION_HELP = "conversation_help"
     LANGUAGE_CHANGE = "language_change"
     PRODUCT_DISCOVERY = "product_discovery"
     PRODUCT_QUESTION = "product_question"
@@ -87,6 +88,8 @@ class ConversationStage(str, Enum):
 # ---------------------------------------------------------------------------
 class RouteName(str, Enum):
     SOCIAL = "social"
+    CONVERSATION_HELP = "conversation_help"
+    GUARDRAIL = "guardrail"
     QUALIFICATION = "qualification"
     PRODUCT = "product"
     COMPARISON = "comparison"

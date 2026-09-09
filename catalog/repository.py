@@ -89,96 +89,403 @@ class CatalogRepository:
             except Exception as e:
                 logger.error(f"Error enriching products {self.products_path}: {e}")
 
-        # Explicit verified image fallbacks for all primary catalog items
+        # Explicit verified media, identity, and structured specifications for catalog items
         VERIFIED_HARDWARE_MEDIA = {
             "epson-am-c4000": {
                 "sku": "C11CJ43402BY",
+                "entity_type": "printer",
+                "canonical_id": "epson-am-c4000",
+                "display_name": "Epson WorkForce Enterprise AM-C4000 MFP",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Epson-WorkForce-Enterprise-WF-AM-C4000-Printer-Datasheet.pdf",
                 "consumables": ["C13T08H100", "C13T08H200", "C13T08H300", "C13T08H400", "C12C937181"]
             },
             "epson-am-c550": {
                 "sku": "C11CJ92401",
+                "entity_type": "printer",
+                "canonical_id": "epson-am-c550",
+                "display_name": "Epson WorkForce AM-C550 A4 Multifunction Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2025/01/Epson-WorkForce-AM-C550-A4-Color-Multifunction-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-wf-am-c550-a4-multifunction-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2025/01/Epson-WorkForce-AM-C550-A4-Color-Multifunction-Printer.pdf",
                 "consumables": ["C13T08Q140", "C13T08Q240", "C13T08Q340", "C13T08Q440", "C12C937201"]
             },
             "epson-t3100": {
                 "sku": "C11CF11301A0",
+                "entity_type": "printer",
+                "canonical_id": "epson-t3100",
+                "display_name": "Epson SureColor SC-T3100 Wireless Technical Plotter",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-Printer-Datasheet.pdf",
                 "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"]
             },
             "epson-t5100": {
                 "sku": "C11CF12301A0",
+                "entity_type": "printer",
+                "canonical_id": "epson-t5100",
+                "display_name": "Epson SureColor SC-T5100 36\" Large Format Plotter",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer-datasheet.pdf",
                 "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"]
             },
             "epson-t5400m": {
                 "sku": "C11CH65301A0",
+                "entity_type": "printer",
+                "canonical_id": "epson-t5400m",
+                "display_name": "Epson SureColor SC-T5100M / T5400M MFP Technical Plotter",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/SC-T5100M.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/Epson-SureColor-SC-T5100M-MFP-Brochure.pdf",
                 "consumables": ["C13S210057", "C13T41F540", "C13T41F240", "C13T41F340", "C13T41F440"]
             },
             "epson-t5700d": {
                 "sku": "C11CH81301A0",
+                "entity_type": "printer",
+                "canonical_id": "epson-t5700d",
+                "display_name": "Epson SureColor SC-T5700D Dual-Roll Technical Plotter",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-Sure-Color-SC-T5700D-Printer-Datasheet.pdf",
                 "consumables": ["C13S210115", "C13T50U100", "C13T50U200", "C13T50U300", "C13T50U400"]
             },
             "epson-p700": {
                 "sku": "C11CH38401",
+                "entity_type": "printer",
+                "canonical_id": "epson-p700",
+                "display_name": "Epson SureColor SC-P700 13\" Photo Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P700-13-Photo-Printer-Datasheet.pdf",
                 "consumables": ["C12C935711", "C13T46S100", "C13T46S200", "C13T46S300", "C13T46S400"]
             },
             "epson-p900": {
                 "sku": "C11CH37401",
+                "entity_type": "printer",
+                "canonical_id": "epson-p900",
+                "display_name": "Epson SureColor SC-P900 17\" Photo Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P900-17-Photo-Printer-Datasheet.pdf",
                 "consumables": ["C12C935711", "C13T47A100", "C13T47A200", "C13T47A300", "C13T47A400"]
             },
             "epson-p7500-p9500": {
                 "sku": "C11CH13301A0",
+                "entity_type": "printer",
+                "canonical_id": "epson-p7500-p9500",
+                "display_name": "Epson SureColor SC-P7500 / P9500 Large Format Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P7500-Datasheet.pdf",
                 "consumables": ["C13T699700", "C13T44J140", "C13T44J240", "C13T44J340", "C13T44J440"]
             },
             "citizen-cx-02": {
                 "sku": "CX02-PHOTO",
+                "entity_type": "printer",
+                "canonical_id": "citizen-cx-02",
+                "display_name": "Citizen CX-02 Digital Photo Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp",
                 "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
-                "consumables": ["CX2.4x6", "CX2.6X8"]
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX-02-Photo-Printer-Datasheet.pdf",
+                "consumables": ["CX2.4x6", "CX2.6X8"],
+                "structured_specs": {
+                    "print_speed": {
+                        "4x6": ["8.4 seconds", "9.8 seconds"],
+                        "5x7": "14.2 seconds",
+                        "6x8": "15.6 seconds",
+                        "6x9": "20.8 seconds",
+                        "status": "conflict",
+                        "conflict_note": "The Kepler Tech product page lists both 8.4 seconds and 9.8 seconds for 4x6 printing without differentiating between standard and high-speed modes."
+                    },
+                    "max_width": {
+                        "value": 6,
+                        "unit": "inches",
+                        "status": "inferred",
+                        "note": "6 inches inferred from listed 6x8 and 6x9 media sizes; website does not provide a separate maximum-width field."
+                    },
+                    "technology": {
+                        "value": "Dye sublimation thermal system with an overcoat",
+                        "status": "verified"
+                    },
+                    "liquid_ink": {
+                        "uses_liquid_ink": False,
+                        "status": "inferred",
+                        "note": "Dye-sublimation ribbon and paper media [VERIFIED]; therefore, it does not use conventional liquid-ink cartridges [INFERRED]."
+                    },
+                    "resolution": {
+                        "options": ["300 dpi", "600 dpi"],
+                        "status": "verified"
+                    },
+                    "print_modes": {
+                        "options": ["High Speed", "High Quality"],
+                        "status": "verified",
+                        "note": "Exact 300x300 and 300x600 mode mapping is not confirmed on the Kepler Tech website."
+                    },
+                    "finishes": {
+                        "options": ["Glossy", "Matte"],
+                        "status": "conflict",
+                        "conflict_note": "Product summary mentions Gloss, Luster, and Matte, but specification table lists only Glossy / Matte."
+                    },
+                    "ribbon_rewind": {
+                        "supported": True,
+                        "status": "verified",
+                        "description": "Rewinds the unused half of the thermal ribbon when producing 4x6 prints on 6x8 media to eliminate consumable waste."
+                    },
+                    "capacity": {
+                        "4x6": "400 sheets",
+                        "5x7": "230 sheets per roll",
+                        "6x8": "200 sheets per roll",
+                        "6x9": "180 sheets per roll",
+                        "status": "verified"
+                    },
+                    "weight": {
+                        "product_weight": "12 kg",
+                        "package_weight": "13.5 kg",
+                        "status": "verified"
+                    },
+                    "dimensions": {
+                        "product_dimensions": "27.5 x 36.6 x 17 cm",
+                        "package_dimensions": "39 x 50 x 33.5 cm",
+                        "status": "verified"
+                    },
+                    "interface": {
+                        "value": "USB 2.0 full speed",
+                        "status": "verified"
+                    },
+                    "media_compatibility": {
+                        "CY-MS46": "Kepler lists CY-MS46 for CY-02 and CX2-MS46 for CX-02. Cross-compatibility is not confirmed, so use only the media listed for each model.",
+                        "CZ-MS46": "Not listed as compatible on the website."
+                    }
+                }
             },
             "citizen-cy-02": {
                 "sku": "CY02-PHOTO",
+                "entity_type": "printer",
+                "canonical_id": "citizen-cy-02",
+                "display_name": "Citizen CY-02 Photo Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
-                "consumables": ["CY-MS46", "CY-MS68"]
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CY-02-Photo-Printer-Datasheet.pdf",
+                "consumables": ["CY-MS46", "CY-MS68"],
+                "structured_specs": {
+                    "print_speed": {
+                        "4x6": "12.4 seconds",
+                        "5x7": "19.9 seconds",
+                        "6x8": "21.9 seconds",
+                        "status": "verified"
+                    },
+                    "max_width": {
+                        "value": 6,
+                        "unit": "inches",
+                        "status": "inferred",
+                        "note": "6 inches inferred from listed 6x8 media size."
+                    },
+                    "technology": {
+                        "value": "Dye sublimation thermal system with overcoat",
+                        "status": "verified"
+                    },
+                    "liquid_ink": {
+                        "uses_liquid_ink": False,
+                        "status": "inferred",
+                        "note": "Dye-sublimation ribbon and paper media [VERIFIED]; therefore, it does not use conventional liquid-ink cartridges [INFERRED]."
+                    },
+                    "resolution": {
+                        "options": ["300 dpi", "600 dpi"],
+                        "status": "verified"
+                    },
+                    "print_modes": {
+                        "options": ["High Speed", "High Quality"],
+                        "status": "verified"
+                    },
+                    "finishes": {
+                        "options": ["Glossy", "Matte"],
+                        "status": "verified"
+                    },
+                    "ribbon_rewind": {
+                        "supported": False,
+                        "status": "verified"
+                    },
+                    "capacity": {
+                        "4x6": "700 sheets per roll",
+                        "5x7": "350 sheets per roll",
+                        "6x8": "350 sheets per roll",
+                        "status": "verified"
+                    },
+                    "weight": {
+                        "product_weight": "13.8 kg",
+                        "package_weight": "16.5 kg",
+                        "status": "verified"
+                    },
+                    "dimensions": {
+                        "product_dimensions": "32.2 x 35.1 x 28.1 cm",
+                        "package_dimensions": "44 x 55 x 41.51 cm",
+                        "status": "verified"
+                    },
+                    "interface": {
+                        "value": "USB 2.0 full speed",
+                        "status": "verified"
+                    }
+                }
             },
             "citizen-cz-01": {
                 "sku": "CZ01-PHOTO",
+                "entity_type": "printer",
+                "canonical_id": "citizen-cz-01",
+                "display_name": "Citizen CZ-01 Photo Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer-600x600.webp",
                 "website_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
-                "consumables": ["CZ-MS46", "CZ-MS458", "CZ01-MEDIA-4X6"]
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CZ-01-Photo-Printer-Datasheet.pdf",
+                "consumables": ["CZ-MS46", "CZ-MS458", "CZ01-MEDIA-4X6"],
+                "structured_specs": {
+                    "print_speed": {
+                        "4x4": "16.3 seconds",
+                        "4x6": "18.8 seconds",
+                        "4.5x4.5": "19.5 seconds",
+                        "4.5x8": "23.1 seconds",
+                        "status": "verified"
+                    },
+                    "max_width": {
+                        "value": 4.5,
+                        "unit": "inches",
+                        "status": "inferred",
+                        "note": "4.5 inches inferred from listed 4.5x8 media size."
+                    },
+                    "technology": {
+                        "value": "Dye sublimation thermal system with overcoat",
+                        "status": "verified"
+                    },
+                    "liquid_ink": {
+                        "uses_liquid_ink": False,
+                        "status": "inferred",
+                        "note": "Dye-sublimation ribbon and paper media [VERIFIED]; therefore, it does not use conventional liquid-ink cartridges [INFERRED]."
+                    },
+                    "resolution": {
+                        "options": ["300 dpi", "600 dpi"],
+                        "status": "verified"
+                    },
+                    "print_modes": {
+                        "options": ["High Speed", "High Quality"],
+                        "status": "verified"
+                    },
+                    "finishes": {
+                        "options": ["Glossy", "Matte", "Partial Matte"],
+                        "status": "verified"
+                    },
+                    "capacity": {
+                        "4x4": "150 sheets per roll",
+                        "4x6": "150 sheets per roll",
+                        "4.5x4.5": "110 sheets per roll",
+                        "4.5x8": "110 sheets per roll",
+                        "status": "verified"
+                    },
+                    "weight": {
+                        "product_weight": "5.8 kg",
+                        "package_weight": "8.5 kg",
+                        "status": "verified"
+                    },
+                    "dimensions": {
+                        "product_dimensions": "20.8 x 24.0 x 19.8 cm",
+                        "package_dimensions": "30 x 34 x 30 cm",
+                        "status": "verified"
+                    },
+                    "interface": {
+                        "value": "USB 2.0 full speed",
+                        "status": "verified"
+                    }
+                }
             },
             "citizen-cx-02w": {
                 "sku": "CX02W-PHOTO",
+                "entity_type": "printer",
+                "canonical_id": "citizen-cx-02w",
+                "display_name": "Citizen CX-02W 8\" Large Photo Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer-300x300.webp",
                 "website_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
-                "consumables": ["CX2W 812"]
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX-02W-Large-Format-Photo-Printer-Datasheet.pdf",
+                "consumables": ["CX2W 812"],
+                "structured_specs": {
+                    "print_speed": {
+                        "8x12": "39.2 seconds",
+                        "A4": "38.4 seconds",
+                        "status": "verified"
+                    },
+                    "max_width": {
+                        "value": 8,
+                        "unit": "inches",
+                        "status": "inferred",
+                        "note": "8 inches inferred from 8x12 media size."
+                    },
+                    "technology": {
+                        "value": "Dye sublimation thermal system with overcoat",
+                        "status": "verified"
+                    },
+                    "liquid_ink": {
+                        "uses_liquid_ink": False,
+                        "status": "inferred",
+                        "note": "Dye-sublimation ribbon and paper media [VERIFIED]; therefore, it does not use conventional liquid-ink cartridges [INFERRED]."
+                    },
+                    "resolution": {
+                        "options": ["300 dpi", "600 dpi"],
+                        "status": "verified"
+                    },
+                    "print_modes": {
+                        "options": ["High Speed", "High Quality"],
+                        "status": "verified"
+                    },
+                    "finishes": {
+                        "options": ["Glossy", "Matte"],
+                        "status": "verified"
+                    },
+                    "capacity": {
+                        "8x12": "110 sheets per roll",
+                        "status": "verified"
+                    },
+                    "weight": {
+                        "product_weight": "14 kg (without paper and ribbon)",
+                        "package_weight": "16.5 kg (without paper and ribbon)",
+                        "status": "verified"
+                    },
+                    "dimensions": {
+                        "product_dimensions": "32.2 x 36.6 x 17 cm",
+                        "package_dimensions": "43 x 47 x 27 cm",
+                        "status": "verified"
+                    },
+                    "interface": {
+                        "value": "USB 2.0 full speed",
+                        "status": "verified"
+                    }
+                }
             },
             "epson-sc-f100": {
                 "sku": "C11CJ80301",
+                "entity_type": "printer",
+                "canonical_id": "epson-sc-f100",
+                "display_name": "Epson SureColor SC-F100 Dye-Sublimation Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-F100-Datasheet.pdf",
+                "consumables": ["C13T49N100", "C13T49N200", "C13T49N300", "C13T49N400", "C13S210125"]
+            },
+            "epson-sc-f100": {
+                "sku": "C11CJ06301",
+                "entity_type": "printer",
+                "canonical_id": "epson-sc-f100",
+                "display_name": "Epson SureColor SC-F100 Dye-Sublimation Desktop Printer",
+                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
+                "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-F100-Printer-Datasheet.pdf",
                 "consumables": ["C13T49N100", "C13T49N200", "C13T49N300", "C13T49N400", "C13S210125"]
             },
             "epson-sc-f500": {
                 "sku": "C11CJ17301A0",
+                "entity_type": "printer",
+                "canonical_id": "epson-sc-f500",
+                "display_name": "Epson SureColor SC-F500 Dye-Sublimation Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/04/epson-SC-F500.jpg.jpeg",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2026/04/Epson-SureColor-SC-F500-Datasheet.pdf",
                 "consumables": ["C13T49N100", "C13T49N200", "C13T49N300", "C13T49N400", "C13S210055"]
             }
         }
@@ -192,8 +499,40 @@ class CatalogRepository:
                     prod.image_url = media_info["image_url"]
                 if media_info.get("website_url"):
                     prod.source.website_url = media_info["website_url"]
+                    prod.product_url = media_info["website_url"]
+                if media_info.get("datasheet_url"):
+                    prod.datasheet_url = media_info["datasheet_url"]
+                if media_info.get("canonical_id"):
+                    prod.canonical_id = media_info["canonical_id"]
+                if media_info.get("display_name"):
+                    prod.display_name = media_info["display_name"]
+                if media_info.get("entity_type"):
+                    prod.entity_type = media_info["entity_type"]
+                if media_info.get("structured_specs"):
+                    prod.structured_specs = media_info["structured_specs"]
                 if media_info.get("consumables"):
                     prod.consumables = media_info["consumables"]
+            else:
+                brand_val = "Citizen" if "citizen" in pid else "Epson"
+                cat_val = "photo_booth" if "citizen" in pid or "f100" in pid else ("scanner" if "ds-" in pid else "technical_cad")
+                new_prod = NormalizedProduct(
+                    id=pid,
+                    canonical_id=media_info.get("canonical_id") or pid,
+                    display_name=media_info.get("display_name") or pid,
+                    entity_type=media_info.get("entity_type", "printer"),
+                    product_url=media_info.get("website_url"),
+                    datasheet_url=media_info.get("datasheet_url"),
+                    structured_specs=media_info.get("structured_specs", {}),
+                    brand=brand_val,
+                    model=media_info.get("display_name") or pid,
+                    name=media_info.get("display_name") or pid,
+                    category=cat_val,
+                    sku=media_info.get("sku", pid.upper()),
+                    source=ProductSource(website_url=media_info.get("website_url")),
+                    image_url=media_info.get("image_url"),
+                    consumables=media_info.get("consumables", []),
+                )
+                self.products_by_id[pid] = new_prod
 
         # 2b. Populate verified prices for all products
         from catalog.price_resolver import price_resolver
@@ -249,6 +588,12 @@ class CatalogRepository:
 
                             new_prod = NormalizedProduct(
                                 id=d_key,
+                                canonical_id=media_entry.get("canonical_id") or d_key,
+                                display_name=media_entry.get("display_name") or d_info.get("title", d_key),
+                                entity_type=media_entry.get("entity_type", "printer"),
+                                product_url=media_entry.get("website_url") or d_info.get("url"),
+                                datasheet_url=media_entry.get("datasheet_url"),
+                                structured_specs=media_entry.get("structured_specs", {}),
                                 brand=brand_val,
                                 model=d_info.get("title", d_key),
                                 name=d_info.get("title", d_key),
@@ -294,6 +639,10 @@ class CatalogRepository:
                                 )
                                 norm_scanner = NormalizedProduct(
                                     id=p_id,
+                                    canonical_id=p_id,
+                                    display_name=name,
+                                    entity_type="scanner",
+                                    product_url=item.get("website_url") or item.get("web_url"),
                                     brand="Epson",
                                     model=name.split()[0] if name else "Epson Scanner",
                                     name=name,
@@ -421,20 +770,39 @@ class CatalogRepository:
             weight=item.get("weight"),
         )
 
+        ent_type = "scanner" if category == "scanner" else ("consumable" if category == "consumable" else ("media" if category == "media_paper" else ("software" if category == "software" else "printer")))
+        src_u = item.get("source_url") or item.get("website_url") or item.get("url")
+
         return NormalizedProduct(
             id=p_id,
+            canonical_id=p_id,
+            display_name=item.get("name", p_id),
+            entity_type=ent_type,
+            product_url=src_u,
             brand=item.get("brand", "Epson"),
             model=item.get("name", "").split()[0] if item.get("name") else p_id,
             name=item.get("name", p_id),
             category=category,
             verified=specs,
-            source=ProductSource(website_url=item.get("source_url")),
+            source=ProductSource(website_url=src_u),
             comparison_highlights=item.get("comparison_highlights"),
             description=item.get("intended_usage"),
         )
 
     def get_by_id(self, product_id: str) -> Optional[NormalizedProduct]:
-        return self.products_by_id.get(product_id)
+        if not product_id:
+            return None
+        if product_id in self.products_by_id:
+            return self.products_by_id[product_id]
+        from catalog.product_resolver import resolve_canonical_id
+        canon = resolve_canonical_id(product_id)
+        if canon and canon in self.products_by_id:
+            return self.products_by_id[canon]
+        p_id_lower = product_id.lower().strip()
+        for p in self.products_by_id.values():
+            if p.id.lower() == p_id_lower or (p.sku and p.sku.lower() == p_id_lower) or (p.canonical_id and p.canonical_id.lower() == p_id_lower):
+                return p
+        return None
 
     def get_all(self) -> List[NormalizedProduct]:
         return list(self.products_by_id.values())

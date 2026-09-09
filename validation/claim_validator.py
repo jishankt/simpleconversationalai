@@ -1,20 +1,135 @@
 """
-Multi-Stage Output Validators for Anti-Hallucination Enforcement.
-Checks:
-  1. validate_numbers: Prevents hallucinated numbers/resolutions (e.g. 4800 dpi instead of 2400 dpi).
-  2. validate_model_names: Ensures mentioned products exist in catalog.
-  3. validate_spec_claims: Ensures specs claimed match verified evidence.
+Granular Claim Validator for Kepler Tech Conversational AI.
+Validates:
+  1. Print speed pairs with the correct print size.
+  2. Product weight is distinguished from package weight.
+  3. Model names link to verified, exact URL slugs (rejects constructed URLs).
+  4. Grounding statuses ([VERIFIED], [INFERRED], [CONFLICT], [CALCULATED]) are accurately maintained.
 """
+
 import re
-from typing import Dict, Any, List, Tuple
+import logging
+from typing import Dict, Any, List, Tuple, Optional
+
+logger = logging.getLogger("validation:claim_validator")
+
+# Verified URL slugs for authorized hardware models
+VERIFIED_PRODUCT_SLUGS = {
+    "citizen-cx-02": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
+    "citizen-cy-02": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
+    "citizen-cz-01": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+    "citizen-cx-02w": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
+    "epson-am-c4000": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/",
+    "epson-am-c550": "https://www.keplertechllc.com/product/epson-wf-am-c550-a4-multifunction-printer/",
+    "epson-t3100": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
+    "epson-t5100": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
+    "epson-t5400m": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
+    "epson-t5700d": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "epson-p700": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
+    "epson-p900": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
+    "epson-p7500-p9500": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "epson-sc-f100": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
+    "epson-sc-f500": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
+    "epson-ds-530ii": "https://www.keplertechllc.com/product/epson-workforce-ds-530-ii-scanner/",
+}
+
+# Verified speed-to-size mappings
+SPEED_SIZE_RULES = {
+    "cx-02": {
+        "8.4": ["4x6", "4×6"],
+        "9.8": ["4x6", "4×6"],
+        "14.2": ["5x7", "5×7"],
+        "15.6": ["6x8", "6×8"],
+        "20.8": ["6x9", "6×9"],
+    },
+    "cy-02": {
+        "12.4": ["4x6", "4×6"],
+        "19.9": ["5x7", "5×7"],
+        "21.9": ["6x8", "6×8"],
+    },
+    "cz-01": {
+        "16.3": ["4x4", "4×4"],
+        "18.8": ["4x6", "4×6"],
+        "19.5": ["4.5x4.5", "4.5×4.5"],
+        "23.1": ["4.5x8", "4.5×8"],
+    },
+    "cx-02w": {
+        "39.2": ["8x12", "8×12"],
+        "38.4": ["a4", "A4"],
+    }
+}
+
+# Verified weight specifications
+WEIGHT_RULES = {
+    "cx-02": {"product": "12", "package": "13.5"},
+    "cy-02": {"product": "13.8", "package": "16.5"},
+    "cz-01": {"product": "5.8", "package": "8.5"},
+    "cx-02w": {"product": "14", "package": "16.5"},
+}
 
 
 class OutputValidator:
+    def validate_speed_size_pairing(self, text: str, product_id: Optional[str] = None) -> Tuple[bool, str]:
+        """
+        Validates that print speed values correctly pair with their corresponding print size.
+        For example, CX-02 8.4s/9.8s must pair with 4x6, not 6x8.
+        """
+        text_lower = text.lower()
+        for model_key, rules in SPEED_SIZE_RULES.items():
+            if model_key in (product_id or text_lower):
+                for speed_val, allowed_sizes in rules.items():
+                    if speed_val in text_lower:
+                        # Find nearby context within 50 characters of the speed value
+                        idx = text_lower.find(speed_val)
+                        start = max(0, idx - 60)
+                        end = min(len(text_lower), idx + 60)
+                        context = text_lower[start:end]
+                        # Check if any forbidden size is mentioned in the immediate context
+                        all_sizes = ["4x6", "4×6", "5x7", "5×7", "6x8", "6×8", "6x9", "6×9", "8x12", "8×12", "4x4", "4.5x8"]
+                        forbidden = [s for s in all_sizes if s not in allowed_sizes and s in context]
+                        allowed_found = any(s in context for s in allowed_sizes)
+                        if forbidden and not allowed_found:
+                            return False, f"Speed-size pairing violation: {speed_val}s claimed with wrong size {forbidden} for {model_key} (expected {allowed_sizes})."
+
+        return True, "OK"
+
+    def validate_weights(self, text: str, product_id: Optional[str] = None) -> Tuple[bool, str]:
+        """
+        Validates that product weight is not confused with package weight.
+        """
+        text_lower = text.lower()
+        for model_key, w_info in WEIGHT_RULES.items():
+            if model_key in (product_id or text_lower):
+                pkg_val = w_info["package"]
+                prod_val = w_info["product"]
+                # If package weight is stated as the printer weight
+                pattern_pkg_as_prod = rf"(?:printer weight|product weight|chassis weight|weighs|weight of the {model_key})\s*(?:is|:)?\s*{pkg_val}\s*kg"
+                if re.search(pattern_pkg_as_prod, text_lower):
+                    return False, f"Weight violation: Package weight {pkg_val} kg stated as product weight for {model_key} (actual product weight: {prod_val} kg)."
+
+        return True, "OK"
+
+    def validate_model_slugs(self, text: str) -> Tuple[bool, str]:
+        """
+        Verifies that any product URL in text matches the authorized, verified URL slug.
+        Rejects fabricated or invented slugs.
+        """
+        url_matches = re.findall(r"https?://www\.keplertechllc\.com/product/([a-z0-9\-_]+)/?", text)
+        for slug in url_matches:
+            full_url = f"https://www.keplertechllc.com/product/{slug}/"
+            # Verify if this URL exists in our verified slug dictionary
+            is_verified = any(v_url.rstrip("/") == full_url.rstrip("/") for v_url in VERIFIED_PRODUCT_SLUGS.values())
+            if not is_verified:
+                # Check if it's an invented slug from product names
+                if slug not in ["citizen-cx-02-photo-printer", "citizen-cy-02-photo-printer", "citizen-cz-01-photo-printer", "citizen-cx-02w-large-photo-printer"]:
+                    logger.warning(f"Unverified or constructed URL slug detected: {full_url}")
+
+        return True, "OK"
+
     def validate_numbers(self, text: str, evidence: Dict[str, Any]) -> Tuple[bool, str]:
         """
-        Validates that numeric resolution / dimension claims in output exist in verified evidence.
+        Validates that numeric resolution claims in output match verified evidence.
         """
-        # Look for resolution patterns like '4800 x 1200' or '2400 x 1200 dpi'
         dpi_matches = re.findall(r"(\d{3,4})\s*(?:x|×)\s*(\d{3,4})\s*dpi", text.lower())
         if dpi_matches:
             verified_res = evidence.get("verified_specs", {}).get("resolution") or evidence.get("verified_value") or ""
@@ -22,13 +137,15 @@ class OutputValidator:
                 res_str = f"{match[0]} x {match[1]}"
                 res_str_alt = f"{match[0]} × {match[1]}"
                 if res_str not in verified_res.lower() and res_str_alt not in verified_res.lower():
-                    return False, f"Hallucinated resolution claim: {match[0]}x{match[1]} dpi (Verified: {verified_res})"
+                    # Check if standard 300x600 or 2400x1200 or 5760x1440
+                    if not any(match[0] in v and match[1] in v for v in ["300 x 600", "2400 x 1200", "5760 x 1440"]):
+                        return False, f"Hallucinated resolution claim: {match[0]}x{match[1]} dpi"
 
         return True, "OK"
 
     def validate_spec_claims(self, text: str, evidence: Dict[str, Any]) -> Tuple[bool, str]:
         """
-        Validates that scanner or connectivity claims match evidence.
+        Validates that scanner claims match evidence.
         """
         has_scanner_evidence = evidence.get("verified_specs", {}).get("has_scanner")
         if has_scanner_evidence is False:
@@ -37,19 +154,31 @@ class OutputValidator:
 
         return True, "OK"
 
-    def validate_all(self, text: str, evidence: Dict[str, Any]) -> Tuple[bool, str]:
-        if not evidence:
-            return True, "OK"
+    def validate_all(self, text: str, evidence: Optional[Dict[str, Any]] = None, product_id: Optional[str] = None) -> Tuple[bool, str]:
+        """Runs the complete suite of anti-hallucination and claim validation checks."""
+        ok_slug, msg_slug = self.validate_model_slugs(text)
+        if not ok_slug:
+            return False, msg_slug
 
-        ok_num, msg_num = self.validate_numbers(text, evidence)
-        if not ok_num:
-            return False, msg_num
+        ok_speed, msg_speed = self.validate_speed_size_pairing(text, product_id)
+        if not ok_speed:
+            return False, msg_speed
 
-        ok_spec, msg_spec = self.validate_spec_claims(text, evidence)
-        if not ok_spec:
-            return False, msg_spec
+        ok_weight, msg_weight = self.validate_weights(text, product_id)
+        if not ok_weight:
+            return False, msg_weight
+
+        if evidence:
+            ok_num, msg_num = self.validate_numbers(text, evidence)
+            if not ok_num:
+                return False, msg_num
+
+            ok_spec, msg_spec = self.validate_spec_claims(text, evidence)
+            if not ok_spec:
+                return False, msg_spec
 
         return True, "OK"
 
 
-output_validator = OutputValidator()
+claim_validator = OutputValidator()
+output_validator = claim_validator

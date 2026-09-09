@@ -58,26 +58,34 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     # 3. Determine target printer / hardware model with exact full-word matching
     target = None
     m = None
-    # If the user explicitly provided a model code in this turn
-    if model_code:
-        target = model_code
-    elif raw_message:
-        m = re.search(
-            r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?|12000xl)\b",
-            raw_lower
-        )
+    from catalog.product_resolver import resolve_canonical_id, normalize_model_identifier
+    raw_canon = resolve_canonical_id(raw_message)
+    has_pronoun_ref = bool(re.search(r"\b(?:this|that|it|its|these|those)\b", raw_lower))
+
+    # If pronoun is used and an active product exists, the pronoun refers to that active product!
+    if has_pronoun_ref and state.active_product:
+        target = state.active_product.get("name") or state.active_product.get("sku")
+    elif raw_canon:
+        target = raw_canon
+    elif raw_message and re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{1,2}w?|cy-?\d{1,2}|cz-?\d{1,2}|am-?c\d{3,4}|wf-?c\d{3,5}[a-z]?|12000xl|f100|f500)\b", raw_lower):
+        m = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{1,2}w?|cy-?\d{1,2}|cz-?\d{1,2}|am-?c\d{3,4}|wf-?c\d{3,5}[a-z]?|12000xl|f100|f500)\b", raw_lower)
         if m:
             target = m.group(0).upper()
+    elif model_code:
+        # Validate model_code against user's actual text to avoid hallucinated LLM entities
+        cand_norm = normalize_model_identifier(model_code)
+        msg_norm = re.sub(r"[^a-z0-9]", "", raw_lower)
+        if cand_norm and cand_norm in msg_norm:
+            target = resolve_canonical_id(model_code) or model_code
 
     # If asking generally for ink ("i want to buy a ink", "need ink", "i want ink") without explicit model code, do not assume previous active product
-    has_pronoun_ref = bool(re.search(r"\b(?:this|that|it|these|those)\b", raw_lower))
-    has_model_mention = bool(model_code or m)
+    has_model_mention = bool(target or m)
     is_general_ink_req = not has_model_mention and not has_pronoun_ref and bool(re.search(r"\b(?:ink|inks|cartridge|cartridges|toner|ribbon)\b", raw_lower))
     if not is_general_ink_req:
         # Prioritize the printer actively discussed in consumables flow first!
         if not target and state.active_printer_for_consumables:
             target = state.active_printer_for_consumables
-        elif not target and (has_pronoun_ref or not is_general_ink_req) and state.active_product:
+        elif not target and state.active_product:
             target = state.active_product.get("name") or state.active_product.get("sku")
 
     # If no printer identified, ask user for the exact model
@@ -96,7 +104,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # Clean composite target string (e.g. "CX-02, CX-02S" or "CX-02 / CX-02S" -> extract primary model like "CX-02")
     if target:
-        m_primary = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?|12000xl)\b", str(target), re.IGNORECASE)
+        m_primary = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{1,2}w?|cy-?\d{1,2}|cz-?\d{1,2}|am-?c\d{3,4}|wf-?c\d{3,5}[a-z]?|12000xl|f100|f500)\b", str(target), re.IGNORECASE)
         if m_primary:
             target = m_primary.group(0).upper()
 

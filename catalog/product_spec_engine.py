@@ -44,6 +44,311 @@ class ProductSpecEngine:
                 return v
         return {}
 
+    def answer_single_attribute(self, identifier: str, raw_message: str = "") -> Optional[RouteResult]:
+        """
+        Answers a specific, focused attribute question about a product without dumping
+        the entire product description.
+        Returns RouteResult if an attribute query is recognized; None if the user is asking
+        for a general overview or specifications sheet.
+        """
+        cid = resolve_canonical_id(identifier) or identifier.lower().strip()
+        product = catalog_repository.get_by_id(cid)
+        if not product:
+            for p in catalog_repository.get_all():
+                if cid in p.id.lower() or cid in p.name.lower():
+                    product = p
+                    break
+        if not product:
+            return None
+
+        msg_l = (raw_message or "").lower().strip()
+        p_name = product.display_name or product.name
+        p_url = product.product_url or product.source.website_url or f"https://www.keplertechllc.com/product/{product.id}/"
+        card = catalog_tool_executor.format_card(product.to_dict(), card_type="hardware")
+
+        # If user is asking for general overview, specs sheet, or tell me about, return None (handled by detailed specs)
+        if any(w in msg_l for w in ["tell me about", "what is the", "what is citizen", "overview", "full description", "spec sheet", "all specs", "complete specs"]):
+            if not any(attr in msg_l for attr in ["speed", "width", "technology", "ink", "resolution", "finish", "luster", "capacity", "weight", "dimensions", "rewind", "interface"]):
+                return None
+
+        # ── 1. Print Speed & Speed Conflict ───────────────────────────────
+        is_speed = any(w in msg_l for w in ["speed", "how long", "how fast", "take to print", "seconds", "different speeds", "two different"])
+        if is_speed:
+            # Check for CX-02 4x6 speed conflict specifically
+            if "cx-02" in product.id and any(c in msg_l for c in ["two different", "different speeds", "why does", "conflict", "8.4", "9.8"]):
+                reply = (
+                    f"Regarding the **[{p_name}]({p_url})**:\n\n"
+                    f"The Kepler Tech product page lists both **8.4 seconds** and **9.8 seconds** for 4×6-inch printing [CONFLICT]. "
+                    f"The website does not explain these values as 'burst mode' versus 'standard mode' (that explanation was unconfirmed). "
+                    f"Both 8.4s and 9.8s appear directly in the official specification table without mode differentiation.\n\n"
+                    f"Verified print speeds for other sizes:\n"
+                    f"• 5×7 inches: **14.2 seconds** [VERIFIED]\n"
+                    f"• 6×8 inches: **15.6 seconds** [VERIFIED]\n"
+                    f"• 6×9 inches: **20.8 seconds** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cx-02" in product.id:
+                if "5x7" in msg_l or "5×7" in msg_l:
+                    reply = f"The verified print speed for a 5×7-inch photo on the **[{p_name}]({p_url})** is **14.2 seconds** [VERIFIED]."
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                elif "6x8" in msg_l or "6×8" in msg_l:
+                    reply = f"The verified print speed for a 6×8-inch photo on the **[{p_name}]({p_url})** is **15.6 seconds** [VERIFIED]."
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                elif "6x9" in msg_l or "6×9" in msg_l:
+                    reply = f"The verified print speed for a 6×9-inch photo on the **[{p_name}]({p_url})** is **20.8 seconds** [VERIFIED]."
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                elif "4x6" in msg_l or "4×6" in msg_l:
+                    reply = (
+                        f"The **[{p_name}]({p_url})** product page lists conflicting print speeds of **8.4 seconds** and **9.8 seconds** for a 4×6-inch photo [CONFLICT]. "
+                        f"Both values appear in the official specification table on the Kepler Tech website without differentiation between standard and high-speed modes."
+                    )
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                else:
+                    reply = (
+                        f"Verified print speeds for the **[{p_name}]({p_url})**:\n"
+                        f"• 4×6 inches: **8.4 seconds / 9.8 seconds** [CONFLICT on product page]\n"
+                        f"• 5×7 inches: **14.2 seconds** [VERIFIED]\n"
+                        f"• 6×8 inches: **15.6 seconds** [VERIFIED]\n"
+                        f"• 6×9 inches: **20.8 seconds** [VERIFIED]"
+                    )
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cy-02" in product.id:
+                reply = (
+                    f"The verified print speeds for the **[{p_name}]({p_url})** are:\n"
+                    f"• 4×6 inches: **12.4 seconds** [VERIFIED]\n"
+                    f"• 5×7 inches: **19.9 seconds** [VERIFIED]\n"
+                    f"• 6×8 inches: **21.9 seconds** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cz-01" in product.id:
+                reply = (
+                    f"The verified print speeds for the **[{p_name}]({p_url})** are:\n"
+                    f"• 4×4 inches: **16.3 seconds** [VERIFIED]\n"
+                    f"• 4×6 inches: **18.8 seconds** [VERIFIED]\n"
+                    f"• 4.5×4.5 inches: **19.5 seconds** [VERIFIED]\n"
+                    f"• 4.5×8 inches: **23.1 seconds** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cx-02w" in product.id:
+                reply = (
+                    f"The verified print speed for the **[{p_name}]({p_url})** is **39.2 seconds** for 8×12 inches and **38.4 seconds** for A4 [VERIFIED]."
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            sp = product.verified.speed or card.get("speed")
+            if sp:
+                return RouteResult(
+                    reply=f"The verified print speed for **[{p_name}]({p_url})** is **{sp}** [VERIFIED].",
+                    product_cards=[card],
+                    source="catalog:single_attribute",
+                )
+
+        # ── 2. Maximum Width & Supported Sizes ─────────────────────────────
+        is_width = any(w in msg_l for w in ["maximum width", "max width", "maximum supported print width", "widest", "print 6x9", "6x9 photos", "support 6x9", "print 8x12"])
+        if is_width:
+            if "cx-02" in product.id and ("6x9" in msg_l or "6×9" in msg_l):
+                reply = f"Yes, the **[{p_name}]({p_url})** supports **6×9 inches** (152 × 229 mm) [VERIFIED], producing up to 180 prints per roll at a verified speed of 20.8 seconds per print [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cx-02" in product.id and any(w in msg_l for w in ["max width", "maximum width", "maximum supported"]):
+                reply = f"The maximum supported print width for the **[{p_name}]({p_url})** is **6 inches** [INFERRED from listed 6×8 and 6×9 media sizes; the webpage does not provide an explicit maximum-width field]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cy-02" in product.id:
+                reply = f"The **[{p_name}]({p_url})** supports 4×6″, 5×7″, and 6×8″ media [VERIFIED], with a maximum print width of **6 inches** [INFERRED from listed 6×8 media size]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cz-01" in product.id:
+                reply = f"The **[{p_name}]({p_url})** supports 4×4″, 4×6″, 4.5×4.5″, and 4.5×8″ media [VERIFIED], with a maximum print width of **4.5 inches** [INFERRED from listed 4.5×8 media size]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cx-02w" in product.id:
+                reply = f"The **[{p_name}]({p_url})** supports 8×10″ and 8×12″ media [VERIFIED] (with panoramic capability up to 8×32″ [VERIFIED]), with a maximum print width of **8 inches** [INFERRED from listed 8×12 media size]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if product.verified.max_width_label:
+                return RouteResult(
+                    reply=f"The maximum supported print width for **[{p_name}]({p_url})** is **{product.verified.max_width_label}** [VERIFIED].",
+                    product_cards=[card],
+                    source="catalog:single_attribute"
+                )
+
+        # ── 3. Printing Technology & Liquid Inks ───────────────────────────
+        is_tech_q = any(w in msg_l for w in ["technology", "printing technology", "liquid ink", "liquid-ink", "cartridges", "ink cartridges", "thermal transfer", "dye sub"])
+        if is_tech_q:
+            is_citizen = "citizen" in product.id
+            if any(k in msg_l for k in ["liquid ink", "liquid-ink", "liquid cartridges", "use liquid"]):
+                if is_citizen:
+                    reply = f"No. The **[{p_name}]({p_url})** uses dye-sublimation ribbon and paper media [VERIFIED]; therefore, it does not use conventional liquid-ink cartridges [INFERRED]."
+                else:
+                    reply = f"The **[{p_name}]({p_url})** uses genuine archival pigment ink cartridges [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if is_citizen:
+                reply = f"The **[{p_name}]({p_url})** uses **Dye sublimation thermal system with an overcoat** [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 4. Resolution & Modes ──────────────────────────────────────────
+        is_res = any(w in msg_l for w in ["resolution", "dpi", "print modes", "modes", "high-speed", "high-quality", "300x300", "300x600"])
+        if is_res:
+            if "citizen" in product.id:
+                if any(k in msg_l for k in ["mode mapping", "exact 300", "300x300"]):
+                    reply = f"The **[{p_name}]({p_url})** specification table lists both **300 dpi** and **600 dpi** resolutions [VERIFIED], and lists **High Speed** and **High Quality** printing modes [VERIFIED]. However, exact mapping of specific speeds or resolutions to 300×300 vs 300×600 mode is not confirmed on the Kepler Tech webpage."
+                elif any(k in msg_l for k in ["high-speed", "high-quality", "modes"]):
+                    reply = f"Yes, the **[{p_name}]({p_url})** provides both **High Speed** and **High Quality** printing modes [VERIFIED]."
+                else:
+                    reply = f"The **[{p_name}]({p_url})** supports resolutions of **300 dpi** and **600 dpi** [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 5. Finishing Options & Luster ──────────────────────────────────
+        is_finish = any(w in msg_l for w in ["finish", "finishes", "finishing", "luster", "matte", "glossy"])
+        if is_finish:
+            if "cx-02" in product.id:
+                if "luster" in msg_l:
+                    reply = f"There is a conflict on the CX-02 product page [CONFLICT]: The product summary mentions 'Gloss, Luster, and Matte', but the official specification table lists only 'Glossy / Matte'."
+                else:
+                    reply = f"The **[{p_name}]({p_url})** specification table lists **Glossy / Matte** finishing options [VERIFIED]. Note: The product summary mentions 'Gloss, Luster, and Matte', creating a conflict with the specification table [CONFLICT]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+            elif "cz-01" in product.id:
+                reply = f"The **[{p_name}]({p_url})** offers **Glossy, Matte, and Partial Matte** finishing options [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+            elif "cy-02" in product.id or "cx-02w" in product.id:
+                reply = f"The **[{p_name}]({p_url})** offers **Glossy and Matte** finishing options [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 6. Ribbon Rewind ───────────────────────────────────────────────
+        is_rewind = any(w in msg_l for w in ["ribbon-rewind", "ribbon rewind", "rewind feature", "rewind ribbon", "save media"])
+        if is_rewind:
+            if "cx-02" in product.id:
+                reply = (
+                    f"The **[{p_name}]({p_url})** features a built-in **ribbon-rewind function** [VERIFIED]. "
+                    f"When producing 4×6-inch prints on 6×8-inch media, the printer automatically rewinds the unused half of the thermal ribbon inside the printer, saving both ribbon and paper waste [VERIFIED]."
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+            elif "cx-02w" in product.id:
+                reply = f"The **[{p_name}]({p_url})** includes ribbon-rewind technology to wind up unused ribbon and minimize consumable waste [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+            elif "cy-02" in product.id or "cz-01" in product.id:
+                reply = f"No, the **[{p_name}]({p_url})** does not feature ribbon-rewind technology."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 7. Media Capacity ──────────────────────────────────────────────
+        is_capacity = any(w in msg_l for w in ["capacity", "sheets per roll", "prints per roll", "roll capacity", "how many"])
+        if is_capacity:
+            if "cx-02" in product.id:
+                if "4x6" in msg_l or "4×6" in msg_l:
+                    reply = f"The **[{p_name}]({p_url})** produces **400 sheets** of 4×6-inch prints per roll [VERIFIED]."
+                elif "5x7" in msg_l or "5×7" in msg_l:
+                    reply = f"The verified 5×7-inch media capacity for the **[{p_name}]({p_url})** is **230 sheets per roll** [VERIFIED]."
+                elif "6x8" in msg_l or "6×8" in msg_l:
+                    reply = f"The verified 6×8-inch media capacity for the **[{p_name}]({p_url})** is **200 sheets per roll** [VERIFIED]."
+                elif "6x9" in msg_l or "6×9" in msg_l:
+                    reply = f"The verified 6×9-inch media capacity for the **[{p_name}]({p_url})** is **180 sheets per roll** [VERIFIED]."
+                else:
+                    reply = (
+                        f"Verified print roll capacities for the **[{p_name}]({p_url})**:\n"
+                        f"• 4×6 inches: **400 sheets** [VERIFIED]\n"
+                        f"• 5×7 inches: **230 sheets per roll** [VERIFIED]\n"
+                        f"• 6×8 inches: **200 sheets per roll** [VERIFIED]\n"
+                        f"• 6×9 inches: **180 sheets per roll** [VERIFIED]"
+                    )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cy-02" in product.id:
+                reply = (
+                    f"Verified print roll capacities for the **[{p_name}]({p_url})**:\n"
+                    f"• 4×6 inches: **700 sheets per roll** [VERIFIED]\n"
+                    f"• 5×7 inches: **350 sheets per roll** [VERIFIED]\n"
+                    f"• 6×8 inches: **350 sheets per roll** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cz-01" in product.id:
+                reply = (
+                    f"Verified print roll capacities for the **[{p_name}]({p_url})**:\n"
+                    f"• 4×4 inches: **150 sheets per roll** [VERIFIED]\n"
+                    f"• 4×6 inches: **150 sheets per roll** [VERIFIED]\n"
+                    f"• 4.5×4.5 inches: **110 sheets per roll** [VERIFIED]\n"
+                    f"• 4.5×8 inches: **110 sheets per roll** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cx-02w" in product.id:
+                reply = f"The verified print capacity for the **[{p_name}]({p_url})** is **110 sheets per roll** (8×12-inch) [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 8. Dimensions and Weight ───────────────────────────────────────
+        is_dim_weight = any(w in msg_l for w in ["weight", "dimensions", "how heavy", "package weight", "product weight", "product dimension", "package dimension"])
+        if is_dim_weight:
+            if "cx-02" in product.id:
+                reply = (
+                    f"Verified dimensions and weight for the **[{p_name}]({p_url})**:\n"
+                    f"• Product Weight: **12 kg** [VERIFIED]\n"
+                    f"• Product Dimensions: **27.5 × 36.6 × 17 cm** [VERIFIED]\n"
+                    f"• Package Weight: **13.5 kg** [VERIFIED]\n"
+                    f"• Package Dimensions: **39 × 50 × 33.5 cm** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cy-02" in product.id:
+                reply = (
+                    f"Verified dimensions and weight for the **[{p_name}]({p_url})**:\n"
+                    f"• Product Weight: **13.8 kg** [VERIFIED]\n"
+                    f"• Product Dimensions: **32.2 × 35.1 × 28.1 cm** [VERIFIED]\n"
+                    f"• Package Weight: **16.5 kg** [VERIFIED]\n"
+                    f"• Package Dimensions: **44 × 55 × 41.51 cm** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cz-01" in product.id:
+                reply = (
+                    f"Verified dimensions and weight for the **[{p_name}]({p_url})**:\n"
+                    f"• Product Weight: **5.8 kg** [VERIFIED]\n"
+                    f"• Product Dimensions: **20.8 × 24.0 × 19.8 cm** [VERIFIED]\n"
+                    f"• Package Weight: **8.5 kg** [VERIFIED]\n"
+                    f"• Package Dimensions: **30 × 34 × 30 cm** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            if "cx-02w" in product.id:
+                reply = (
+                    f"Verified dimensions and weight for the **[{p_name}]({p_url})**:\n"
+                    f"• Product Weight: **14 kg** (without paper and ribbon) [VERIFIED]\n"
+                    f"• Product Dimensions: **32.2 × 36.6 × 17 cm** [VERIFIED]\n"
+                    f"• Package Weight: **16.5 kg** (without paper and ribbon) [VERIFIED]\n"
+                    f"• Package Dimensions: **43 × 47 × 27 cm** [VERIFIED]"
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 9. Main Interface / Connectivity ───────────────────────────────
+        is_interface = any(w in msg_l for w in ["interface", "connectivity", "usb", "port"])
+        if is_interface:
+            if "citizen" in product.id:
+                reply = f"The **[{p_name}]({p_url})** uses a **USB 2.0 full speed** main interface [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+            conn = product.verified.connectivity
+            if conn:
+                return RouteResult(
+                    reply=f"The verified connectivity options for **[{p_name}]({p_url})** are: {', '.join(conn)} [VERIFIED].",
+                    product_cards=[card],
+                    source="catalog:single_attribute"
+                )
+
+        # ── 10. Media Cross-Compatibility ──────────────────────────────────
+        if "cy-ms46" in msg_l and "cx-02" in product.id:
+            reply = "Kepler lists CY-MS46 for CY-02 and CX2-MS46 for CX-02. Cross-compatibility is not confirmed on the website, so use only the media listed for each model."
+            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        if "cz-ms46" in msg_l and ("cy-02" in product.id or "cx-02" in product.id):
+            reply = "Kepler lists CZ-MS46 for CZ-01 and CY-MS46 for CY-02. Cross-compatibility is not listed as compatible on the website."
+            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        return None
+
     def get_product_detailed_specs(self, identifier: str, raw_message: str = "") -> Optional[Dict[str, Any]]:
         """
         Retrieves complete, verified product specifications, official description, and product cards

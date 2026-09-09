@@ -70,7 +70,13 @@ class NormalizedProduct:
     brand: str
     model: str
     name: str
-    category: str  # technical_cad, photo_fine_art, office_enterprise, scanner, photo_booth, consumable
+    category: str = "technical_cad"  # technical_cad, photo_fine_art, office_enterprise, scanner, photo_booth, consumable
+    entity_type: str = "printer"  # printer, scanner, consumable, media, accessory, software
+    canonical_id: Optional[str] = None
+    display_name: Optional[str] = None
+    product_url: Optional[str] = None
+    datasheet_url: Optional[str] = None
+    structured_specs: Dict[str, Any] = field(default_factory=dict)
     sku: Optional[str] = None
     verified: VerifiedSpecs = field(default_factory=VerifiedSpecs)
     source: ProductSource = field(default_factory=ProductSource)
@@ -93,6 +99,9 @@ class NormalizedProduct:
         vat_note = "(Excl. VAT)" if (self.price is not None and self.price > 0) else ""
         return {
             "id": self.id,
+            "canonical_id": self.canonical_id or self.id,
+            "entity_type": self.entity_type,
+            "display_name": self.display_name or self.name,
             "sku": real_sku,
             "brand": self.brand,
             "model": self.model,
@@ -100,6 +109,9 @@ class NormalizedProduct:
             "category": self.category,
             "verified": self.verified.to_dict(),
             "source": self.source.to_dict(),
+            "product_url": self.product_url or src_url,
+            "datasheet_url": self.datasheet_url,
+            "structured_specs": dict(self.structured_specs),
             "price": self.price,
             "price_formatted": price_str,
             "price_str": price_str,

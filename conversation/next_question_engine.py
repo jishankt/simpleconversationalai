@@ -19,40 +19,14 @@ class NextQuestionEngine:
 
         if not cat:
             state.awaiting_field = "category"
-            last_resp = (state.last_assistant_response or "").lower()
-            has_welcomed = bool(
-                state.last_assistant_response
-                or getattr(state, "turn_count", 0) > 0
-                or (hasattr(state, "history_turns") and len(state.history_turns) > 0)
-            )
-            already_asked_cat = "printing or scanning solution" in last_resp or "type of print" in last_resp
-
-            if already_asked_cat:
-                q_text = "We offer four specialized printing categories. What will you primarily be printing?"
-                pills = [
-                    "Office & Business Documents",
-                    "CAD & Technical Blueprints",
-                    "Photo & Fine Art",
-                    "Photo Booth / Events"
-                ]
-            elif has_welcomed:
-                q_text = "What type of printing or scanning solution are you looking for?"
-                pills = [
-                    "Office Enterprise Printers",
-                    "Photo & Fine Art",
-                    "CAD & Technical Plotters",
-                    "Photo Booth / Dye-Sub",
-                    "Document Scanners"
-                ]
-            else:
-                q_text = "Welcome to Kepler Tech! What type of printing or scanning solution are you looking for?"
-                pills = [
-                    "Office Enterprise Printers",
-                    "Photo & Fine Art",
-                    "CAD & Technical Plotters",
-                    "Photo Booth / Dye-Sub",
-                    "Document Scanners"
-                ]
+            q_text = "What will you primarily print—technical drawings, office documents, professional photographs or event photos?"
+            pills = [
+                "Technical Drawings (CAD)",
+                "Office Documents",
+                "Professional Photographs",
+                "Event Photos (Photo Booth)",
+                "Document Scanning"
+            ]
 
             return {
                 "field": "category",

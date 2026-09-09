@@ -1,19 +1,70 @@
 """
 Decision Engine for Kepler Tech Conversational AI.
 The LLM proposes an intent and action, but Python makes the final routing decision.
-This ensures social messages never trigger product search, and invalid tool
-requests are rejected before execution.
+Enforces a deterministic 10-tier priority order:
+1. Price and discount intercept -> RouteName.GUARDRAIL
+2. Greeting, thanks and goodbye -> RouteName.SOCIAL
+3. Company-information request -> RouteName.BUSINESS_INFO
+4. Process/help question -> RouteName.CONVERSATION_HELP
+5. Explicit product model -> RouteName.PRODUCT
+6. Product comparison -> RouteName.COMPARISON
+7. Consumable request -> RouteName.CONSUMABLES
+8. Product discovery -> RouteName.PRODUCT or RouteName.QUALIFICATION
+9. Answer to awaited qualification field -> RouteName.QUALIFICATION
+10. Clarification -> RouteName.CLARIFICATION
 """
 
+import re
 import logging
-from typing import Optional
+from typing import Optional, List
 from domain.conversation_types import (
     Intent, LLMUnderstanding, RouteDecision, RouteName,
     SOCIAL_INTENTS, PRODUCT_INTENTS,
 )
 from domain.conversation_state import ConversationState
+from conversation.requirement_extractor import classify_category
 
 logger = logging.getLogger("decision_engine")
+
+HELP_PHRASES = [
+    "can you help me",
+    "how does this work",
+    "what can you do",
+    "help me choose",
+    "help me select",
+    "where should i start",
+    "where do i start",
+    "i don't understand specifications",
+    "i dont understand specifications",
+    "i don't understand printer specifications",
+    "i dont understand printer specifications",
+    "what can you help me with",
+    "guide me",
+    "how to choose",
+    "how do i choose",
+]
+
+COMPANY_INFO_PHRASES = [
+    "what products does kepler tech provide",
+    "what products do you provide",
+    "what does kepler tech provide",
+    "products does kepler tech provide",
+    "about kepler",
+    "who is kepler",
+    "what is kepler",
+    "what brands do you",
+    "what services do you",
+    "delivery", "deliver", "shipping", "ship",
+    "dubai", "where are you located", "where is your office", "location", "address",
+    "office hours", "timings", "opening hours", "contact number", "phone number",
+    "whatsapp", "email", "warranty", "amc", "service contract"
+]
+
+PRICE_KEYWORDS = [
+    "price", "cost", "pricing", "rate", "rates", "quote", "quotation",
+    "discount", "discounts", "bargain", "negotiat", "cheapest", "cheaper",
+    "official rate", "payment terms"
+]
 
 
 def min_qualification_satisfied(state: ConversationState) -> bool:
@@ -66,23 +117,24 @@ def qualification_complete(state: ConversationState) -> bool:
 
 def decide(understanding: LLMUnderstanding, state: ConversationState, raw_message: str = "") -> RouteDecision:
     """
-    Deterministic routing decision based on LLM understanding, conversation state,
-    and message context. The LLM's requested_action is a suggestion — this function validates and overrides.
+    Deterministic routing decision based on the strict 10-tier priority order.
     """
     intent = understanding.intent
     msg_lower = (raw_message or "").strip().lower()
 
     # ── Model Code & Specific Product Extraction ─────────────────────────
-    import re
-    model_matches = re.findall(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?)\b", msg_lower)
-    unique_models = []
+    model_matches = re.findall(
+        r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{1,2}w?|cy-?\d{1,2}|cz-?\d{1,2}|am-?c\d{3,4}|wf-?c\d{3,5}[a-z]?)\b",
+        msg_lower
+    )
+    unique_models: List[str] = []
     for m in model_matches:
         clean = re.sub(r"[\s\-_]+", "", m.upper())
         if clean not in [re.sub(r"[\s\-_]+", "", u.upper()) for u in unique_models]:
             unique_models.append(m.upper())
     extracted_model = unique_models[0] if unique_models else None
 
-    # Validate candidate model code
+    # Validate candidate model code against entities or catalog lookup
     model_code = None
     if extracted_model:
         model_code = extracted_model
@@ -90,96 +142,142 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         cand = str(understanding.entities["model_code"]).strip()
         generic_terms = {"cad printer", "printer", "scanner", "plotter", "copier", "inks", "ink", "paper", "media"}
         if cand.lower() not in generic_terms:
-            from rag.retriever import rag_retriever
-            if rag_retriever.get_by_sku(cand) or rag_retriever.get_by_name(cand):
-                model_code = cand
+            from catalog.product_resolver import normalize_model_identifier
+            cand_norm = normalize_model_identifier(cand)
+            msg_norm = re.sub(r"[^a-z0-9]", "", msg_lower)
+            if cand_norm and cand_norm in msg_norm:
+                from rag.retriever import rag_retriever
+                if rag_retriever.get_by_sku(cand) or rag_retriever.get_by_name(cand):
+                    model_code = cand
 
-    # ── Explicit Hardware Switch / Ink Negation Detection ──────────────
-    is_ink_requested = any(re.search(rf"\b{re.escape(ik)}\b", msg_lower) for ik in [
+    # ── Tier 1: Price and Discount Intercept ──────────────────────────────
+    is_price_word = any(re.search(rf"\b{re.escape(w)}\b", msg_lower) for w in PRICE_KEYWORDS)
+    is_how_much = bool(re.search(r"\bhow much\b", msg_lower)) and not any(non_dim in msg_lower for non_dim in [
+        "ink", "paper", "time", "weight", "capacity", "prints", "pages", "roll", "speed"
+    ])
+    is_price_query = is_price_word or is_how_much
+
+    if is_price_query:
+        return RouteDecision(
+            route=RouteName.GUARDRAIL,
+            reason="Price or commercial terms requested; quote via official sales channel only",
+        )
+
+    # ── Tier 2: Greeting, Thanks, and Goodbye (Social) ────────────────────
+    is_product_related = any(k in msg_lower for k in [
+        "printer", "printers", "plotter", "plotters", "scanner", "scanners",
+        "cad", "photo", "drawing", "drawings", "blueprint", "blueprints",
+        "ink", "inks", "cartridge", "toner", "ribbon", "paper", "equipment", "machine"
+    ])
+    # Don't treat specification answers, numbers, or corrections as social
+    has_spec_or_correction = bool(re.search(r"\b(a[0-4]|4x6|5x7|6x8|6x9|24|36|44|actually|instead|rather|change to|recommend now|yes|no)\b", msg_lower))
+    is_answering_flow = bool(state.awaiting_field or state.category)
+
+    is_pure_social = not is_product_related and not has_spec_or_correction and not (is_answering_flow and has_spec_or_correction) and (
+        (intent in SOCIAL_INTENTS and not is_answering_flow) or
+        msg_lower in [
+            "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
+            "thanks", "thank you", "bye", "goodbye", "see you", "have a nice day", "have a good day"
+        ]
+    )
+    # Ensure greeting doesn't swallow a compound help or business question
+    has_help_phrase = any(p in msg_lower for p in HELP_PHRASES)
+    has_company_phrase = any(p in msg_lower for p in COMPANY_INFO_PHRASES)
+
+    if is_pure_social and not has_help_phrase and not has_company_phrase and not model_code:
+        return RouteDecision(
+            route=RouteName.SOCIAL,
+            reason="Social greeting, thanks, or goodbye",
+        )
+
+    # ── Tier 3: Company-Information Request ───────────────────────────────
+    if intent == Intent.BUSINESS_INFORMATION or has_company_phrase:
+        return RouteDecision(
+            route=RouteName.BUSINESS_INFO,
+            reason="Company information request",
+        )
+
+    # ── Tier 4: Process / Help Question ───────────────────────────────────
+    if intent == Intent.CONVERSATION_HELP or has_help_phrase:
+        return RouteDecision(
+            route=RouteName.CONVERSATION_HELP,
+            reason="Consultative guidance or process help requested",
+        )
+
+    # ── Consumables Flags Pre-Check ───────────────────────────────────────
+    is_ink_negated = bool(re.search(r"\b(?:not|no|don't want|dont want)\s+(?:the\s+)?(?:ink|inks|cartridge|toner|consumable)\b", msg_lower))
+    if is_ink_negated and state.category == "consumable":
+        state.reset_category("photo_fine_art")
+
+    is_ink_requested = not is_ink_negated and any(re.search(rf"\b{re.escape(ik)}\b", msg_lower) for ik in [
         "ink", "inks", "cartridge", "cartridges", "toner", "ribbon", "consumable", "consumables", "maintenance tank", "maintenance box"
     ])
-    is_explicitly_negating_ink = any(k in msg_lower for k in [
-        "not ink", "no ink", "dont want ink", "don't want ink", "not the ink", 
-        "no cartridges", "not cartridge", "dont need ink", "don't need ink",
-        "i want printer", "i want the printer", "want printer", "buy printer",
-        "need printer", "looking for printer", "want a printer", "buy a printer",
-        "need a printer", "looking for a printer", "printer p900", "printer t3100", "printer f100"
+    # Distinguish hardware spec questions about ink (e.g. "does it use liquid ink cartridges?")
+    is_spec_question_about_ink = any(phrase in msg_lower for phrase in [
+        "does it use liquid ink", "use liquid ink", "liquid ink cartridges", "conventional liquid",
+        "uses liquid ink", "uses ink cartridges"
     ])
-    
-    is_negating_consumable = is_explicitly_negating_ink or (
-        bool(model_code) and any(hw in msg_lower for hw in ["printer", "plotter", "hardware", "machine", "device", "unit"]) and not is_ink_requested
-    )
+    if is_spec_question_about_ink:
+        is_ink_requested = False
 
-    if is_negating_consumable and len(unique_models) <= 1:
-        state.category = None
-        state.awaiting_field = None
-        state.active_printer_for_consumables = None
-        if model_code:
+    # ── Comparison Keywords & Multi-Model Check ──────────────────────────
+    has_comparison_keyword = any(w in msg_lower for w in [
+        "compare", " vs ", " versus ", "difference between", "differences between",
+        "which is better", "which one is better", "show another one", "show another option", "compare them"
+    ])
+    is_multi_model_comparison = len(unique_models) >= 2 or has_comparison_keyword
+
+    # ── Tier 5: Explicit Product Model ────────────────────────────────────
+    is_brochure_request = any(b in msg_lower for b in [
+        "brochure", "brosure", "broucher", "brousher", "broshur", "brocher",
+        "datasheet", "data sheet", "specsheet", "spec sheet",
+        "download pdf", "pdf link", "give brochure", "send brochure",
+        "give the brosure", "give the brochure", "product sheet", "technical sheet",
+        "catalog pdf", "brochure link"
+    ])
+
+    if model_code and not is_multi_model_comparison and not is_ink_requested:
+        if is_brochure_request:
             return RouteDecision(
                 route=RouteName.PRODUCT,
-                tool="get_product_specs",
+                tool="get_brochure",
                 tool_arguments={"product_identifier": model_code},
-                reason=f"Explicit product hardware requested: {model_code}",
+                reason=f"Brochure requested for product: {model_code}",
             )
-
-    # ── Product Feature, Attribute, or Superlative Question ─────────────
-    is_fastest_query = any(w in msg_lower for w in ["fastest", "highest speed", "how fast", "print speed", "quickest", "print faster"])
-    is_capacity_query = any(w in msg_lower for w in ["highest capacity", "largest roll", "most prints", "max capacity", "print capacity"])
-    is_portable_query = any(w in msg_lower for w in ["most portable", "lightest", "smallest", "most compact", "how heavy", "weight of"])
-    is_8x12_query = any(w in msg_lower for w in ["which citizen.*8x12", "print 8x12", "prints 8x12", "8 inch citizen", "8-inch citizen", "citizen.*8x12", "citizen.*8 inch"]) or ("8x12" in msg_lower and any(w in msg_lower for w in ["which", "can it", "support", "capable"]))
-    is_ribbon_rewind_query = any(w in msg_lower for w in ["ribbon rewind", "rewind ribbon", "rewind feature", "rewind technology", "media waste"])
-    is_tech_query = any(w in msg_lower for w in ["inkjet or dye sub", "dye sub or inkjet", "thermal or inkjet", "what technology"])
-
-    is_price_query = any(w in msg_lower for w in ["what is the price", "what does it cost", "how much is it", "how much does it cost", "how much", "tell me the price", "what is price", "price", "cost", "pricing", "rate"]) and not any(d in msg_lower for d in ["discount", "bargain", "negotiat", "cheaper"])
-
-    if is_price_query or is_fastest_query or is_capacity_query or is_portable_query or is_8x12_query or is_ribbon_rewind_query or is_tech_query or understanding.requested_action == "answer_product_attribute":
         return RouteDecision(
             route=RouteName.PRODUCT,
-            tool="get_product_specs" if (state.active_product or model_code) else "answer_product_attribute",
-            tool_arguments={"product_identifier": (state.active_product.get("name") if state.active_product else model_code)} if (state.active_product or model_code) else {},
-            reason="Customer asked price, product attribute, or superlative question",
+            tool="get_product_specs",
+            tool_arguments={"product_identifier": model_code},
+            reason=f"Specific product requested: {model_code}",
         )
 
-    # ── Consumables query & Follow-up answers ────────────────────────────
-    # Trust LLM intent; only fall back to keyword if LLM did not explicitly assign another primary intent
-    is_consumable_query = not is_negating_consumable and (
-        intent == Intent.CONSUMABLES_QUERY or
-        understanding.requested_action == "show_consumables" or
-        (is_ink_requested and intent not in (Intent.BUSINESS_INFORMATION, Intent.CORRECTION, Intent.PRODUCT_COMPARISON)) or
-        (state.category == "consumable" and state.awaiting_field in ("printer_model", "ink_color"))
-    )
-    if is_consumable_query:
-        args = {}
-        # Only inject printer_identifier if the message contains a model code, user refers to active product (e.g. 'for this', 'for it'), or user is answering the model/color
-        has_pronoun_to_active = any(p in msg_lower for p in ["for this", "for it", "for that", "this printer", "that printer"])
-        is_general_ink = not has_pronoun_to_active and not model_code and any(k in msg_lower for k in ["i want", "need", "buy", "looking for", "have"]) and any(re.search(rf"\b{re.escape(k)}\b", msg_lower) for k in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon"])
-        if model_code:
-            args["printer_identifier"] = model_code
-        elif has_pronoun_to_active and state.active_product:
-            args["printer_identifier"] = state.active_product.get("name", "")
-        elif has_pronoun_to_active and state.active_printer_for_consumables:
-            args["printer_identifier"] = state.active_printer_for_consumables
-        elif not is_general_ink and state.active_printer_for_consumables:
-            args["printer_identifier"] = state.active_printer_for_consumables
-        elif not is_general_ink and state.active_product:
-            args["printer_identifier"] = state.active_product.get("name", "")
-        return RouteDecision(
-            route=RouteName.CONSUMABLES,
-            tool="get_compatible_consumables" if args.get("printer_identifier") else None,
-            tool_arguments=args,
-            reason="Consumables query or model clarification answer",
-        )
-
-    # ── Product comparison ───────────────────────────────────────────────
-    is_comparison_query = (
-        intent == Intent.PRODUCT_COMPARISON
-        or len(unique_models) >= 2
-        or any(w in msg_lower for w in [
-            "compare", " vs ", " versus ", "difference", "differences", "difference between",
-            "which is better", "which one is better", "which is best", "which one should i choose",
-            "how do they compare", "how does", "contrast", "better than", "is that true", "everyone says",
-            "is it better", "is better", "better"
+    # Check for pronoun or attribute inquiry on active product
+    has_pronoun_ref = (
+        any(w in msg_lower.split() for w in ["it", "this", "its", "that"]) or
+        any(k in msg_lower for k in [
+            "does it", "can it", "what size", "how fast", "specs", "specifications",
+            "ribbon rewind", "print speed", "maximum width", "max width", "print technology",
+            "resolution", "finishing options", "roll capacity"
         ])
+    )
+    if state.active_product and has_pronoun_ref and not is_ink_requested and not is_multi_model_comparison:
+        if is_brochure_request:
+            return RouteDecision(
+                route=RouteName.PRODUCT,
+                tool="get_brochure",
+                tool_arguments={"product_identifier": state.active_product.get("name", "")},
+                reason="Brochure requested for active product",
+            )
+        return RouteDecision(
+            route=RouteName.PRODUCT,
+            tool="get_product_specs",
+            tool_arguments={"product_identifier": state.active_product.get("name", "")},
+            reason="Question about active product via pronoun/attribute reference",
+        )
+
+    # ── Tier 6: Product Comparison ────────────────────────────────────────
+    is_comparison_query = is_multi_model_comparison or (
+        intent == Intent.PRODUCT_COMPARISON and not is_ink_requested and not is_spec_question_about_ink
     )
     if is_comparison_query:
         return RouteDecision(
@@ -188,255 +286,177 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             reason="Product comparison request",
         )
 
-    # ── Product Brochure / Datasheet Request ─────────────────────────────
-    is_brochure_request = any(b in msg_lower for b in [
-        "brochure", "brosure", "broucher", "brousher", "broshur", "brocher",
-        "datasheet", "data sheet", "specsheet", "spec sheet",
-        "download pdf", "pdf link", "give brochure", "send brochure",
-        "give the brosure", "give the brochure", "product sheet", "technical sheet",
-        "spec sheet", "data-sheet", "catalog pdf", "brochure link"
-    ])
-    if is_brochure_request:
+    # ── Tier 7: Consumable Request ────────────────────────────────────────
+    # Check if user is currently answering a consumable qualification prompt
+    is_answering_consumable_qualification = (
+        state.category == "consumable"
+        and state.awaiting_field in ("printer_model", "ink_color")
+        and not is_ink_negated
+        and not any(w in msg_lower for w in ["not ink", "no ink", "printer only", "i want printer", "want the printer", "printer hardware"])
+    )
+    if is_answering_consumable_qualification:
+        args = {}
+        if model_code:
+            args["printer_identifier"] = model_code
+        elif raw_message:
+            args["printer_identifier"] = raw_message.strip()
         return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="get_brochure",
-            tool_arguments={"product_identifier": model_code or ""} if model_code else {},
-            reason="Customer requested product brochure / data sheet PDF",
+            route=RouteName.CONSUMABLES,
+            tool="get_compatible_consumables" if args.get("printer_identifier") else None,
+            tool_arguments=args,
+            reason="Customer provided model for awaited consumables qualification",
         )
 
-    # ── Specific model code directly requested ───────────────────────────
-    if model_code and not any(w in msg_lower for w in ["fastest", "highest capacity", "most portable", "lightest", "how fast", "speed", "compare"]):
+    # If asking for inks for an active product or pure consumable request without wanting the printer hardware itself
+    has_printer_hardware_req = any(w in msg_lower for w in ["printer and its inks", "printer and inks", "printer and the inks"])
+    if is_ink_requested and not has_printer_hardware_req:
+        args = {}
+        has_pronoun_to_active = any(p in msg_lower for p in ["for this", "for it", "for that", "this printer", "that printer", "does it use", "it use", "for it?"]) or bool(re.search(r"\b(?:it|this|that)\b", msg_lower))
+        if has_pronoun_to_active and state.active_product:
+            args["printer_identifier"] = state.active_product.get("name", "")
+        elif model_code and not any(w in msg_lower for w in ["printer", "plotter", "machine", "hardware"]):
+            args["printer_identifier"] = model_code
+        elif state.active_printer_for_consumables:
+            args["printer_identifier"] = state.active_printer_for_consumables
+        elif state.active_product:
+            args["printer_identifier"] = state.active_product.get("name", "")
+        elif model_code:
+            args["printer_identifier"] = model_code
+
         return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="get_product_specs",
-            tool_arguments={"product_identifier": model_code},
-            reason=f"Specific product requested: {model_code}",
+            route=RouteName.CONSUMABLES,
+            tool="get_compatible_consumables" if args.get("printer_identifier") else None,
+            tool_arguments=args,
+            reason="Consumables query for active product or specific supply",
         )
 
+    # ── Tier 7: General Consumable Request ────────────────────────────────
+    is_consumable_query = (
+        intent == Intent.CONSUMABLES_QUERY
+        or understanding.requested_action == "show_consumables"
+        or is_ink_requested
+        or (state.category == "consumable" and state.awaiting_field in ("printer_model", "ink_color"))
+    )
+    if is_consumable_query:
+        args = {}
+        has_pronoun_to_active = any(p in msg_lower for p in ["for this", "for it", "for that", "this printer", "that printer"])
+        if model_code:
+            args["printer_identifier"] = model_code
+        elif has_pronoun_to_active and state.active_product:
+            args["printer_identifier"] = state.active_product.get("name", "")
+        elif state.active_printer_for_consumables:
+            args["printer_identifier"] = state.active_printer_for_consumables
+        elif state.active_product:
+            args["printer_identifier"] = state.active_product.get("name", "")
 
-    # ── Category Switch Detection ────────────────────────────────────────
-    new_category = None
-    llm_cat = understanding.entities.get("product_category")
-    if llm_cat in ("technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner", "consumable"):
-        new_category = llm_cat
+        return RouteDecision(
+            route=RouteName.CONSUMABLES,
+            tool="get_compatible_consumables" if args.get("printer_identifier") else None,
+            tool_arguments=args,
+            reason="Consumables query or model clarification",
+        )
 
-    if not new_category:
-        if any(k in msg_lower for k in ["photo booth", "dye-sub", "citizen cx", "citizen cy", "citizen"]):
-            new_category = "photo_booth"
-        elif any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing", "gis", "aec"]):
-            new_category = "technical_cad"
-        elif "large format" in msg_lower and any(k in msg_lower for k in ["cad", "drawing", "blueprint", "architect", "plan", "plotter"]):
-            new_category = "technical_cad"
-        elif any(k in msg_lower for k in ["photo fine art", "photo printer", "photo", "photos", "photography", "fine art", "gallery", "exhibition", "p900", "p700", "p7500", "p9500"]):
-            new_category = "photo_fine_art"
-        elif any(k in msg_lower for k in ["office printer", "office", "workforce", "copier", "am-c4000", "am-c550", "enterprise printer"]):
-            new_category = "office_enterprise"
-        elif not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["document scanner", "sheetfed scanner", "flatbed scanner", "standalone scanner", "dedicated scanner"]):
-            new_category = "scanner"
-        elif not state.category and not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["scanner", "document scan", "scanning"]):
-            new_category = "scanner"
-    # ── General Printer Inquiry (Reset old state & ask what category) ──────
-    is_general_printer_intent = (
-        bool(re.search(r"\b(?:want|buy|need|looking for|get|require)\b.*?\b(?:a\s*printer|aprinter|printers?|plotters?)\b", msg_lower))
+    # ── Tier 8: Product Discovery & Category Switch ───────────────────────
+    # Explicit recommendation request when qualification is satisfied
+    rec_keywords = [
+        "recommend now", "recommend", "show options", "show recommendations",
+        "what do you recommend", "suggest options", "show me options",
+        "give me options", "show products", "show printers",
+        "show another", "another option", "other options", "show alternative"
+    ]
+    if any(k in msg_lower for k in rec_keywords) and min_qualification_satisfied(state):
+        return RouteDecision(
+            route=RouteName.PRODUCT,
+            tool="search_catalog",
+            reason="Explicit recommendation requested with qualification satisfied",
+        )
+
+    # ── Tier 8: Product Discovery ─────────────────────────────────────────
+    discovered_category = classify_category(raw_message)
+    if not discovered_category and not state.category:
+        llm_cat = understanding.entities.get("product_category")
+        if llm_cat in ("technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner"):
+            discovered_category = llm_cat
+
+    if discovered_category:
+        is_category_change = state.category != discovered_category
+        if is_category_change:
+            state.reset_category(discovered_category)
+
+        if qualification_complete(state):
+            return RouteDecision(
+                route=RouteName.PRODUCT,
+                tool="search_catalog",
+                reason=f"Category {discovered_category} qualified — ready to search",
+            )
+        return RouteDecision(
+            route=RouteName.QUALIFICATION,
+            reason=f"Category {discovered_category} identified — continuing qualification",
+        )
+
+    # Check for general printer discovery without category
+    is_general_discovery = (
+        intent == Intent.PRODUCT_DISCOVERY
+        or bool(re.search(r"\b(?:want|buy|need|looking for|get|require|recommend)\b.*?\b(?:a\s*printer|aprinter|printers?|plotters?|equipment|machine)\b", msg_lower))
         or any(k in msg_lower for k in [
-            "want a printer", "want aprinter", "buy a printer", "buy aprinter",
-            "need a printer", "need aprinter", "looking for a printer", "want printer",
-            "also want a printer", "also want aprinter", "want buy a printer", "buy printer", "need printer"
+            "recommend a printer", "recommend something", "need some printing equipment",
+            "printing equipment for my business", "need a printer", "looking for a printer",
+            "select the right printer", "what printer", "which printer"
         ])
     )
-    if is_general_printer_intent and not new_category:
+    if is_general_discovery and not state.category:
         state.reset_category(None)
         state.awaiting_field = "category"
         return RouteDecision(
             route=RouteName.QUALIFICATION,
-            reason="General printer inquiry — prompt customer to select category",
+            reason="General printer discovery — prompt customer for category",
         )
 
-    is_explicit_switch = (
-        "switch" in msg_lower 
-        or "instead" in msg_lower
-        or ("actually" in msg_lower and any(kw in msg_lower for kw in ["need", "want", "switch", "printer", "plotter", "booth", "photo", "cad", "office", "scanner"]))
-        or (new_category and state.category and new_category != state.category)
-    )
-    if new_category and (not state.category or is_explicit_switch):
-        if new_category == "scanner" and (
-            state.awaiting_field == "scan_required"
-            or (state.category in ("technical_cad", "office_enterprise", "photo_fine_art") and not any(sw in msg_lower for sw in ["switch to scanner", "dedicated scanner", "document scanner", "only scanner", "scanner instead"]))
-        ):
-            pass
-        else:
-            saved_size = state.requirements.get("print_size")
-            saved_brand = state.requirements.get("brand")
-            state.reset_category(new_category)
-            if saved_brand:
-                state.requirements["brand"] = saved_brand
-            if saved_size and ("photo" in new_category or "booth" in new_category):
-                state.requirements["print_size"] = saved_size
-            if qualification_complete(state):
-                return RouteDecision(
-                    route=RouteName.PRODUCT,
-                    tool="search_catalog",
-                    reason=f"Category set/switched to {new_category} with qualification satisfied",
-                )
-            return RouteDecision(
-                route=RouteName.QUALIFICATION,
-                reason=f"Category set/switched to {new_category}",
-            )
-
-
-
-    # ── Explicit recommendation request when minimum qualification is satisfied ──
-    rec_keywords = ["recommend now", "recommend", "show options", "show recommendations",
-                    "what do you recommend", "suggest options", "show me options",
-                    "give me options", "show products", "show printers",
-                    "show another", "show another one", "another option", "other options", "show alternative"]
-    is_rec_request = any(k in msg_lower for k in rec_keywords)
-
-    if is_rec_request and min_qualification_satisfied(state):
+    # Qualification complete — ready to recommend products
+    if state.category and qualification_complete(state):
         return RouteDecision(
             route=RouteName.PRODUCT,
             tool="search_catalog",
-            reason="Explicit recommendation requested",
+            reason=f"Category {state.category} qualification complete — ready to recommend products",
         )
 
-    if state.category and qualification_complete(state) and intent not in (
-        Intent.BUSINESS_INFORMATION, Intent.TROUBLESHOOTING, Intent.LANGUAGE_CHANGE,
-        Intent.PRODUCT_COMPARISON, Intent.CONSUMABLES_QUERY, Intent.GREETING, Intent.CONVERSATION_ENDING
-    ):
-        return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="search_catalog",
-            reason="Qualification complete — ready to search",
-        )
-
-    # ── Social intents → social route (NEVER enters product search) ──────
-    if intent in SOCIAL_INTENTS:
-        return RouteDecision(
-            route=RouteName.SOCIAL,
-            reason=f"Social intent: {intent.value}",
-        )
-
-    # ── Direct answer to awaiting field (volume, size, etc.) ────────────
+    # ── Tier 9: Answer to Awaited Qualification Field ─────────────────────
     vol_cand = re.search(r"\b\d+\b", msg_lower) or (
         state.awaiting_field in ("daily_volume", "speed", "print_volume", "volume") and
         any(k in msg_lower for k in ["low", "medium", "high", "standard", "heavy", "moderate", "few"])
     )
     is_scan_ans = state.awaiting_field == "scan_required" and any(k in msg_lower for k in [
-        "yes", "no", "yep", "nope", "both", "scanning", "scannin", "scaning", "scanner", "scan", 
+        "yes", "no", "yep", "nope", "both", "scanning", "scannin", "scaning", "scanner", "scan",
         "print only", "printer only", "only print", "only printer", "printing only", "just print", "just printer", "no scan"
     ])
+    is_size_ans = any(s in msg_lower for s in ["a0", "a1", "a2", "a3", "a4", "4x6", "5x7", "6x8", "8x12", "24\"", "36\"", "44\""])
+
     if state.awaiting_field and (
-        vol_cand or
-        is_scan_ans or
-        any(s in msg_lower for s in ["a0", "a1", "a2", "a3", "a4", "4x6", "6x8", "24\"", "36\""]) or
-        understanding.dialogue_act.value in ("informing", "answering_question")
+        vol_cand
+        or is_scan_ans
+        or is_size_ans
+        or understanding.dialogue_act.value in ("informing", "answering_question")
+        or intent in (Intent.CONFIRMATION, Intent.REJECTION, Intent.CORRECTION)
     ):
         return RouteDecision(
             route=RouteName.QUALIFICATION,
             reason=f"Answering awaiting field: {state.awaiting_field}",
         )
 
-    # ── Confirmation/Rejection or qualification in progress ─────────────
+    # Qualification in progress
     if state.category and not qualification_complete(state):
-        if intent in (Intent.CONFIRMATION, Intent.REJECTION, Intent.PRODUCT_DISCOVERY, Intent.UNCLEAR) or understanding.requested_action in ("continue_qualification", "ask_qualification_question", "provide_support", "ask_clarification"):
-            return RouteDecision(
-                route=RouteName.QUALIFICATION,
-                reason="Active qualification in progress — collecting remaining requirements",
-            )
-
-    if intent == Intent.CONFIRMATION and state.awaiting_field:
         return RouteDecision(
             route=RouteName.QUALIFICATION,
-            reason="Confirmation while awaiting field answer",
+            reason="Active qualification in progress — collecting remaining requirements",
         )
 
-    if intent == Intent.REJECTION and state.awaiting_field:
-        return RouteDecision(
-            route=RouteName.QUALIFICATION,
-            reason="Rejection while awaiting field answer",
-        )
-
-    # ── Correction → update state and re-evaluate ────────────────────────
-    if intent == Intent.CORRECTION:
-        return RouteDecision(
-            route=RouteName.QUALIFICATION,
-            reason="Correction of previous answer",
-        )
-
-    # ── Business information ─────────────────────────────────────────────
-    if intent == Intent.BUSINESS_INFORMATION or any(w in msg_lower for w in ["delivery", "deliver", "shipping", "ship", "address", "location", "dubai", "where are you", "office hours", "timings", "opening hours", "contact number", "phone number", "whatsapp", "email", "what brands", "what services", "amc", "warranty"]):
-        return RouteDecision(
-            route=RouteName.BUSINESS_INFO,
-            reason="Business information request",
-        )
-
-    # ── Troubleshooting ──────────────────────────────────────────────────
-    if intent == Intent.TROUBLESHOOTING:
-        return RouteDecision(
-            route=RouteName.SUPPORT,
-            reason="Troubleshooting request",
-        )
-
-    # ── Pronoun reference to active product ──────────────────────────────
-
-    has_pronoun_ref = (
-        any(w in msg_lower.split() for w in ["it", "this", "its", "that"]) or
-        any(k in msg_lower for k in ["does it", "can it", "what size", "how fast", "specs", "specifications"])
-    )
-    if state.active_product and has_pronoun_ref:
-        return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="get_product_specs",
-            tool_arguments={"product_identifier": state.active_product.get("name", "")},
-            reason="Question about active product via pronoun/reference",
-        )
-
-    # ── Product question about active/referenced product ─────────────────
-    if intent == Intent.PRODUCT_QUESTION:
-        args = {}
-        if state.active_product:
-            args["product_identifier"] = state.active_product.get("name", "")
-        return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="get_product_specs" if state.active_product else None,
-            tool_arguments=args,
-            reason="Product question",
-        )
-
-    # ── Product discovery ────────────────────────────────────────────────
-    if intent == Intent.PRODUCT_DISCOVERY:
-        # Check if we need more qualification first
-        if not state.category:
-            return RouteDecision(
-                route=RouteName.QUALIFICATION,
-                reason="No category set yet — need qualification",
-            )
-        if not qualification_complete(state):
-            return RouteDecision(
-                route=RouteName.QUALIFICATION,
-                reason="Qualification incomplete",
-            )
-        return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="search_catalog",
-            reason="Qualification complete — ready to search",
-        )
-
-    # ── Unclear / out of scope ───────────────────────────────────────────
+    # ── Tier 10: Clarification / Fallback ─────────────────────────────────
     if intent in (Intent.UNCLEAR, Intent.OUT_OF_SCOPE):
         return RouteDecision(
             route=RouteName.CLARIFICATION,
             reason=f"Intent: {intent.value}",
         )
 
-    # ── Language change ──────────────────────────────────────────────────
-    if intent == Intent.LANGUAGE_CHANGE:
-        return RouteDecision(
-            route=RouteName.SOCIAL,
-            reason="Language change request",
-        )
-
-    # ── Fallback ─────────────────────────────────────────────────────────
     logger.warning(f"Unhandled intent: {intent.value} — routing to clarification")
     return RouteDecision(
         route=RouteName.CLARIFICATION,
