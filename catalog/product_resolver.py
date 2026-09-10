@@ -23,6 +23,7 @@ def normalize_model_identifier(raw: str) -> str:
     text = re.sub(r"\bwf[-_ ]?", "wf", text)
     text = re.sub(r"\bcx[-_ ]?", "cx", text)
     text = re.sub(r"\bcy[-_ ]?", "cy", text)
+    text = re.sub(r"\bcz[-_ ]?", "cz", text)
     # Remove dashes, slashes, spaces
     text = re.sub(r"[^a-z0-9]", "", text)
     return text.strip()
@@ -37,8 +38,8 @@ ALIAS_TO_CANONICAL_ID: Dict[str, str] = {
     "t5100": "epson-t5100",
     "t5100n": "epson-t5100",
     "sct5100": "epson-t5100",
-    "t5100m": "epson-t5400m",
-    "sct5100m": "epson-t5400m",
+    "t5100m": "epson-t5100m",
+    "sct5100m": "epson-t5100m",
     "t5400m": "epson-t5400m",
     "sct5400m": "epson-t5400m",
     "t5400": "epson-t5400m",
@@ -51,10 +52,10 @@ ALIAS_TO_CANONICAL_ID: Dict[str, str] = {
     "scp900": "epson-p900",
     "p5300": "epson-p5300",
     "scp5300": "epson-p5300",
-    "p7500": "epson-p7500-p9500",
-    "scp7500": "epson-p7500-p9500",
-    "p9500": "epson-p7500-p9500",
-    "scp9500": "epson-p7500-p9500",
+    "p7500": "epson-p7500",
+    "scp7500": "epson-p7500",
+    "p9500": "epson-p9500",
+    "scp9500": "epson-p9500",
     "p20000": "epson-p20000",
     "scp20000": "epson-p20000",
     "f100": "epson-sc-f100",
@@ -68,7 +69,6 @@ ALIAS_TO_CANONICAL_ID: Dict[str, str] = {
     "wfc21000": "epson-wf-c21000",
     "c21000": "epson-wf-c21000",
     "cx02": "citizen-cx-02",
-    "cx02s": "citizen-cx-02",
     "cx02w": "citizen-cx-02w",
     "cy02": "citizen-cy-02",
     "cz01": "citizen-cz-01",
@@ -118,24 +118,26 @@ def resolve_canonical_id(text: str) -> Optional[str]:
     """
     Resolves any user mention of a model or SKU to its canonical product id.
     Handles compound identifiers like 'Epson DS-530II', 'Citizen CX-02', 'SC-T5400M', 'AM-C4000'.
+    Guarantees strict model boundary matching: suffixes like '-S' or '-XYZ' are preserved
+    so that non-existent models (e.g. 'CX-02S') do not falsely resolve to base models.
     """
     if not text:
         return None
 
+    # 1. Check normalized full string
     cleaned = normalize_model_identifier(text)
     if cleaned in ALIAS_TO_CANONICAL_ID:
         return ALIAS_TO_CANONICAL_ID[cleaned]
 
-    # Extract all alphanumeric words from the text
-    words = re.findall(r"[a-zA-Z0-9]+", text.lower())
-    if not words:
-        return None
+    # 2. Extract whitespace-delimited tokens with punctuation trimmed
+    raw_tokens = text.strip().split()
+    clean_tokens = [re.sub(r"[,?!;:)\"']+$", "", t).lstrip("(\"'") for t in raw_tokens]
 
-    # Check 3-gram, 2-gram, and 1-gram combinations (longest first)
+    # Check 3-word, 2-word, and 1-word candidate phrases
     for n in [3, 2, 1]:
-        for i in range(len(words) - n + 1):
-            candidate = "".join(words[i:i+n])
-            norm_c = normalize_model_identifier(candidate)
+        for i in range(len(clean_tokens) - n + 1):
+            phrase = " ".join(clean_tokens[i:i+n])
+            norm_c = normalize_model_identifier(phrase)
             if norm_c and norm_c in ALIAS_TO_CANONICAL_ID:
                 return ALIAS_TO_CANONICAL_ID[norm_c]
 

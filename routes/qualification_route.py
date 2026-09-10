@@ -34,14 +34,23 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     
     # Check LLM understanding first
     detected_cat = entities.get("product_category") if entities else None
+
+    # Check for generic printer inquiry (must prompt for category, never assume office)
+    is_general_printer_inquiry = (
+        bool(re.search(r"\b(?:want|buy|need|looking for|get|require|recommend)\b.*?\b(?:a\s*printer|aprinter|printers?|plotters?|equipment|machine)\b", msg_lower))
+        or any(k in msg_lower for k in ["want a printer", "want aprinter", "buy a printer", "buy aprinter", "need a printer", "need aprinter", "looking for a printer", "recommend a printer", "recommend something"])
+    )
+
     if not detected_cat and (not state.category or is_explicit_cat_switch or is_answering_category):
-        if any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing", "technical & cad", "technical_cad"]):
+        if is_general_printer_inquiry and not state.category:
+            detected_cat = None
+        elif any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing", "technical & cad", "technical_cad"]):
             detected_cat = "technical_cad"
         elif any(k in msg_lower for k in ["photo booth", "dye-sub", "citizen cx", "citizen cy", "events", "photo_booth"]):
             detected_cat = "photo_booth"
         elif any(k in msg_lower for k in ["photo fine art", "photo printer", "photos", "fine art", "gallery", "exhibition", "p900", "p700", "p5300", "p7500", "p9500", "photo_fine_art"]):
             detected_cat = "photo_fine_art"
-        elif any(k in msg_lower for k in ["office", "enterprise", "workforce", "copier", "am-c4000", "am-c550", "mfp", "office_enterprise", "business printer"]) or (is_answering_category and any(k in msg_lower for k in ["printer", "printers", "normal", "standard", "document", "regular", "office"])):
+        elif any(k in msg_lower for k in ["office", "enterprise", "workforce", "copier", "am-c4000", "am-c550", "mfp", "office_enterprise", "business printer"]) or (state.awaiting_field == "category" and any(k in msg_lower for k in ["office document", "office documents", "general documents", "invoices", "business reports"])):
             detected_cat = "office_enterprise"
         elif not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner", "print only", "printer only"]) and any(k in msg_lower for k in ["standalone scanner", "dedicated scanner", "document scanner", "sheetfed scanner", "scanner", "scanners"]):
             detected_cat = "scanner"

@@ -141,15 +141,15 @@ class RagRetriever:
                 p_sku = str(p.get("sku", "")).lower()
                 p_norm = re.sub(r"[^a-z0-9]", "", p_name_clean)
                 
-                # Check direct normalized containment (e.g. 'amc4000' in 'epsonworkforceenterprisewfamc4000printer')
-                if q_norm and (q_norm == p_sku or q_norm in p_norm):
+                # Check direct normalized equality with SKU or strict boundary matching on name
+                pat_q = r'(?:\b|_|-)' + re.escape(q_norm) + r'(?:\b|_|-|\s|$)(?![0-9a-zA-Z])'
+                if q_norm and (q_norm == p_sku or re.search(pat_q, p_name_clean) or re.search(pat_q, p_sku)):
                     exact_model_matches.append(p)
                     continue
 
                 for t in tokens:
-                    t_norm = re.sub(r"[^a-z0-9]", "", t)
-                    pattern = r'(?:\b|_|-)' + re.escape(t) + r'(?:\b|_|-|\s|$)'
-                    if re.search(pattern, p_name_clean) or re.search(pattern, p_sku) or (t_norm and t_norm in p_norm):
+                    pattern = r'(?:\b|_|-)' + re.escape(t) + r'(?:\b|_|-|\s|$)(?![0-9a-zA-Z])'
+                    if re.search(pattern, p_name_clean) or re.search(pattern, p_sku) or t == p_sku:
                         exact_model_matches.append(p)
                         break
 
@@ -198,10 +198,11 @@ class RagRetriever:
 
             # Boost if query keywords appear in product title
             for w in q_lower.split():
-                if len(w) >= 3 and w in p_name:
-                    scores[idx] += 0.20
-                elif len(w) >= 3 and w in p_desc:
-                    scores[idx] += 0.05
+                if len(w) >= 3:
+                    if re.search(rf"\b{re.escape(w)}\b", p_name):
+                        scores[idx] += 0.20
+                    elif re.search(rf"\b{re.escape(w)}\b", p_desc):
+                        scores[idx] += 0.05
 
             p_width = str(p.get("width", "")).lower()
 

@@ -13,110 +13,162 @@ from catalog.schema import NormalizedProduct
 
 
 class ProductRanker:
-    def rank_candidates(self, assessments: List[AssessmentResult], requirements: Dict[str, Any]) -> List[Tuple[NormalizedProduct, float, Dict[str, Any]]]:
+    def rank_candidates(self, assessments: List[AssessmentResult], requirements: Dict[str, Any], raw_message: str = "") -> List[Tuple[NormalizedProduct, float, Dict[str, Any]]]:
         """
-        Ranks eligible candidate products using deterministic weighted scoring.
+        Ranks eligible candidate products using dynamic scoring based on customer stated priorities:
+        use case, volume, portability, speed, and preferred features.
         """
+        msg_l = (raw_message or "").lower()
+        req_keys_str = " ".join(str(k) + ":" + str(v) for k, v in requirements.items()).lower()
+        combined_text = f"{msg_l} {req_keys_str}"
+
+        # ── Detect Customer Priorities Dynamically ───────────────────────────
+        is_portability_priority = any(k in combined_text for k in ["portable", "portability", "compact", "lightweight", "light", "travel", "carry", "mobile", "small footprint", "transport", "flight case", "limited space"])
+        is_speed_priority = any(k in combined_text for k in ["speed", "fast", "faster", "fastest", "quick", "seconds", "throughput", "rapid"])
+        is_volume_priority = any(k in combined_text for k in ["high volume", "volume", "700", "500", "600", "800", "busy", "capacity", "unattended", "continuous", "heavy", "production"])
+        is_quality_priority = any(k in combined_text for k in ["quality", "image quality", "resolution", "fine art", "600 dpi", "color", "skin tone", "archival"])
+
+        # Determine dynamic weights based on stated priorities
+        weights = {
+            "use_case": 25.0,
+            "volume": 20.0,
+            "portability": 15.0,
+            "speed": 15.0,
+            "preferred_features": 15.0,
+            "size_fit": 10.0,
+        }
+        if is_portability_priority:
+            weights["portability"] = 35.0
+            weights["volume"] = 10.0
+        if is_speed_priority:
+            weights["speed"] = 35.0
+            weights["volume"] = 10.0
+        if is_volume_priority:
+            weights["volume"] = 35.0
+            weights["portability"] = 10.0
+        if is_quality_priority:
+            weights["use_case"] = 35.0
+
         ranked = []
         for item in assessments:
-            score = 0.0
-            score_breakdown = {}
             p = item.product
             specs = p.verified
-
-            # 1. Application Match (30 pts)
-            req_app = requirements.get("application")
-            if req_app and "application" in item.matched:
-                score += 30.0
-                score_breakdown["application"] = 30.0
-            elif not req_app:
-                # Neutral base credit if no specific application required
-                score += 20.0
-                score_breakdown["application"] = 20.0
-
-            # 2. Print Size Match (25 pts)
-            req_size = requirements.get("print_size")
-            if req_size and "print_size" in item.matched:
-                # If exact size match vs larger capability
-                score += 25.0
-                score_breakdown["print_size"] = 25.0
-
-            # 3. Scanner Requirement (20 pts)
-            req_scan = requirements.get("scan_required")
-            if req_scan is True and specs.has_scanner is True:
-                score += 20.0
-                score_breakdown["scanner"] = 20.0
-            elif req_scan is False and specs.has_scanner is False:
-                # Ideal fit for print-only
-                score += 20.0
-                score_breakdown["scanner"] = 20.0
-            elif req_scan is False and specs.has_scanner is True:
-                # Over-specified but eligible
-                score += 10.0
-                score_breakdown["scanner"] = 10.0
-
-            # 4. Daily Volume / Workload (15 pts)
-            raw_vol = requirements.get("daily_volume")
-            req_vol = raw_vol
-            if isinstance(raw_vol, (int, float)):
-                req_vol = "high" if raw_vol >= 100 else ("medium" if raw_vol >= 20 else "low")
-            elif isinstance(raw_vol, str):
-                import re
-                num_match = re.search(r"\b(\d+)\b", raw_vol)
-                if num_match:
-                    n = int(num_match.group(1))
-                    req_vol = "high" if n >= 100 else ("medium" if n >= 20 else "low")
-                elif raw_vol.lower() in ("high", "medium", "low"):
-                    req_vol = raw_vol.lower()
-
             p_name_l = p.name.lower()
-            if req_vol == "high":
-                if "am-c4000" in p_name_l or "production" in p_name_l or "5700" in p.id or "p9500" in p.id:
-                    score += 15.0
-                    score_breakdown["volume"] = 15.0
-                elif any(k in p_name_l for k in ["am-c550", "enterprise", "high-speed", "ds-870", "ds-970"]):
-                    score += 10.0
-                    score_breakdown["volume"] = 10.0
-                elif any(k in p_name_l for k in ["ds-70", "ds-80w", "mobile"]):
-                    score += 0.0
-                    score_breakdown["volume"] = 0.0
-                elif "350ml" in (specs.cartridge_capacities or ""):
-                    score += 15.0
-                    score_breakdown["volume"] = 15.0
+            p_desc_l = ((p.description or "") + " " + (p.comparison_highlights or "") + " " + " ".join(specs.applications or [])).lower()
+
+            score_factors = {}
+            score = 0.0
+
+            # 1. Use Case Alignment
+            req_app = str(requirements.get("application") or "")
+            req_cat = str(requirements.get("category") or "")
+            use_case_pts = 0.0
+            if "photo booth" in combined_text or "booth" in combined_text or "event" in combined_text:
+                if p.category == "photo_booth":
+                    use_case_pts = 100.0
+                elif "dye-sub" in p_desc_l:
+                    use_case_pts = 80.0
                 else:
-                    score += 5.0
-                    score_breakdown["volume"] = 5.0
-            elif req_vol in ("low", "medium"):
-                if "c550" in p_name_l or "am-c550" in p_name_l or "desktop" in (specs.footprint or "").lower() or "t3100" in p.id or "t5100" in p.id or "ds-530" in p_name_l or "f100" in p.id:
-                    score += 15.0
-                    score_breakdown["volume"] = 15.0
-                elif any(k in p_name_l for k in ["am-c4000", "production", "enterprise"]):
-                    # Over-capacity for low/medium workload
-                    score += 5.0
-                    score_breakdown["volume"] = 5.0
+                    use_case_pts = 30.0
+            elif "fine art" in combined_text or "gallery" in combined_text or "studio" in combined_text:
+                if p.category == "photo_fine_art":
+                    use_case_pts = 100.0
+                elif p.category == "photo_booth" and "cx-02w" in p.id:
+                    use_case_pts = 85.0
                 else:
-                    score += 10.0
-                    score_breakdown["volume"] = 10.0
+                    use_case_pts = 50.0
+            elif "cad" in combined_text or "technical" in combined_text:
+                use_case_pts = 100.0 if p.category == "technical_cad" else 20.0
             else:
-                score += 5.0
-                score_breakdown["volume"] = 5.0
+                use_case_pts = 80.0
+            score_factors["use_case"] = round(use_case_pts * (weights["use_case"] / 100.0), 1)
+            score += score_factors["use_case"]
 
-            # 5. Optional Features & Connectivity (10 pts)
-            if "Wi-Fi" in specs.connectivity:
-                score += 5.0
-            if "Ethernet" in specs.connectivity:
-                score += 5.0
+            # 2. Volume Alignment
+            vol_val = requirements.get("event_volume") or requirements.get("daily_volume")
+            vol_pts = 50.0
+            if isinstance(vol_val, (int, float)) and vol_val >= 500:
+                if "cy-02" in p.id.lower() or "cy02" in p.id.lower():
+                    vol_pts = 100.0  # 700 prints/roll
+                elif "cx-02" in p.id.lower() or "cx02" in p.id.lower():
+                    vol_pts = 75.0   # 400 prints/roll
+                elif "cz-01" in p.id.lower():
+                    vol_pts = 40.0   # 150 prints/roll
+                elif "production" in p_name_l or "5700" in p.id or "p9500" in p.id or "am-c4000" in p.id:
+                    vol_pts = 100.0
+            elif is_volume_priority:
+                if "cy-02" in p.id or "production" in p_name_l or "5700" in p.id:
+                    vol_pts = 100.0
+                elif "cx-02" in p.id or "am-c550" in p.id:
+                    vol_pts = 70.0
+                else:
+                    vol_pts = 40.0
+            else:
+                vol_pts = 70.0
+            score_factors["volume"] = round(vol_pts * (weights["volume"] / 100.0), 1)
+            score += score_factors["volume"]
 
-            # 6. Brand Match Bonus (15 pts)
-            req_brand = requirements.get("brand")
-            if req_brand and (req_brand.lower() in (p.brand or "").lower() or req_brand.lower() in (p.name or "").lower()):
-                score += 15.0
-                score_breakdown["brand"] = 15.0
+            # 3. Portability Alignment
+            port_pts = 50.0
+            if "cz-01" in p.id:
+                port_pts = 100.0  # 5.8 kg ultra-compact
+            elif "cx-02" in p.id and "cx-02w" not in p.id:
+                port_pts = 80.0   # 12 kg portable
+            elif "cx-02w" in p.id:
+                port_pts = 65.0   # 14 kg
+            elif "cy-02" in p.id:
+                port_pts = 45.0   # 18 kg high-capacity
+            elif "p700" in p.id or "ds-530" in p.id or "am-c550" in p.id or "t3100" in p.id:
+                port_pts = 70.0   # compact desktop
+            else:
+                port_pts = 30.0   # large floor-standing
+            score_factors["portability"] = round(port_pts * (weights["portability"] / 100.0), 1)
+            score += score_factors["portability"]
 
-            ranked.append((p, score, score_breakdown))
+            # 4. Speed Alignment
+            speed_pts = 50.0
+            if "cx-02" in p.id and "cx-02w" not in p.id:
+                speed_pts = 95.0  # 9.8s high-speed 4x6
+            elif "cy-02" in p.id:
+                speed_pts = 85.0  # 12.4s high-speed 4x6
+            elif "cz-01" in p.id:
+                speed_pts = 70.0  # 18.8s 4x6
+            elif "cx-02w" in p.id:
+                speed_pts = 70.0  # 33.4s 8x10
+            elif "t5700d" in p.id or "am-c4000" in p.id:
+                speed_pts = 95.0
+            else:
+                speed_pts = 60.0
+            score_factors["speed"] = round(speed_pts * (weights["speed"] / 100.0), 1)
+            score += score_factors["speed"]
 
+            # 5. Preferred Features Alignment
+            feat_pts = 50.0
+            if any(k in combined_text for k in ["ribbon rewind", "rewind"]):
+                feat_pts = 100.0 if ("cx-02" in p.id or "cx-02w" in p.id) else 20.0
+            elif any(k in combined_text for k in ["gloss", "matte", "finishing", "luster"]):
+                feat_pts = 100.0 if p.category in ("photo_booth", "photo_fine_art") else 40.0
+            elif any(k in combined_text for k in ["grey calibration", "gray calibration"]):
+                feat_pts = 100.0 if "cx-02w" in p.id else 30.0
+            elif any(k in combined_text for k in ["dual roll", "two rolls"]):
+                feat_pts = 100.0 if "t5700d" in p.id else 20.0
+            elif any(k in combined_text for k in ["heat-free", "line head"]):
+                feat_pts = 100.0 if "am-c" in p.id else 30.0
+            else:
+                feat_pts = 70.0
+            score_factors["preferred_features"] = round(feat_pts * (weights["preferred_features"] / 100.0), 1)
+            score += score_factors["preferred_features"]
 
-        # Sort descending by score
+            # 6. Size Fit (Exact vs Over-width)
+            size_pts = 80.0
+            if "print_size" in item.matched:
+                size_pts = 100.0
+            score_factors["size_fit"] = round(size_pts * (weights["size_fit"] / 100.0), 1)
+            score += score_factors["size_fit"]
+
+            score_factors["applied_weights"] = dict(weights)
+            ranked.append((p, round(score, 1), score_factors))
+
         ranked.sort(key=lambda x: x[1], reverse=True)
         return ranked
 

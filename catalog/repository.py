@@ -58,7 +58,9 @@ class CatalogRepository:
                                 p_match = True
                             elif p.id in ("epson-t5100",) and ("t5100" in name_l or "t5100" in sku.lower()):
                                 p_match = True
-                            elif p.id in ("epson-t5400m",) and ("t5400" in name_l or "t5100m" in name_l or "t5400m" in sku.lower()):
+                            elif p.id in ("epson-t5100m",) and ("t5100m" in name_l or "t5100m" in sku.lower()):
+                                p_match = True
+                            elif p.id in ("epson-t5400m",) and ("t5400m" in name_l or "t5400" in name_l or "t5400m" in sku.lower()):
                                 p_match = True
                             elif p.id in ("epson-t5700d",) and ("t5700" in name_l or "t3700" in name_l):
                                 p_match = True
@@ -66,7 +68,9 @@ class CatalogRepository:
                                 p_match = True
                             elif p.id in ("epson-p900",) and ("p900" in name_l and "9000" not in name_l and "9500" not in name_l):
                                 p_match = True
-                            elif p.id in ("epson-p7500-p9500", "epson-p9500") and ("p9500" in name_l or "p7500" in name_l):
+                            elif p.id == "epson-p7500" and "p7500" in name_l:
+                                p_match = True
+                            elif p.id == "epson-p9500" and "p9500" in name_l:
                                 p_match = True
                             elif p.id in ("citizen-cx-02",) and ("cx-02" in name_l or "cx02" in name_l):
                                 p_match = True
@@ -131,15 +135,25 @@ class CatalogRepository:
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer-datasheet.pdf",
                 "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"]
             },
-            "epson-t5400m": {
-                "sku": "C11CH65301A0",
+            "epson-t5100m": {
+                "sku": "C11CJ54301A1",
                 "entity_type": "printer",
-                "canonical_id": "epson-t5400m",
-                "display_name": "Epson SureColor SC-T5100M / T5400M MFP Technical Plotter",
+                "canonical_id": "epson-t5100m",
+                "display_name": "Epson SureColor SC-T5100M Plotter Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/SC-T5100M.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/Epson-SureColor-SC-T5100M-MFP-Brochure.pdf",
-                "consumables": ["C13S210057", "C13T41F540", "C13T41F240", "C13T41F340", "C13T41F440"]
+                "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"]
+            },
+            "epson-t5400m": {
+                "sku": "C11CH65301A1",
+                "entity_type": "printer",
+                "canonical_id": "epson-t5400m",
+                "display_name": "Epson SureColor SC-T5400M MFP Plotter Printer",
+                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/04/Epson-SC-T5400M-Printer.webp",
+                "website_url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2024/04/Epson-SC-T5400M-Printer-Datasheet.pdf",
+                "consumables": ["C13T699700", "C13T41F540", "C13T41F240", "C13T41F340", "C13T41F440"]
             },
             "epson-t5700d": {
                 "sku": "C11CH81301A0",
@@ -171,14 +185,24 @@ class CatalogRepository:
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P900-17-Photo-Printer-Datasheet.pdf",
                 "consumables": ["C12C935711", "C13T47A100", "C13T47A200", "C13T47A300", "C13T47A400"]
             },
-            "epson-p7500-p9500": {
-                "sku": "C11CH13301A0",
+            "epson-p7500": {
+                "sku": "C11CH12301A0",
                 "entity_type": "printer",
-                "canonical_id": "epson-p7500-p9500",
-                "display_name": "Epson SureColor SC-P7500 / P9500 Large Format Printer",
+                "canonical_id": "epson-p7500",
+                "display_name": "Epson SureColor SC-P7500 24\" Large Format Printer",
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P7500-Datasheet.pdf",
+                "consumables": ["C13T699700", "C13T44J140", "C13T44J240", "C13T44J340", "C13T44J440"]
+            },
+            "epson-p9500": {
+                "sku": "C11CH13301A0",
+                "entity_type": "printer",
+                "canonical_id": "epson-p9500",
+                "display_name": "Epson SureColor SC-P9500 44\" Large Format Printer",
+                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
+                "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
+                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P9500-Datasheet.pdf",
                 "consumables": ["C13T699700", "C13T44J140", "C13T44J240", "C13T44J340", "C13T44J440"]
             },
             "citizen-cx-02": {
@@ -255,7 +279,10 @@ class CatalogRepository:
                         "status": "verified"
                     },
                     "media_compatibility": {
-                        "CY-MS46": "Kepler lists CY-MS46 for CY-02 and CX2-MS46 for CX-02. Cross-compatibility is not confirmed, so use only the media listed for each model.",
+                        "CX2.4x6": "Verified genuine 4x6 media pack (Model: CX2-MS46-2PC, SKU: CX2.4x6).",
+                        "CX2-MS46-2PC": "Verified genuine 4x6 media pack (Model: CX2-MS46-2PC, SKU: CX2.4x6).",
+                        "CX2.6X8": "Verified genuine 6x8 media pack (Model: CX2-MS68, SKU: CX2.6X8).",
+                        "CY-MS46": "Kepler lists CY-MS46 for CY-02 and CX2.4x6 / CX2-MS46-2PC for CX-02. Cross-compatibility is not confirmed on the website, so use only the media listed for each model.",
                         "CZ-MS46": "Not listed as compatible on the website."
                     }
                 }
@@ -455,6 +482,10 @@ class CatalogRepository:
                     "interface": {
                         "value": "USB 2.0 full speed",
                         "status": "verified"
+                    },
+                    "media_compatibility": {
+                        "CX2W 812": "Verified genuine 8x12 media pack (Model: CX2W 812, SKU: CX2W 812).",
+                        "CX2.4x6": "Not compatible with CX-02W. CX2.4x6 is for the 6-inch CX-02, whereas CX-02W requires 8-inch wide media."
                     }
                 }
             },
@@ -466,16 +497,6 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-F100-Datasheet.pdf",
-                "consumables": ["C13T49N100", "C13T49N200", "C13T49N300", "C13T49N400", "C13S210125"]
-            },
-            "epson-sc-f100": {
-                "sku": "C11CJ06301",
-                "entity_type": "printer",
-                "canonical_id": "epson-sc-f100",
-                "display_name": "Epson SureColor SC-F100 Dye-Sublimation Desktop Printer",
-                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
-                "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
-                "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-F100-Printer-Datasheet.pdf",
                 "consumables": ["C13T49N100", "C13T49N200", "C13T49N300", "C13T49N400", "C13S210125"]
             },
             "epson-sc-f500": {
@@ -514,7 +535,32 @@ class CatalogRepository:
                     prod.consumables = media_info["consumables"]
             else:
                 brand_val = "Citizen" if "citizen" in pid else "Epson"
-                cat_val = "photo_booth" if "citizen" in pid or "f100" in pid else ("scanner" if "ds-" in pid else "technical_cad")
+                cat_val = "photo_booth" if "citizen" in pid else ("promotional_dye_sub" if ("f100" in pid or "f500" in pid) else ("scanner" if "ds-" in pid else "technical_cad"))
+                s_specs = media_info.get("structured_specs", {})
+                w_val = s_specs.get("max_width", {}).get("value")
+                w_mm_val = int(w_val * 25.4) if (w_val and s_specs.get("max_width", {}).get("unit") == "inches") else None
+                w_lbl_val = f"{w_val} inches" if w_val else None
+                if "cx-02w" in pid:
+                    w_mm_val = 203
+                    w_lbl_val = "8x10, 8x12 inches"
+                elif "cx-02" in pid:
+                    w_mm_val = 152
+                    w_lbl_val = "4x6, 5x7, 6x8, 6x9 inches"
+                elif "cy-02" in pid:
+                    w_mm_val = 152
+                    w_lbl_val = "4x6, 5x7, 6x8 inches"
+                elif "cz-01" in pid:
+                    w_mm_val = 114
+                    w_lbl_val = "4x6, 4.5x8 inches"
+
+                v_specs = VerifiedSpecs(
+                    max_width_mm=w_mm_val,
+                    max_width_label=w_lbl_val,
+                    has_scanner=False,
+                    ink_technology="Dye-Sublimation Thermal System with Overcoat" if "citizen" in pid else None,
+                    applications=["Photo Booth", "Event Photography", "Studio"] if "citizen" in pid else [],
+                )
+
                 new_prod = NormalizedProduct(
                     id=pid,
                     canonical_id=media_info.get("canonical_id") or pid,
@@ -522,12 +568,13 @@ class CatalogRepository:
                     entity_type=media_info.get("entity_type", "printer"),
                     product_url=media_info.get("website_url"),
                     datasheet_url=media_info.get("datasheet_url"),
-                    structured_specs=media_info.get("structured_specs", {}),
+                    structured_specs=s_specs,
                     brand=brand_val,
                     model=media_info.get("display_name") or pid,
                     name=media_info.get("display_name") or pid,
                     category=cat_val,
                     sku=media_info.get("sku", pid.upper()),
+                    verified=v_specs,
                     source=ProductSource(website_url=media_info.get("website_url")),
                     image_url=media_info.get("image_url"),
                     consumables=media_info.get("consumables", []),
@@ -570,7 +617,7 @@ class CatalogRepository:
                         if not matched and d_info.get("full_description"):
                             # Index as canonical product
                             brand_val = "Citizen" if "citizen" in d_key else "Epson"
-                            cat_val = "photo_booth" if "citizen" in d_key or "f100" in d_key else ("scanner" if "ds-" in d_key or "12000xl" in d_key else "technical_cad")
+                            cat_val = "photo_booth" if "citizen" in d_key else ("promotional_dye_sub" if ("f100" in d_key or "f500" in d_key) else ("scanner" if "ds-" in d_key or "12000xl" in d_key else "technical_cad"))
                             media_entry = VERIFIED_HARDWARE_MEDIA.get(d_key, {})
                             img_val = media_entry.get("image_url") or d_info.get("image_url")
                             sku_val = media_entry.get("sku") or d_key.upper()
@@ -579,7 +626,10 @@ class CatalogRepository:
                             if "cx-02w" in d_key:
                                 w_lbl = "8x10, 8x12 inches"
                                 w_mm = 203
-                            elif "cx-02" in d_key or "cy-02" in d_key:
+                            elif "cx-02" in d_key:
+                                w_lbl = "4x6, 5x7, 6x8, 6x9 inches"
+                                w_mm = 152
+                            elif "cy-02" in d_key:
                                 w_lbl = "4x6, 5x7, 6x8 inches"
                                 w_mm = 152
                             elif "cz-01" in d_key:
@@ -671,7 +721,9 @@ class CatalogRepository:
 
         # Determine category
         cat_raw = item.get("category", "").lower()
-        if "booth" in cat_raw or "dyesub" in cat_raw or "dye_sub" in cat_raw or "citizen" in p_id or "f100" in p_id or "f500" in p_id:
+        if "f100" in p_id or "f500" in p_id:
+            category = "promotional_dye_sub"
+        elif "booth" in cat_raw or "citizen" in p_id:
             category = "photo_booth"
         elif "cad" in cat_raw or "plotter" in cat_raw:
             category = "technical_cad"
@@ -696,7 +748,10 @@ class CatalogRepository:
         full_text = (item.get("name", "") + " " + width_str + " " + item.get("intended_usage", "")).lower()
         max_width_mm = None
         max_width_label = width_str if width_str else None
-        if "36" in width_str or "a0" in width_str.lower():
+        if "44" in width_str:
+            max_width_mm = 1118
+            max_width_label = "44-inch Production"
+        elif "36" in width_str or "a0" in width_str.lower():
             max_width_mm = 914
             max_width_label = "36-inch (A0)"
         elif "24" in width_str or "a1" in width_str.lower():
@@ -711,9 +766,6 @@ class CatalogRepository:
         elif "a4" in full_text or "8.3" in width_str:
             max_width_mm = 210
             max_width_label = "A4"
-        elif "44" in width_str:
-            max_width_mm = 1118
-            max_width_label = "44-inch Production"
         elif "cx-02w" in p_id or "cx02w" in p_id:
             max_width_mm = 203
             max_width_label = "8x10, 8x12 inches"

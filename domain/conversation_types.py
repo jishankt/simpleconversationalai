@@ -191,3 +191,10 @@ class RouteResult:
     needs_composition: bool = False  # True = send to LLM composer for natural language
     evidence: List[Dict[str, Any]] = field(default_factory=list)
     instruction: str = ""  # Instruction for the response composer
+    recommendation_audit: Optional[Dict[str, Any]] = None  # Internal audit object for recommendation traceability
+
+    def __post_init__(self):
+        if self.reply and isinstance(self.reply, str):
+            import re
+            self.reply = re.sub(r"\s*\[(?:VERIFIED|CONFLICT|INFERRED|CALCULATED)[^\]]*\]", "", self.reply).strip()
+

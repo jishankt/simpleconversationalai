@@ -27,10 +27,56 @@ document.addEventListener('DOMContentLoaded', () => {
   const ollamaUrlInput = document.getElementById('ollamaUrl');
   const ollamaModelInput = document.getElementById('ollamaModel');
   const headerCompanyName = document.getElementById('headerCompanyName');
+  const headerActiveAgentBadge = document.getElementById('headerActiveAgentBadge');
+  const headerActiveAgentBadgeText = document.getElementById('headerActiveAgentBadgeText');
+  const headerActiveAgentDot = document.getElementById('headerActiveAgentDot');
+  const headerActiveAgentRole = document.getElementById('headerActiveAgentRole');
+  const chatHeader = document.querySelector('.chat-header');
 
   // Status elements
   const statusPill = document.getElementById('ollamaStatusPill');
   const statusText = document.getElementById('ollamaStatusText');
+
+  // Multi-Agent Configuration
+  const DEFAULT_AGENT = {
+    id: 'receptionist',
+    name: 'Kepler Concierge',
+    role: 'Front Desk & Reception',
+    theme_color: '#10b981',
+    badge: '🌿 Front Desk',
+    icon: 'fas fa-concierge-bell'
+  };
+
+  function updateActiveAgentUI(agent) {
+    if (!agent) agent = DEFAULT_AGENT;
+    
+    // 1. Dynamic header background
+    if (chatHeader && agent.theme_color) {
+      chatHeader.style.background = agent.theme_color;
+    }
+    
+    // 2. Active agent badge text & dot
+    if (headerActiveAgentBadgeText) {
+      headerActiveAgentBadgeText.textContent = agent.badge || agent.name;
+    }
+    if (headerActiveAgentDot && agent.theme_color) {
+      headerActiveAgentDot.style.background = agent.theme_color;
+    }
+    
+    // 3. Active agent role
+    if (headerActiveAgentRole) {
+      headerActiveAgentRole.textContent = agent.name;
+    }
+
+    // 4. Sidebar roster active item indicator
+    document.querySelectorAll('.agent-roster-item').forEach(el => {
+      el.classList.remove('active');
+    });
+    const activeRosterItem = document.getElementById(`roster-${agent.id}`);
+    if (activeRosterItem) {
+      activeRosterItem.classList.add('active');
+    }
+  }
 
   // State - always generate a fresh session ID on page load/refresh so the backend starts clean
   let sessionId = generateUUID();
@@ -39,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   checkHealth();
+  updateActiveAgentUI(DEFAULT_AGENT);
   renderInitialGreeting();
 
   // Clear Chat button
@@ -145,13 +192,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Render initial greeting matching clean BotPenguin reference
   function renderInitialGreeting() {
+    updateActiveAgentUI(DEFAULT_AGENT);
     const company = companyNameInput.value.trim() || 'Kepler Tech';
     const welcomeMsg = `Hi! Welcome to ${company}, I'll be assisting you here today.`;
-    appendMessage('bot', welcomeMsg);
+    appendMessage('bot', welcomeMsg, '', [], null, null, [], [], [], DEFAULT_AGENT);
 
     setTimeout(() => {
       const followUp = "How can I help you with your printing solutions or consumable needs today?";
-      appendMessage('bot', followUp);
+      appendMessage('bot', followUp, '', [], null, null, [], [], [], DEFAULT_AGENT);
     }, 250);
   }
 
@@ -192,6 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (response.ok) {
         const data = await response.json();
+        const activeAgent = data.active_agent || DEFAULT_AGENT;
+        updateActiveAgentUI(activeAgent);
         const sourceLabel = data.source === 'ollama' ? 'Ollama' : (data.source === 'rag_comparison_engine' ? 'RAG Comparison Engine' : (data.source === 'guardrail_rule' ? 'Commercial Guardrail' : 'Rule Engine'));
         appendMessage(
           'bot',
@@ -202,15 +252,16 @@ document.addEventListener('DOMContentLoaded', () => {
           data.grounding,
           data.retrieved_sources || [],
           data.product_cards || [],
-          data.consumable_cards || []
+          data.consumable_cards || [],
+          activeAgent
         );
       } else {
-        appendMessage('bot', "I apologize, but I encountered an issue processing your message. Could you try asking again?", "System Alert");
+        appendMessage('bot', "I apologize, but I encountered an issue processing your message. Could you try asking again?", "System Alert", [], null, null, [], [], [], DEFAULT_AGENT);
       }
     } catch (err) {
       typingEl.remove();
       console.error('Chat error:', err);
-      appendMessage('bot', "I'm having trouble connecting to the backend right now. Please ensure the server is active.", "Offline");
+      appendMessage('bot', "I'm having trouble connecting to the backend right now. Please ensure the server is active.", "Offline", [], null, null, [], [], [], DEFAULT_AGENT);
     } finally {
       isAwaitingReply = false;
       sendBtn.disabled = false;
@@ -219,24 +270,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Append a message bubble to the container
-  function appendMessage(sender, text, meta = '', chips = [], nlpData = null, groundingData = null, ragSources = [], productCards = [], consumableCards = []) {
+  function appendMessage(sender, text, meta = '', chips = [], nlpData = null, groundingData = null, ragSources = [], productCards = [], consumableCards = [], activeAgent = null) {
     const row = document.createElement('div');
     row.className = `message-row ${sender}`;
+
+    const agent = activeAgent || DEFAULT_AGENT;
+    const themeColor = agent.theme_color || '#10b981';
 
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     if (sender === 'bot') {
       avatar.innerHTML = `
         <svg viewBox="0 0 32 32" width="20" height="20" fill="none">
-          <rect x="6" y="9" width="20" height="15" rx="5" fill="#1877f2"/>
-          <rect x="3" y="14" width="3" height="5" rx="1.5" fill="#1877f2"/>
-          <rect x="26" y="14" width="3" height="5" rx="1.5" fill="#1877f2"/>
-          <path d="M16 5v4" stroke="#1877f2" stroke-width="2.2" stroke-linecap="round"/>
-          <circle cx="16" cy="4" r="1.8" fill="#1877f2"/>
+          <rect x="6" y="9" width="20" height="15" rx="5" fill="${themeColor}"/>
+          <rect x="3" y="14" width="3" height="5" rx="1.5" fill="${themeColor}"/>
+          <rect x="26" y="14" width="3" height="5" rx="1.5" fill="${themeColor}"/>
+          <path d="M16 5v4" stroke="${themeColor}" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="16" cy="4" r="1.8" fill="${themeColor}"/>
           <rect x="9" y="12" width="14" height="9" rx="3" fill="#ffffff"/>
-          <circle cx="12.5" cy="15.8" r="1.5" fill="#1877f2"/>
-          <circle cx="19.5" cy="15.8" r="1.5" fill="#1877f2"/>
-          <path d="M14 18.2c.6.6 1.4.6 2 0" stroke="#1877f2" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="12.5" cy="15.8" r="1.5" fill="${themeColor}"/>
+          <circle cx="19.5" cy="15.8" r="1.5" fill="${themeColor}"/>
+          <path d="M14 18.2c.6.6 1.4.6 2 0" stroke="${themeColor}" stroke-width="1.3" stroke-linecap="round"/>
         </svg>
       `;
     } else {
@@ -249,6 +303,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bubble = document.createElement('div');
     bubble.className = 'message-bubble';
+    if (sender === 'bot') {
+      bubble.style.borderLeftColor = themeColor;
+    }
     
     // Format markdown bold, italic, line breaks, and [Options: ...] tags
     let formattedText = (text || "")
@@ -266,7 +323,20 @@ document.addEventListener('DOMContentLoaded', () => {
       formattedText = formattedText.replace(optionsMatch[0], '').trim();
     }
 
-    bubble.innerHTML = formattedText;
+    if (sender === 'bot') {
+      const tag = document.createElement('div');
+      tag.className = 'message-agent-tag';
+      tag.style.color = themeColor;
+      tag.style.background = themeColor + '18'; // 10% opacity tint
+      tag.innerHTML = `<span class="agent-dot" style="background: ${themeColor};"></span><span>${agent.badge || agent.name}</span>`;
+      bubble.appendChild(tag);
+      const textNode = document.createElement('div');
+      textNode.className = 'bubble-text-content';
+      textNode.innerHTML = formattedText;
+      bubble.appendChild(textNode);
+    } else {
+      bubble.innerHTML = formattedText;
+    }
     contentWrapper.appendChild(bubble);
 
     // Product Hardware Cards Carousel

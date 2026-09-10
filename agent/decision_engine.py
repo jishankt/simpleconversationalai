@@ -124,7 +124,7 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # ── Model Code & Specific Product Extraction ─────────────────────────
     model_matches = re.findall(
-        r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{1,2}w?|cy-?\d{1,2}|cz-?\d{1,2}|am-?c\d{3,4}|wf-?c\d{3,5}[a-z]?)\b",
+        r"\b(?:sc-?)?(?:[tpf]\d{3,5}[a-z0-9]*|ds-?\d{3,5}[a-z0-9]*|es-?\d{3,5}[a-z0-9]*|cx-?[0-9o]{1,2}[a-z0-9]*|cy-?[0-9o]{1,2}[a-z0-9]*|cz-?[0-9o]{1,2}[a-z0-9]*|am-?c\d{3,4}[a-z0-9]*|wf-?(?:c|m)?\d{3,5}[a-z0-9]*|em-?c\d{3,4}[a-z0-9]*|12000xl|f100|f500|op900(?:ii)?)\b",
         msg_lower
     )
     unique_models: List[str] = []
@@ -151,8 +151,10 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                     model_code = cand
 
     # ── Tier 1: Price and Discount Intercept ──────────────────────────────
-    is_price_word = any(re.search(rf"\b{re.escape(w)}\b", msg_lower) for w in PRICE_KEYWORDS)
-    is_how_much = bool(re.search(r"\bhow much\b", msg_lower)) and not any(non_dim in msg_lower for non_dim in [
+    from guardrails import strip_negated_commercial
+    neg_clean_msg = strip_negated_commercial(msg_lower)
+    is_price_word = any(re.search(rf"\b{re.escape(w)}\b", neg_clean_msg) for w in PRICE_KEYWORDS)
+    is_how_much = bool(re.search(r"\bhow much\b", neg_clean_msg)) and not any(non_dim in neg_clean_msg for non_dim in [
         "ink", "paper", "time", "weight", "capacity", "prints", "pages", "roll", "speed"
     ])
     is_price_query = is_price_word or is_how_much
@@ -161,6 +163,32 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         return RouteDecision(
             route=RouteName.GUARDRAIL,
             reason="Price or commercial terms requested; quote via official sales channel only",
+        )
+
+    # Check for direct purchase intent on active product
+    is_purchase_intent = any(k in msg_lower for k in [
+        "i want to buy this", "want to buy this", "how to buy this", "ready to buy", "ready to purchase",
+        "want to purchase this", "order this", "buy this", "place an order for this", "purchase this"
+    ]) or (
+        state.active_product is not None and any(k in msg_lower for k in [
+            "i want to buy", "want to buy", "ready to buy", "ready to order", "how to buy", "how can i buy", "buy now"
+        ])
+    )
+    if is_purchase_intent:
+        return RouteDecision(
+            route=RouteName.GUARDRAIL,
+            reason="Customer expressed purchase intent on product; routing to Sales & Quotation Specialist",
+        )
+
+    # Check for user complaint when bot was off-target
+    is_user_complaint_misunderstood = any(k in msg_lower for k in [
+        "what i asked what you giving", "that's not what i asked", "thats not what i asked",
+        "not what i asked", "i didn't ask for that", "i did not ask for that", "wrong answer"
+    ])
+    if is_user_complaint_misunderstood:
+        return RouteDecision(
+            route=RouteName.CLARIFICATION,
+            reason="Customer indicated previous answer was off-target; asking for clarification",
         )
 
     # ── Tier 2: Greeting, Thanks, and Goodbye (Social) ────────────────────
@@ -210,8 +238,19 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         state.reset_category("photo_fine_art")
 
     is_ink_requested = not is_ink_negated and any(re.search(rf"\b{re.escape(ik)}\b", msg_lower) for ik in [
-        "ink", "inks", "cartridge", "cartridges", "toner", "ribbon", "consumable", "consumables", "maintenance tank", "maintenance box"
+        "ink", "inks", "cartridge", "cartridges", "toner", "ribbon", "consumable", "consumables", "maintenance tank", "maintenance box", "paper and ribbon", "media"
     ])
+    # Ink color follow-up when active printer or consumables route is active
+    is_ink_color_followup = (
+        bool(state.active_printer_for_consumables or state.active_route in ("consumable", "RouteName.CONSUMABLES"))
+        and any(re.search(rf"\b{re.escape(c)}\b", msg_lower) for c in [
+            "black", "cyan", "magenta", "yellow", "gray", "grey", "violet", "orange", "green", "red",
+            "photo black", "matte black", "light cyan", "light magenta", "vivid magenta"
+        ])
+    )
+    if is_ink_color_followup:
+        is_ink_requested = True
+
     # Distinguish hardware spec questions about ink (e.g. "does it use liquid ink cartridges?")
     is_spec_question_about_ink = any(phrase in msg_lower for phrase in [
         "does it use liquid ink", "use liquid ink", "liquid ink cartridges", "conventional liquid",
@@ -225,7 +264,13 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         "compare", " vs ", " versus ", "difference between", "differences between",
         "which is better", "which one is better", "show another one", "show another option", "compare them"
     ])
-    is_multi_model_comparison = len(unique_models) >= 2 or has_comparison_keyword
+    is_multi_model_comparison = (len(unique_models) >= 2 or has_comparison_keyword)
+
+    # If the inquiry is specifically about consumable compatibility / interchangeability across models
+    is_consumable_cross_or_compat = any(k in msg_lower for k in ["media", "consumable", "consumables", "ribbon", "paper and ribbon"]) and any(k in msg_lower for k in ["used in", "use in", "interchangeable", "cross", "compatibility", "compatible", "another citizen", "another model", "correct", "should i use", "for 4x6 printing", "for 4×6 printing", "can you help", "verify"])
+    if is_consumable_cross_or_compat:
+        is_multi_model_comparison = False
+        is_ink_requested = True
 
     # ── Tier 5: Explicit Product Model ────────────────────────────────────
     is_brochure_request = any(b in msg_lower for b in [
@@ -252,7 +297,11 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         )
 
     # Check for pronoun or attribute inquiry on active product
-    has_pronoun_ref = (
+    is_find_or_rec = any(w in msg_lower for w in [
+        "find a", "find me", "looking for", "recommend a", "suggest a", "which printer",
+        "which model", "need a printer", "want a printer", "show options"
+    ])
+    has_pronoun_ref = not is_find_or_rec and (
         any(w in msg_lower.split() for w in ["it", "this", "its", "that"]) or
         any(k in msg_lower for k in [
             "does it", "can it", "what size", "how fast", "specs", "specifications",
@@ -273,6 +322,26 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             tool="get_product_specs",
             tool_arguments={"product_identifier": state.active_product.get("name", "")},
             reason="Question about active product via pronoun/attribute reference",
+        )
+
+    # ── Superlative / Cross-Catalog Spec Inquiries ───────────────────────
+    is_superlative_query = (
+        intent == Intent.PRODUCT_QUESTION
+        or understanding.requested_action in ("answer_product_attribute", "answer_product_question")
+        or any(k in msg_lower for k in [
+            "which citizen printer is the fastest", "fastest citizen", "fastest printer",
+            "which printer is the fastest", "fastest photo printer", "highest resolution",
+            "fastest cad plotter", "most compact plotter"
+        ])
+        or any(k in msg_lower for k in [
+            "business benefit", "benefit of each relevant feature", "explain the business benefit"
+        ])
+    )
+    if is_superlative_query and not is_ink_requested and not is_multi_model_comparison:
+        return RouteDecision(
+            route=RouteName.PRODUCT,
+            tool="get_product_specs",
+            reason="Product question / superlative specification query",
         )
 
     # ── Tier 6: Product Comparison ────────────────────────────────────────
@@ -369,6 +438,23 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             route=RouteName.PRODUCT,
             tool="search_catalog",
             reason="Explicit recommendation requested with qualification satisfied",
+        )
+
+    # ── Tier 7.5: Taxonomy / Photo Printer Types Overview Inquiry ────────
+    is_photo_types_query = (
+        any(k in msg_lower for k in [
+            "types of photo", "photo printer types", "types have", "what types",
+            "types of printer", "kinds of photo", "photo options", "photo lineup"
+        ])
+        or (("photo" in msg_lower or "printer" in msg_lower) and any(k in msg_lower for k in [
+            "what are the types", "what types do you have", "what kinds do you have", "what categories", "options for photo"
+        ]))
+    ) and not any(w in msg_lower for w in ["i want to buy", "ready to buy", "place an order", "order this"])
+    if is_photo_types_query:
+        return RouteDecision(
+            route=RouteName.PRODUCT,
+            tool="get_photo_printer_types",
+            reason="Customer inquiry regarding photo printer categories and types available",
         )
 
     # ── Tier 8: Product Discovery ─────────────────────────────────────────

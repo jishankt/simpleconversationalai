@@ -114,8 +114,13 @@ class ConversationState:
 
     def reset_category(self, new_category: str):
         """Resets category-specific requirements when user switches topic."""
+        if self.category == new_category:
+            return
+        preserved_tech = self.requirements.get("printing_technology")
         self.category = new_category
         self.requirements = {}
+        if preserved_tech:
+            self.requirements["printing_technology"] = preserved_tech
         self.active_product = None
         self.active_product_id = None
         self.candidate_products = []

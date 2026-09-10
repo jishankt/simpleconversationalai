@@ -293,11 +293,11 @@
       "What’s in the box": "Warranty documentUser manual (CD)AC cablePaper stackerIndividual Ink CartridgesDriver and utilities (CD)Setup guidePrinter standMaintenance boxSureColor T-Series Printer"
     }
   },
-  "epson-t5400m": {
-    "id": "epson-t5400m",
+  "epson-t5100m": {
+    "id": "epson-t5100m",
     "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
     "title": "Epson SureColor SC-T5100M Plotter Printer",
-    "image_url": "",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/SC-T5100M.webp",
     "short_description": "The Epson SureColor SC-T5100M is a compact and affordable 36-inch large-format 3-in-1 printer (Print, Scan & Copy) designed for technical drawings, CAD, GIS, posters, and office documents. With an integrated 600 dpi scanner, pigment inks, and secure connectivity, it delivers accurate, reliable results in a space-saving design—ideal for offices, architects, engineers, and retail environments.\nLarge-format technical printer\nSleek and user-friendly, compact design\nAdvanced PrecisionCoreTM printhead\nExceptional speed and print quality\nFlexible Media Support\nIntegrated 600 dpi Scanner\nWarranty: 12 months On-site service\nProduct Data Sheet",
     "full_description": "Epson SureColor SC-T5100M – 36-Inch Multifunction Large Format Printer\nThe Epson SureColor SC-T5100M is a compact yet powerful large-format solution designed for professionals who demand accuracy, reliability, and efficiency. Ideal for architects, engineers, construction firms, retail environments, and corporate offices, this 36-inch printer combines printing, scanning, and copying in a single space-saving device. Powered by Epson’s advanced inkjet technology, it delivers precise technical output and vibrant graphics while keeping running costs under control.\n36-Inch Large Format Printing for Technical Precision\nThe SC-T5100M is engineered to handle large-format output up to 36 inches wide, making it perfect for CAD drawings, architectural plans, GIS maps, posters, and general office documents. With a print resolution of up to 2400 × 1200 dpi, fine lines, small text, and intricate details are reproduced with exceptional clarity and consistency.\nIntegrated 600 dpi Scanner for Large Documents\nEquipped with a built-in 600 dpi CIS scanner, the SC-T5100M allows accurate scanning of documents up to 2.7 metres in length. This makes it easy to digitize, copy, or archive large technical drawings and plans without compromising detail. Multiple output formats such as PDF, secure PDF, TIFF, and JPEG ensure compatibility with modern workflows.\nUltraChrome XD2 Pigment Inks for Long-Lasting Results\nThe printer uses UltraChrome XD2 pigment inks, delivering sharp lines, stable colors, and excellent water and smudge resistance. These inks are ideal for professional environments where durability and archival quality are essential, ensuring prints remain clear and legible over time.\nReliable Performance with Minimal Downtime\nTo maintain consistent print quality, the SC-T5100M features Nozzle Verification Technology (NVT), which helps prevent misprints by detecting and compensating for clogged nozzles. Combined with dust prevention technology, this ensures reliable operation whether the printer is used daily or occasionally.\nSecure Connectivity & Smart Workflow Integration\nWith built-in Wi-Fi, Ethernet, USB, and Apple AirPrint, users can print easily from PCs, Macs, mobile devices, or directly from USB drives. Advanced security features support encrypted scanning to email, network folders, servers, or USB storage, keeping sensitive business documents protected at all times.\nCompact, Ergonomic & Office-Friendly Design\nDespite its large-format capability, the SC-T5100M features a compact footprint and understated design, allowing it to fit seamlessly into offices, studios, and shared workspaces. Intuitive touchscreen controls, easy media loading, and simple ink replacement make day-to-day operation effortless.\nCloud Monitoring & Remote Management\nThe printer is supported by Epson Cloud Solution PORT, enabling users to monitor printer status, usage, and performance remotely. This is especially beneficial for businesses managing multiple devices across different locations, helping improve productivity and control costs.\nAll-in-One Productivity with Epson SureColor SC-T5100M\nBringing together 36-inch large-format printing, high-accuracy scanning, reliable copying, secure connectivity, and cloud-based monitoring, the Epson SureColor SC-T5100M delivers a complete all-in-one solution for professional environments. It is the ideal choice for businesses seeking precise output, dependable performance, and a compact multifunction printer without compromising on quality or security.\nFeatures of Epson SureColor SC-T5100M Technical Printer\n36-Inch Multifunction Capability:\nPrint, scan, and copy from a single device, reducing equipment costs and saving workspace.\nHigh-Precision Printing:\nPrint resolution up to 2400 × 1200 dpi with excellent line accuracy, ideal for CAD, GIS, and architectural drawings.\nIntegrated 600 dpi Scanner:\nAccurate CIS scanning up to 2.7 m, supporting multiple output formats including PDF, secure PDF, TIFF, and JPEG.\nUltraChrome XD2 Pigment Inks:\nFour-color pigment inks deliver sharp lines, stable colors, water resistance, and long-lasting prints.\nReliable Performance:\nNozzle Verification Technology (NVT) and dust prevention help ensure consistent output with minimal misprints.\nSecure & Flexible Connectivity:\nWi-Fi, LAN, USB, Apple AirPrint, mobile printing, and encrypted scan destinations for safe data handling.\nCompact & Ergonomic Design:\nSmall footprint and clean design make it suitable for offices, studios, and customer-facing environments.\nCloud Monitoring & Management:\nEpson Cloud Solution PORT enables remote monitoring, usage tracking, and fleet management.\nSKU:\nC11CJ54301A1\nCategories:\nEpson Large Format Printer\n,\nEpson Plotter Printer\nTags:\nBest plotter printer\n,\nLarge Format Printer",
     "feature_headings": [
@@ -327,6 +327,22 @@
       "EAN": "8715946696676",
       "Warranty": "12 months On-site service",
       "What’s in the box": "Warranty documentUser manual (CD)AC cablePaper stackerIndividual Ink CartridgesDriver and utilities (CD)Setup guidePrinter standMaintenance boxSureColor T-Series Printer"
+    }
+  },
+  "epson-t5400m": {
+    "id": "epson-t5400m",
+    "url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
+    "title": "Epson SureColor SC-T5400M MFP Plotter Printer",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/04/Epson-SC-T5400M-Printer.webp",
+    "short_description": "High-precision Epson SureColor SC-T5400M MFP Plotter Printer engineered for superior color accuracy, high-speed output, and professional production.",
+    "full_description": "High-precision Epson SureColor SC-T5400M MFP Plotter Printer engineered for superior color accuracy, high-speed output, and professional production.",
+    "feature_headings": [],
+    "specifications_text": "SKU\nC11CH65301A1\nPrint Technology\nPrecisionCore Print Technology\nInk Technology\nUltrachrome® XD2\nPrinting Resolution\n2,400 x 1,200 DPI\nMax Print Width\n36-inch (914mm)\nhas_scanner\nTrue",
+    "specifications_table": {
+      "SKU": "C11CH65301A1",
+      "Printing Resolution": "2,400 x 1,200 DPI",
+      "Max Print Width": "36-inch (914mm)",
+      "has_scanner": "True"
     }
   },
   "epson-t5700d": {

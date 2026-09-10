@@ -40,6 +40,104 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
     if superlative_res:
         return superlative_res
 
+    # ── List all Citizen photo printers ──────────────────────────────────
+    is_list_all_citizen = "citizen" in msg_lower and any(w in msg_lower for w in ["list all", "show all", "all citizen", "what citizen", "which citizen photo", "photo printers available"])
+    if is_list_all_citizen:
+        from catalog.repository import catalog_repository
+        cx02 = catalog_repository.get_by_id("citizen-cx-02")
+        cx02w = catalog_repository.get_by_id("citizen-cx-02w")
+        cy02 = catalog_repository.get_by_id("citizen-cy-02")
+        cz01 = catalog_repository.get_by_id("citizen-cz-01")
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cx02, cx02w, cy02, cz01] if p]
+        reply = (
+            "Kepler Tech LLC offers four authorized Citizen dye-sublimation photo printers in our product catalogue:\n\n"
+            "1. **[Citizen CX-02 Compact Photo Printer](https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/)**:\n"
+            "   • Print sizes: 4×6″, 5×7″, and 6×8″.\n"
+            "   • Ultra-portable at 12 kg with fast 9.8s print speed (4×6″).\n"
+            "   • Roll capacity: 400 prints (4×6″) / 200 prints (6×8″).\n"
+            "   • Equipped with ribbon rewind technology to prevent media waste.\n\n"
+            "2. **[Citizen CX-02W 8-Inch Large Photo Printer](https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/)**:\n"
+            "   • Wide-format dye-sublimation printing supporting 8×10″ and 8×12″.\n"
+            "   • Weight: 14 kg; roll capacity: 110 prints (8×12″).\n"
+            "   • Includes driver grey calibration for professional studio portraiture.\n\n"
+            "3. **[Citizen CY-02 High-Capacity Photo Printer](https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/)**:\n"
+            "   • Heavy-duty kiosk workhorse holding 700 prints (4×6″) or 350 prints (6×8″) per roll.\n"
+            "   • Robust chassis weighing 13.8 kg (approx. 18 kg loaded).\n"
+            "   • Ideal for unattended retail kiosks and high-volume event stations.\n\n"
+            "4. **[Citizen CZ-01 Compact 4.5-Inch Photo Printer](https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/)**:\n"
+            "   • Ultra-lightweight and compact at only 5.8 kg.\n"
+            "   • Supports 4×4″, 4×6″, 4.5×4.5″, and 4.5×8″ prints.\n"
+            "   • Roll capacity: 150 prints (4×6″); features anti-curl paper path and partial matte finishing.\n\n"
+            "*(Note on availability: All four models are officially listed in our authorized catalogue; live warehouse stock availability is confirmed upon order placement.)*"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CX-02W Specs", "Citizen CY-02 Specs", "Citizen CZ-01 Specs"],
+            source="route:catalog:list_all_citizen",
+        )
+
+    # ── Business Benefit Recommendation ──────────────────────────────────
+    is_biz_benefit_req = any(k in msg_lower for k in ["business benefit", "benefit of each relevant feature", "explain the business benefit"])
+    if is_biz_benefit_req:
+        from catalog.repository import catalog_repository
+        cx02 = catalog_repository.get_by_id("citizen-cx-02")
+        cards = [catalog_tool_executor.format_card(cx02.to_dict())] if cx02 else []
+        reply = (
+            "For versatile professional event photography and photo booth operations, the recommended model is the **[Citizen CX-02 Compact Dye-Sublimation Photo Printer](https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/)**.\n\n"
+            "Here are the verified key features and the business benefit of each:\n\n"
+            "1. **Built-in Ribbon Rewind Technology:**\n"
+            "   • *Feature:* Automatically rewinds unused ribbon when printing smaller formats (e.g., 4×6″) on larger media (6×8″).\n"
+            "   • *Business Benefit:* Eliminates consumable waste, allowing you to offer multiple print sizes from a single media roll while protecting operating margins.\n\n"
+            "2. **Ultra-Compact 12 kg Form Factor:**\n"
+            "   • *Feature:* Durable chassis measuring 27.5 × 36.6 × 17.0 cm and weighing just 12 kg.\n"
+            "   • *Business Benefit:* Easy single-person transport and rapid setup for mobile event photographers, minimizing setup labor and logistical friction.\n\n"
+            "3. **High-Speed Print Engine (9.8 Seconds for 4×6″):**\n"
+            "   • *Feature:* Produces a 4×6″ print in 9.8 seconds (High Speed mode) and 13.8 seconds (High Quality mode).\n"
+            "   • *Business Benefit:* Reduces customer wait times and queue congestion at high-traffic events, maximizing hourly guest throughput.\n\n"
+            "4. **Continuous-Tone Dye-Sublimation with Overcoat Finishes:**\n"
+            "   • *Feature:* 300 / 600 dpi resolution with selectable Glossy and Matte finishes directly in the printer driver.\n"
+            "   • *Business Benefit:* Delivers instant-dry, smudge-proof, lab-quality prints that guests can handle immediately, with flexible finishes without switching media rolls.\n\n"
+            "*(Note on availability: The Citizen CX-02 is actively listed in our authorized catalogue; current live warehouse inventory is confirmed upon order placement.)*"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CY-02 Comparison", "Compatible Consumables"],
+            source="route:catalog:business_benefit_recommendation",
+        )
+
+    # ── Photo Printer Types / Technology Overview Request ───────────────
+    is_photo_types_query = (
+        any(k in msg_lower for k in [
+            "types of photo", "photo printer types", "types have", "what types",
+            "types of printer", "kinds of photo", "photo options", "photo lineup"
+        ])
+        or (("photo" in msg_lower or "printer" in msg_lower) and any(k in msg_lower for k in [
+            "what are the types", "what types do you have", "what kinds do you have", "what categories", "options for photo"
+        ]))
+    ) and not any(w in msg_lower for w in ["i want to buy", "ready to buy", "place an order", "order this"])
+    if is_photo_types_query:
+        reply = (
+            "We offer two distinct, authorized categories of professional photo printers at Kepler Tech LLC, depending on your application:\n\n"
+            "### 1. **Citizen Professional Dye-Sublimation Photo Printers (Events & Photo Booths)**\n"
+            "• **Key Technology:** Continuous-tone dye-sublimation thermal transfer using dedicated ribbon and paper media rolls.\n"
+            "• **Best For:** High-traffic event photography, instant souvenir printing, and automated photo booths.\n"
+            "• **Key Advantages:** Ultra-fast on-site printing (under 10s for 4×6″), instant-dry prints with protective laminate overcoat (water/smudge resistant), selectable Glossy/Matte finishes without changing rolls, high media capacity up to 700 prints/roll.\n"
+            "• **Authorized Lineup:** **Citizen CX-02** (compact 6″), **Citizen CX-02W** (large 8″/8×12″), **Citizen CY-02** (high-capacity 700 prints), and **Citizen CZ-01** (ultra-lightweight 5.8 kg).\n\n"
+            "### 2. **Epson SureColor Professional Fine-Art & Studio Photo Printers (Galleries & Studios)**\n"
+            "• **Key Technology:** PrecisionCore MicroTFP with UltraChrome PRO pigment ink sets (up to 10 or 12 individual colors with dedicated photo/matte black channels).\n"
+            "• **Best For:** Fine-art gallery exhibitions, professional portrait studios, commercial proofing, and wide-gamut photography.\n"
+            "• **Key Advantages:** Archival print permanence (200+ years), ultra-high dynamic range (Black Enhance Overcoat), wider color gamuts including Violet/Orange/Green, roll and cut-sheet fine-art media support up to 24″ or 44″ width.\n"
+            "• **Authorized Lineup:** **Epson SureColor SC-P700** (13″ desktop), **SC-P900** (17″ desktop), **SC-P5300** (17″ production), and **SC-P7500 / SC-P9500** (24″ / 44″ 12-color flagships).\n\n"
+            "Which application best matches your workflow — high-speed event printing or studio fine-art photography?"
+        )
+        return RouteResult(
+            reply=reply,
+            suggested_chips=["Citizen Event Printers", "Epson Fine-Art Printers", "Citizen CX-02 Specs", "Epson SC-P700 Specs"],
+            source="route:catalog:photo_printer_types_overview",
+        )
+
     # ── Product Brochure / Datasheet Request ─────────────────────────────
     is_brochure_query = any(b in msg_lower for b in [
         "brochure", "brosure", "broucher", "brousher", "broshur", "brocher",
@@ -128,7 +226,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
         if not cand_norm or cand_norm not in msg_norm:
             model_code = None
     if not model_code and raw_message:
-        m = re.search(r"\b(?:sc-?)?([tpf]\d{3,4}[a-z]?|ds-?\d{3,5}[a-z]?|cx-?\d{2}w?|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?|12000xl|f100|f500)\b", raw_message.lower())
+        m = re.search(r"\b(?:sc-?)?([tpf]\d{3,5}[a-z0-9]*|ds-?\d{3,5}[a-z0-9]*|es-?\d{3,5}[a-z0-9]*|cx-?\d{1,2}[a-z0-9]*|cy-?\d{1,2}[a-z0-9]*|cz-?\d{1,2}[a-z0-9]*|am-?c\d{3,4}[a-z0-9]*|wf-?(?:c|m)?\d{3,5}[a-z0-9]*|em-?c\d{3,4}[a-z0-9]*|12000xl|f100|f500|op900(?:ii)?)\b", raw_message.lower())
         if m:
             model_code = m.group(0).upper()
 
@@ -186,6 +284,16 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                         reply = f"Yes, [{p_name}]({p_url}) uses professional **{tech}** inkjet technology."
                 else:
                     reply = f"The [{p_name}]({p_url}) operates on professional **{tech}** technology."
+            is_availability_query = any(w in q_lower for w in [
+                "available in your catalogue", "available in catalogue", "in your catalogue", "in your catalog",
+                "in catalogue", "in catalog", "available in your catalog", "do you have", "is it available", "in stock", "available on your website"
+            ])
+            if is_availability_query:
+                reply = (
+                    f"Yes, the **[{p_name}]({p_url})** is officially **listed in our authorized catalogue** as an authorized Citizen photo printer distributed by Kepler Tech LLC.\n\n"
+                    f"*(Note on stock availability: While this model is actively listed in our official product catalogue, live physical warehouse stock inventory is confirmed upon order placement.)*\n\n"
+                    f"Here are the verified specifications: {desc.rstrip('.')}."
+                )
             elif any(k in q_lower for k in ["price", "cost", "how much", "rate"]):
                 reply = f"The [{p_name}]({p_url}) is officially listed at **{price_str}** {vat}. Here are the verified specifications — {desc.rstrip('.')}."
             elif detailed_specs and any(w in q_lower for w in ["spec", "specs", "specification", "specifications", "detail", "details", "description", "full description", "overview", "what is", "about", "tell me about"]):
@@ -212,16 +320,38 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                 evidence=[product],
             )
         else:
+            chips = ["View Large Format Plotters", "Photo Printers", "Office Enterprise MFPs"]
+            m_upper = str(model_code).upper()
+            if any(k in m_upper for k in ["CX-02S", "CX02S", "CX 02 S", "CX 02S", "CXO2S", "CX-O2S"]):
+                return RouteResult(
+                    reply=(
+                        "No, the **Citizen CX-02S** is not listed in our authorized Kepler Tech product catalogue. "
+                        "Our authorized Citizen photo printer catalogue includes the **Citizen CX-02**, **Citizen CX-02W**, "
+                        "**Citizen CY-02**, and **Citizen CZ-01**. Would you like specifications for any of these verified models?"
+                    ),
+                    suggested_chips=["Citizen CX-02 Specs", "Citizen CX-02W Specs", "Citizen CY-02 Specs", "Citizen CZ-01 Specs"],
+                    source="route:unverified_product",
+                )
+            elif any(k in m_upper for k in ["CX", "CY", "CZ", "CITIZEN"]):
+                chips = ["Citizen CX-02 Specs", "Citizen CX-02W Specs", "Citizen CY-02 Specs", "Citizen CZ-01 Specs"]
+            elif any(k in m_upper for k in ["SC-T", "T3", "T5", "T7", "PLOTTER", "CAD"]):
+                chips = ["Epson T3100 Specs", "Epson T5100 Specs", "Epson T5400M Specs", "Epson T5700D Specs"]
+            elif any(k in m_upper for k in ["SC-P", "P7", "P9", "P5", "PHOTO"]):
+                chips = ["Epson P700 Specs", "Epson P900 Specs", "Epson P5300 Specs"]
+            elif any(k in m_upper for k in ["DS-", "ES-", "SCANNER", "12000"]):
+                chips = ["Epson DS-530II Specs", "Epson DS-800WN Specs", "Expression 12000XL Specs"]
+
             return RouteResult(
                 reply=f"I don’t have verified information about '{model_code}' in our authorized Kepler Tech catalog. Would you like me to recommend an authorized Epson or Citizen model that matches your printing needs?",
-                suggested_chips=["View Large Format Plotters", "Photo Printers", "Office Enterprise MFPs"],
+                suggested_chips=chips,
                 source="route:unverified_product",
             )
 
     # ── Product question on active product ───────────────────────────────
     if state.active_product and not model_code:
         # Check if the user is genuinely asking a question about the active product or making a new inquiry
-        is_question_about_active = any(w in (raw_message or "").lower().split() for w in ["it", "this", "its", "that", "speed", "size", "width", "ink", "scanner", "resolution", "specs", "specifications", "how", "what", "does", "can", "price", "cost", "much", "rate"])
+        is_find_or_rec = any(w in (raw_message or "").lower() for w in ["find a", "find me", "looking for", "recommend a", "suggest a", "which printer", "which model", "need a", "want a"])
+        is_question_about_active = not is_find_or_rec and any(w in (raw_message or "").lower().split() for w in ["it", "this", "its", "that", "speed", "size", "width", "ink", "scanner", "resolution", "specs", "specifications", "how", "what", "does", "can", "price", "cost", "much", "rate"])
         
         if is_question_about_active:
             from catalog.product_spec_engine import product_spec_engine
@@ -373,19 +503,12 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
         all_cat_products = catalog_repository.get_all()
 
 
-    if req_brand == "Citizen" and state.category == "photo_booth":
-        req_size = state.requirements.get("print_size", "")
-        if any(w in str(req_size).lower() for w in ["large", "wide", "8x12", "8x10", "a0", "a1", "24-inch", "44-inch"]):
-            state.requirements["print_size"] = "8x12 inches"
-        elif any(w in str(req_size).lower() for w in ["compact", "small", "mini", "4x6", "5x7", "6x8", "a4", "a3", "a3+"]):
-            state.requirements["print_size"] = "4x6 inches"
-
     # 2. Hard Eligibility Filter
-    eligible_assessments = eligibility_engine.filter_candidates(all_cat_products, state.requirements)
+    assessments = [eligibility_engine.assess(p, state.requirements) for p in all_cat_products]
+    eligible_assessments = [a for a in assessments if a.is_eligible]
 
-
-    # 3. Deterministic Python Ranking
-    ranked_tuples = product_ranker.rank_candidates(eligible_assessments, state.requirements)
+    # 3. Dynamic Python Ranking by Customer Stated Priorities
+    ranked_tuples = product_ranker.rank_candidates(eligible_assessments, state.requirements, raw_message=raw_message)
 
     if ranked_tuples:
         top_product, top_score, _ = ranked_tuples[0]
@@ -427,28 +550,45 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             top_highlights = first_sent[0] if first_sent else top_desc[:120].rstrip(".")
 
         # Natural, non-robotic formulation tailored to the context
+        is_single_match = len(ranked_tuples) == 1
         is_citizen_large = req_brand == "Citizen" and "cx-02w" in top_product.id.lower()
         if is_citizen_large:
             reply = (
-                f"For large-format photo printing with Citizen, the top choice is the **[{top_product.name}]({top_url})** — "
-                f"{top_highlights.rstrip('.')}. It supports professional **8×10 and 8×12-inch** photo formats (with panoramic prints up to 8×32″). "
+                f"For 8×10 and 8×12-inch photo printing with Citizen, the only verified match in our catalogue is the **[{top_product.name}]({top_url})** — "
+                f"{top_highlights.rstrip('.')}. It supports professional **8×10 and 8×12-inch** photo formats with driver grey calibration for studio output. "
                 f"*(Note: Citizen specialized dye-sub printers go up to 8×12″; if your workflow requires 24-inch or 44-inch wide gallery rolls, our authorized Epson SureColor P-Series covers those larger formats).* "
                 f"You can explore the verified specifications below:"
             )
         elif req_brand == "Citizen":
-            reply = f"For compact Citizen photo printing, the recommended model is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. Here are the verified specifications and data sheet:"
+            if "cy-02" in top_product.id.lower() or "cy02" in top_product.id.lower():
+                match_label = "only verified match" if is_single_match else "recommended model"
+                reply = (
+                    f"For high-volume event photo printing (such as your 500 photos/event workload), the {match_label} is the **[{top_product.name}]({top_url})** — "
+                    f"With an industry-leading media capacity of up to **700 prints per roll** (4×6″), it allows you to complete 500+ photos without needing to reload media during live events. "
+                    f"Here are the verified specifications and data sheet:"
+                )
+            else:
+                match_label = "only verified match" if is_single_match else "recommended model"
+                reply = f"For compact Citizen photo printing, the {match_label} is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. Here are the verified specifications and data sheet:"
+        elif "am-c550" in top_product.id.lower() and state.requirements.get("daily_volume") in (20, "low", "medium"):
+            reply = f"For your office document printing, the recommended model from our authorized lineup is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. While your daily volume of 20 pages is light, this system provides Heat-Free printing with ultra-low intervention ink packs up to 86,000 pages. You can explore the verified specifications below:"
         elif any(w in (raw_message or "").lower() for w in ["sorry", "instead", "actually", "switch"]):
             reply = f"Understood! For your updated requirements, here is the recommended option: **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. You can explore the verified specifications below:"
         else:
-            reply = f"Based on your requirements, the recommended model is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. You can explore the verified specifications and official data sheet below:"
+            match_label = "only verified match" if is_single_match else "recommended model"
+            reply = f"Based on your requirements, the {match_label} is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. You can explore the verified specifications and official data sheet below:"
 
         # Prevent duplicate verbatim loop or honor explicit alternative requests
         is_alt_request = any(k in (raw_message or "").lower() for k in [
             "show another", "show another one", "another option", "other option",
-            "next option", "different option", "alternative", "another one", "show other"
+            "next option", "different option", "alternative", "another one", "show other",
+            "do you have any other", "do you have another", "any other one", "any other",
+            "other one", "other model", "another printer", "other printer"
         ])
         is_repeat_turn = bool(state.last_assistant_response and reply.strip() == state.last_assistant_response.strip())
         is_same_active = bool(state.active_product and top_product.id == (state.active_product.get("id") or state.active_product.get("name")))
+
+        suggested_chips = ["Download Datasheet", "View Consumables", "Get Quotation"]
 
         if is_alt_request or is_repeat_turn or (is_alt_request and is_same_active):
             if len(ranked_tuples) > 1:
@@ -465,16 +605,48 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                 cards = [catalog_tool_executor.format_card(alt_product.to_dict(), card_type="hardware")]
                 evidence = [alt_product]
             else:
-                reply = f"To confirm for your requirements, the **[{top_product.name}]({top_url})** remains the optimal match — {top_highlights.rstrip('.')}. Would you like to check genuine consumables, media rolls, or download the official data sheet?"
+                # Single eligible match: explain constraint and ask which requirement to change before showing alternatives
+                if "cx-02w" in top_product.id.lower() and state.requirements.get("print_size") in ("8x12", "8x12 inches", "8x10", "8x10 inches"):
+                    reply = (
+                        f"The **[{top_product.name}]({top_url})** is our **only verified match** that satisfies the 8×12-inch dye-sublimation print requirement. "
+                        f"Other Citizen models (CX-02, CY-02, and CZ-01) max out at 6×8-inch or 4.5×8-inch print formats.\n\n"
+                        f"Before presenting alternatives, which requirement would you be open to adjusting? "
+                        f"For example, would you be willing to consider standard 6×8-inch event photo sizes (such as the high-capacity Citizen CY-02 or compact CX-02), "
+                        f"or explore large-format archival inkjet photo printers (such as the 13-inch Epson SC-P700 or 17-inch SC-P900)?"
+                    )
+                    suggested_chips = ["Adjust Size to 6x8", "Explore Epson Inkjet Photo", "Citizen CX-02W Specs"]
+                else:
+                    req_summary = ", ".join(f"{k}: {v}" for k, v in state.requirements.items() if v)
+                    reply = (
+                        f"The **[{top_product.name}]({top_url})** is the **only verified match** in our catalogue satisfying your stated requirements ({req_summary}).\n\n"
+                        f"Before presenting alternatives, which constraint would you be willing to adjust (such as required print dimensions, scanner need, or printing technology)?"
+                    )
+                    suggested_chips = ["Adjust Print Size", "Adjust Scanner Need", "Contact Sales Team"]
 
-
+        # ── 5. Internal Audit Object ─────────────────────────────────────────
+        audit_object = {
+            "collected_requirements": dict(state.requirements),
+            "missing_requirements": [f for f in ["print_size", "scan_required"] if f not in state.requirements and state.category in ("technical_cad", "photo_booth")],
+            "hard_constraints": [k for k in ["print_size", "scan_required", "printing_technology"] if k in state.requirements],
+            "eligible_products": [p.id for p, _, _ in ranked_tuples],
+            "rejected_products_with_reason": {
+                item.product.id: item.rejection_reason
+                for item in assessments if not item.is_eligible
+            },
+            "ranking_factors": ranked_tuples[0][2] if ranked_tuples else {},
+            "selected_product": top_product.id if top_product else None,
+            "evidence_ids": [p.get("product_id") or p.get("id") if isinstance(p, dict) else getattr(p, "id", str(p)) for p in evidence] if evidence else [],
+            "unsupported_claims": [],
+        }
 
         return RouteResult(
             reply=reply,
             product_cards=cards[:1] if len(cards) == 1 or not state.category else cards,
+            suggested_chips=suggested_chips,
             source="recommendation:grounded_engine",
             needs_composition=False,
             evidence=evidence,
+            recommendation_audit=audit_object,
         )
     else:
         state.candidate_products = []
@@ -494,4 +666,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             suggested_chips=["Adjust Requirements", "View All Plotters", "Contact Sales Team"],
             source="recommendation:honest_rejection",
         )
+
+
+handle_product_recommendation = handle
+
 

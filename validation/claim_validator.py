@@ -23,11 +23,12 @@ VERIFIED_PRODUCT_SLUGS = {
     "epson-am-c550": "https://www.keplertechllc.com/product/epson-wf-am-c550-a4-multifunction-printer/",
     "epson-t3100": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "epson-t5100": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
-    "epson-t5400m": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
+    "epson-t5100m": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
+    "epson-t5400m": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
     "epson-t5700d": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
     "epson-p700": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
-    "epson-p900": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
-    "epson-p7500-p9500": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "epson-p7500": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "epson-p9500": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
     "epson-sc-f100": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
     "epson-sc-f500": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
     "epson-ds-530ii": "https://www.keplertechllc.com/product/epson-workforce-ds-530-ii-scanner/",
@@ -246,6 +247,43 @@ class OutputValidator:
         if violations:
             return False, violations[0], violations
         return True, "OK", []
+
+    def contains_unsupported_consumable_claim(self, text: str) -> bool:
+        """Check whether text contains ungrounded physical/electrical consumable claims or forbidden guarantees."""
+        patterns = [
+            r"\b(?:core diameter|core-diameter|diameter of the core|inner core)\b",
+            r"\b(?:ic[- ]?chips?|microchips?|smart chips?|rfid)\b",
+            r"\b(?:mechanical jamming|cause jamming|jams? the mechanism|jamming)\b",
+            r"\b(?:printhead mismatch|mismatch with the printhead|burn out the printhead|damage\s+(?:the\s+)?(?:thermal\s+)?printhead|printhead\s+damage)\b",
+            r"\b(?:chassis fit|fit the chassis|chassis mismatch|different chassis designs?|media bay fit)\b",
+            r"\b(?:spool construction|spool size|spool diameter|different spools?|non-oem spools?)\b",
+            r"\b(?:warranty invalidation|void(?:ing|s)?\s+(?:the|your)?\s*(?:[a-z]+\s+)?warranty|invalidate\s+(?:the|your)?\s*warranty)\b",
+            r"\b(?:100%\s*guarantee[ds]?|guarantee[ds]?\s+that\s+it\s+will\s+work|absolutely\s+guarantee[ds]?|guarantee\s+compatibility)\b",
+            r"\b(?:does not exist|doesn't exist|is not manufactured|was never made|not a real product|not manufactured by)\b",
+        ]
+        t_l = text.lower()
+        return any(re.search(p, t_l) for p in patterns)
+
+    def get_unsupported_claims(self, text: str) -> List[str]:
+        """Returns list of detected unsupported consumable, commercial, or structural claims."""
+        patterns = {
+            "core diameter": r"\b(?:core diameter|core-diameter|diameter of the core|inner core)\b",
+            "ic chip / rfid": r"\b(?:ic[- ]?chips?|microchips?|smart chips?|rfid)\b",
+            "mechanical jamming": r"\b(?:mechanical jamming|cause jamming|jams? the mechanism|jamming)\b",
+            "printhead mismatch / damage": r"\b(?:printhead mismatch|mismatch with the printhead|burn out the printhead|damage\s+(?:the\s+)?(?:thermal\s+)?printhead|printhead\s+damage)\b",
+            "chassis fit": r"\b(?:chassis fit|fit the chassis|chassis mismatch|different chassis designs?|media bay fit)\b",
+            "spool construction": r"\b(?:spool construction|spool size|spool diameter|different spools?|non-oem spools?)\b",
+            "warranty invalidation": r"\b(?:warranty invalidation|void(?:ing|s)?\s+(?:the|your)?\s*(?:[a-z]+\s+)?warranty|invalidate\s+(?:the|your)?\s*warranty)\b",
+            "absolute guarantee": r"\b(?:100%\s*guarantee[ds]?|guarantee[ds]?\s+that\s+it\s+will\s+work|absolutely\s+guarantee[ds]?|guarantee\s+compatibility)\b",
+            "global absence claim": r"\b(?:does not exist|doesn't exist|is not manufactured|was never made|not a real product|not manufactured by)\b",
+        }
+        claims = []
+        t_l = text.lower()
+        for label, pat in patterns.items():
+            m = re.search(pat, t_l)
+            if m:
+                claims.append(f"Unsupported claim detected: {label} ('{m.group(0)}')")
+        return claims
 
     def sanitize(self, text: str, evidence: Optional[Any] = None, fallback: str = "") -> str:
         """

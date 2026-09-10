@@ -175,8 +175,14 @@ class LLMUnderstandingEngine:
         # Explicit model specification or inquiry check
         from catalog.product_resolver import resolve_canonical_id
         canon_model = entities.get("model_code") or resolve_canonical_id(customer_message)
-        if canon_model and any(w in msg_l for w in ["spec", "specification", "detail", "about", "what is", "price", "speed", "size", "show me", "tell me", "description", "overview", "brochure", "datasheet", "website", "find"]):
-            entities["model_code"] = canon_model
+        cand_model = canon_model
+        if not cand_model:
+            m_cand = re.search(r"\b(?:sc-?)?([tpf]\d{3,5}[a-z0-9]*|ds-?\d{3,5}[a-z0-9]*|es-?\d{3,5}[a-z0-9]*|cx-?\d{1,2}[a-z0-9]*|cy-?\d{1,2}[a-z0-9]*|cz-?\d{1,2}[a-z0-9]*|am-?c\d{3,4}[a-z0-9]*|wf-?(?:c|m)?\d{3,5}[a-z0-9]*|em-?c\d{3,4}[a-z0-9]*|12000xl|f100|f500|op900(?:ii)?)\b", msg_l)
+            if m_cand:
+                cand_model = m_cand.group(0).upper()
+
+        if cand_model and any(w in msg_l for w in ["spec", "specification", "detail", "about", "what is", "price", "speed", "size", "show me", "tell me", "description", "overview", "brochure", "datasheet", "website", "find"]):
+            entities["model_code"] = cand_model
             return LLMUnderstanding(
                 intent=Intent.PRODUCT_QUESTION,
                 dialogue_act="questioning",
@@ -186,7 +192,7 @@ class LLMUnderstandingEngine:
                 language="en",
                 entities=entities,
                 requested_action="answer_product_attribute",
-                tool_request={"name": "get_product_specs", "arguments": {"product_identifier": canon_model}}
+                tool_request={"name": "get_product_specs", "arguments": {"product_identifier": cand_model}}
             )
 
         is_superlative_attribute = any(w in msg_l for w in [
@@ -303,6 +309,12 @@ class LLMUnderstandingEngine:
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "ask_qualification_question"
+        elif "8x12" in msg_l or "8x10" in msg_l:
+            entities["print_size"] = "8x12 inches" if "8x12" in msg_l else "8x10 inches"
+            entities["product_category"] = "photo_booth"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "search_products"
         elif "4x6" in msg_l or "6x8" in msg_l:
             entities["print_size"] = "4x6"
             if intent == Intent.UNCLEAR:

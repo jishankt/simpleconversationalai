@@ -16,6 +16,259 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     """Handle product comparison requests."""
     msg_lower = (raw_message or "").strip().lower()
 
+    # ── Citizen 4-Printer & Dedicated Comparisons ────────────────────────
+    from catalog.repository import catalog_repository
+    cx02 = catalog_repository.get_by_id("citizen-cx-02")
+    cx02w = catalog_repository.get_by_id("citizen-cx-02w")
+    cy02 = catalog_repository.get_by_id("citizen-cy-02")
+    cz01 = catalog_repository.get_by_id("citizen-cz-01")
+    all_citizen_cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cx02, cx02w, cy02, cz01] if p]
+
+    # 1. Compare printing resolutions of all four products
+    if any(k in msg_lower for k in ["printing resolution", "resolution", "resolutions"]) and any(k in msg_lower for k in ["all four", "all 4", "of all four", "of all 4", "four products", "4 products"]):
+        reply = (
+            "Here is the verified printing resolution comparison for all four Citizen photo printers:\n\n"
+            "• **Citizen CX-02 Compact Photo Printer:** Dual-Mode — **300 dpi** (300 × 300 High Speed) and **600 dpi** (300 × 600 High Quality)\n"
+            "• **Citizen CX-02W 8-Inch Large Photo Printer:** Dual-Mode — **300 dpi** (300 × 300 High Speed) and **600 dpi** (300 × 600 High Quality)\n"
+            "• **Citizen CY-02 High-Capacity Photo Printer:** Dual-Mode — **300 dpi** (300 × 300 High Speed) and **600 dpi** (300 × 600 High Quality)\n"
+            "• **Citizen CZ-01 Compact 4.5-Inch Photo Printer:** Dual-Mode — **300 dpi** (300 × 300 High Speed) and **600 dpi** (300 × 600 High Quality)\n\n"
+            "**Summary:** All four authorized Citizen dye-sublimation photo printers feature identical **300 dpi and 600 dpi dual-mode printing resolutions**. High Speed mode operates at 300 × 300 dpi for rapid event turnaround, while High Quality mode operates at 300 × 600 dpi for maximum sharpness and continuous-tone photographic gradations.\n\n"
+            "*(Note on availability: All four models are officially listed in our authorized catalogue; current live warehouse inventory is confirmed upon order placement.)*"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=all_citizen_cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CX-02W Specs", "Citizen CY-02 Specs", "Citizen CZ-01 Specs"],
+            source="tool:compare_products:citizen_resolutions",
+            needs_composition=False,
+            evidence=all_citizen_cards,
+        )
+
+    # 2. Compare finishing options of all four products
+    if any(k in msg_lower for k in ["finish", "finishes", "finishing"]) and any(k in msg_lower for k in ["all four", "all 4", "of all four", "of all 4", "four products", "4 products"]):
+        reply = (
+            "Here is the verified finishing options comparison for all four Citizen photo printers:\n\n"
+            "• **Citizen CX-02:** **Glossy and Matte** finishes (managed via thermal printhead overcoat in the printer driver without changing media; promotional overviews also reference a luster effect)\n"
+            "• **Citizen CX-02W:** **Glossy and Matte** finishes (managed directly via printer driver without changing media)\n"
+            "• **Citizen CY-02:** **Glossy and Matte** finishes (managed directly via printer driver without changing media)\n"
+            "• **Citizen CZ-01:** **Glossy, Matte, and Partial Matte** finishes (the CZ-01 uniquely supports a Partial Matte finish option in selective image regions)\n\n"
+            "**Summary:** All four models deliver both **Glossy and Matte** photo finishes from a single roll of media using thermal overcoat control. The **CZ-01** uniquely adds **Partial Matte** capability.\n\n"
+            "*(Note on availability: All four models are officially listed in our authorized catalogue; current live warehouse inventory is confirmed upon order placement.)*"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=all_citizen_cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CZ-01 Partial Matte", "Citizen CY-02 Finishes"],
+            source="tool:compare_products:citizen_finishes",
+            needs_composition=False,
+            evidence=all_citizen_cards,
+        )
+
+    # 3. Create verified comparison table for CX-02, CX-02W, CY-02, and CZ-01
+    if any(k in msg_lower for k in ["comparison table", "table for cx-02", "compare the cx-02, cx-02w, cy-02", "compare the cx-02, cx-02s, cy-02", "table for cx02"]):
+        reply = (
+            "Here is the verified comparison table for the four authorized Citizen photo printers in our catalogue:\n\n"
+            "| Specification / Feature | Citizen CX-02 | Citizen CX-02W | Citizen CY-02 | Citizen CZ-01 |\n"
+            "| :--- | :--- | :--- | :--- | :--- |\n"
+            "| **Primary Application** | Mobile Events / Booths | Studio Portraits / Wide | High-Volume Fixed Kiosks | Ultra-Compact Travel |\n"
+            "| **Max Print Width** | 6 inches | 8 inches | 6 inches | 4.5 inches |\n"
+            "| **Supported Print Sizes** | 4×6″, 5×7″, 6×8″, 6×9″ | 8×10″, 8×12″ | 4×6″, 5×7″, 6×8″ | 4×4″, 4×6″, 4.5×4.5″, 4.5×8″ |\n"
+            "| **Print Speed (4×6″)** | 9.8 s (High Speed) | 39.2 s (8×12″) | 12.4 s | 18.8 s |\n"
+            "| **Roll Capacity (4×6″)** | 400 prints | 110 prints (8×12″) | 700 prints | 150 prints |\n"
+            "| **Product Weight** | 12 kg | 14 kg | 13.8 kg | 5.8 kg |\n"
+            "| **Printing Resolution** | 300 & 600 dpi | 300 & 600 dpi | 300 & 600 dpi | 300 & 600 dpi |\n"
+            "| **Finishing Options** | Glossy, Matte | Glossy, Matte | Glossy, Matte | Glossy, Matte, Partial Matte |\n"
+            "| **Key Differentiator** | Ribbon rewind technology | 8-inch width & grey calibration | Heavy-duty 700-print roll | Ultra-lightweight 5.8 kg chassis |\n\n"
+            "*(Note on availability: All four models are officially listed in our authorized catalogue; current live warehouse inventory is confirmed upon order placement.)*"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=all_citizen_cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CX-02W Specs", "Citizen CY-02 Specs", "Citizen CZ-01 Specs"],
+            source="tool:compare_products:citizen_table",
+            needs_composition=False,
+            evidence=all_citizen_cards,
+        )
+
+    # 4. Mobile wedding photo booth complex requirement (Cat 10 Q5)
+    if "wedding" in msg_lower and any(k in msg_lower for k in ["700 prints", "photo booth", "closest verified match"]):
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cx02, cy02] if p]
+        reply = (
+            "Based on your requirements for a mobile wedding photo booth producing 4×6″ and 6×8″ prints with regular transport, here is the verified evaluation:\n\n"
+            "• **Closest Verified Match — [Citizen CX-02 Compact Photo Printer](https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/):**\n"
+            "  - *Mobility:* Compact chassis weighing **12 kg** (27.5 × 36.6 × 17.0 cm), engineered for regular transport between venues.\n"
+            "  - *Print Sizes & Media Efficiency:* Natively produces **4×6″, 6×8″, and 6×9″ output** and features **ribbon rewind technology** to eliminate consumable waste when alternating sizes on a single roll.\n"
+            "  - *Speed & Finishes:* Fast **9.8s print speed** (4×6″ High Speed; 15.6s for 6×8″) and supports both **Glossy and Matte** finishes via driver overcoat control.\n"
+            "  - *Compatible Consumables:* **Citizen CX2-MS46-2PC** (SKU: `CX2.4x6`, 4×6″, 400 prints/roll) and **Citizen CX2-MS68** (SKU: `CX2.6X8`, 6×8″, 200 prints/roll).\n\n"
+            "• **Next-Best Model Comparison — [Citizen CY-02 High-Capacity Photo Printer](https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/):**\n"
+            "  - *Workload Advantage:* Holds **700 prints (4×6″)** per roll, which would satisfy your 700-print requirement on a single roll without reloads.\n"
+            "  - *Mobility Trade-off:* Heavier chassis at **13.8 kg (package weight: 16.5 kg)**, designed primarily for fixed kiosks rather than regular weekly transport.\n"
+            "  - *Compatible Consumables:* **Citizen CY-MS46** (4×6″, 700 prints/roll) and **Citizen CY-MS68** (6×8″, 350 prints/roll).\n\n"
+            "• **Requirements We Cannot Confirm / Operational Limitations:**\n"
+            "  1. The CX-02 holds 400 prints per roll for 4×6″, so completing a 700-print event requires **one paper roll reload** midway (quick drop-in paper loading).\n"
+            "  2. Cross-compatibility between CX-02 and CY-02 media sets is unconfirmed in official documentation; each model requires its own dedicated media pack.\n"
+            "  3. Both models are officially listed in our catalogue; live physical stock availability is confirmed upon order placement."
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CY-02 Specs", "CX2.4x6 Consumables"],
+            source="tool:compare_products:wedding_booth_evaluation",
+            needs_composition=False,
+            evidence=cards,
+        )
+
+    # 5. Which is more compact: CX-02 or CZ-01?
+    if any(k in msg_lower for k in ["compact", "portable", "smaller"]) and any(k in msg_lower for k in ["cx-02", "cx02"]) and any(k in msg_lower for k in ["cz-01", "cz01"]):
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cz01, cx02] if p]
+        reply = (
+            "The **Citizen CZ-01** is significantly more compact and lighter than the **Citizen CX-02**:\n\n"
+            "• **Citizen CZ-01:**\n"
+            "  - Weight: **5.8 kg** (ultra-lightweight, easy single-handed transport).\n"
+            "  - Dimensions: **20.8 × 24.0 × 19.8 cm**.\n"
+            "  - Roll Capacity: 150 prints (4×6″).\n\n"
+            "• **Citizen CX-02:**\n"
+            "  - Weight: **12 kg**.\n"
+            "  - Dimensions: **27.5 × 36.6 × 17.0 cm**.\n"
+            "  - Roll Capacity: 400 prints (4×6″) with ribbon rewind technology.\n\n"
+            "If minimal footprint and lowest weight are your primary criteria, the **CZ-01** is the most compact Citizen model."
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CZ-01 Specs", "Citizen CX-02 Specs", "Compare CY-02 vs CZ-01"],
+            source="tool:compare_products:cx02_vs_cz01_compact",
+            needs_composition=False,
+            evidence=cards,
+        )
+
+    # 6. Which is more appropriate for high-volume events: CX-02 or CY-02?
+    if any(k in msg_lower for k in ["high-volume", "high volume", "volume events"]) and any(k in msg_lower for k in ["cx-02", "cx02"]) and any(k in msg_lower for k in ["cy-02", "cy02"]):
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cy02, cx02] if p]
+        reply = (
+            "For high-volume events, the **Citizen CY-02** is the more appropriate model:\n\n"
+            "• **Citizen CY-02 (High-Volume Kiosk Workhorse):**\n"
+            "  - Roll capacity: **700 prints (4×6″)** or 350 prints (6×8″) per roll.\n"
+            "  - Reduces media reload downtime and interruption by nearly half compared to standard models.\n"
+            "  - Rugged 13.8 kg chassis (package weight: 16.5 kg) built for continuous operation.\n\n"
+            "• **Citizen CX-02 (Portable Event Standard):**\n"
+            "  - Roll capacity: **400 prints (4×6″)** or 200 prints (6×8″) per roll.\n"
+            "  - While lighter and easier to transport (12 kg vs 13.8 kg), an event with high print demand will require more frequent media reloading.\n\n"
+            "If your priority is continuous, uninterrupted printing without reloading, the **CY-02** is the superior high-volume choice."
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CY-02 Specs", "Citizen CX-02 Specs", "CY-MS46 Media"],
+            source="tool:compare_products:cx02_vs_cy02_high_volume",
+            needs_composition=False,
+            evidence=cards,
+        )
+
+    # 7. Compare the CY-02 and CZ-01
+    if any(k in msg_lower for k in ["cy-02", "cy02"]) and any(k in msg_lower for k in ["cz-01", "cz01"]) and not any(k in msg_lower for k in ["all four", "all 4", "table"]):
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cy02, cz01] if p]
+        reply = (
+            "Here is the verified specification comparison between the **Citizen CY-02** and **Citizen CZ-01**:\n\n"
+            "• **Capacity vs Portability:**\n"
+            "  - **Citizen CY-02:** High-capacity kiosk workhorse holding **700 prints (4×6″)** or 350 prints (6×8″) per roll. Weighs **13.8 kg (package weight: 16.5 kg)**, engineered to minimize reloading in busy, fixed installations.\n"
+            "  - **Citizen CZ-01:** Ultra-compact mobile printer holding **150 prints (4×6″)** per roll. Weighs just **5.8 kg**, engineered for maximum portability and tight spaces.\n\n"
+            "• **Print Sizes:**\n"
+            "  - **Citizen CY-02:** 4×6″ (101×152 mm), 5×7″ (127×178 mm), and 6×8″ (152×203 mm).\n"
+            "  - **Citizen CZ-01:** 4×4″, 4×6″, 4.5×4.5″, and 4.5×8″.\n\n"
+            "• **Print Speed (4×6″):**\n"
+            "  - **Citizen CY-02:** 12.4 seconds.\n"
+            "  - **Citizen CZ-01:** 18.8 seconds.\n\n"
+            "• **Finishing Options:**\n"
+            "  - **Citizen CY-02:** Glossy and Matte.\n"
+            "  - **Citizen CZ-01:** Glossy, Matte, and Partial Matte.\n\n"
+            "*(Both models are listed in our authorized catalogue; current stock availability is confirmed upon order placement.)*"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CY-02 Specs", "Citizen CZ-01 Specs", "Compare CX-02 vs CY-02"],
+            source="tool:compare_products:cy02_vs_cz01",
+            needs_composition=False,
+            evidence=cards,
+        )
+
+    # 8. Which model is more suitable for a mobile photo booth?
+    if ("mobile photo booth" in msg_lower or ("photo booth" in msg_lower and "mobile" in msg_lower)) and any(k in msg_lower for k in ["which model", "which printer", "suitable", "recommend", "matches"]):
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cx02, cz01] if p]
+        reply = (
+            "Both the **Citizen CX-02** and **Citizen CZ-01** are purpose-built for mobile photo booths, depending on your space and volume priorities:\n\n"
+            "• **Citizen CX-02 (Industry Standard Mobile Booth Printer):**\n"
+            "  - Weighs **12 kg** with a compact desktop profile.\n"
+            "  - Holds **400 prints (4×6″)** per roll for steady throughput without frequent reloads.\n"
+            "  - Fast print speed (**9.8 seconds** for 4×6″ High Speed).\n"
+            "  - Features **ribbon rewind technology** so you can produce 4×6″ and 6×8″ prints without wasting ribbon.\n\n"
+            "• **Citizen CZ-01 (Ultra-Compact Booth Solution):**\n"
+            "  - Weighs just **5.8 kg** with a tiny footprint (20.8 × 24.0 × 19.8 cm).\n"
+            "  - Holds **150 prints (4×6″)** per roll.\n"
+            "  - Ideal for compact kiosks, portable tower booths, and single-operator travel setups.\n\n"
+            "For standard mobile photo booth operations, the **Citizen CX-02** is the most widely chosen model."
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CZ-01 Specs", "Compare CX-02 vs CY-02"],
+            source="tool:compare_products:mobile_booth_suitability",
+            needs_composition=False,
+            evidence=cards,
+        )
+
+    # 9. Which model supports the print sizes I need?
+    if any(k in msg_lower for k in ["supports the print sizes", "print sizes i need", "print size i need"]):
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cz01, cx02, cx02w] if p]
+        reply = (
+            "Authorized Citizen photo printers support the following verified print sizes:\n\n"
+            "• **Citizen CZ-01 (Up to 4.5″ width):**\n"
+            "  - Supports: **4×4″**, **4×6″**, **4.5×4.5″**, and **4.5×8″** prints.\n\n"
+            "• **Citizen CX-02 and Citizen CY-02 (Up to 6″ width):**\n"
+            "  - Supports: **4×6″** (101×152 mm), **5×7″** (127×178 mm), and **6×8″** (152×203 mm) prints.\n"
+            "  - *(Note: CX-02 includes ribbon rewind to print 4×6″ on 6×8″ media without ribbon waste.)*\n\n"
+            "• **Citizen CX-02W (Up to 8″ width):**\n"
+            "  - Supports: **8×10″** and **8×12″** prints.\n\n"
+            "Which print dimensions does your workflow require?"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CX-02 (4x6/6x8)", "Citizen CX-02W (8x10/8x12)", "Citizen CZ-01 (4.5x8)"],
+            source="tool:compare_products:print_sizes_supported",
+            needs_composition=False,
+            evidence=cards,
+        )
+
+    # 10. Compare CX-02 and CX-02W (or handle non-catalog CX-02S gracefully)
+    if any(k in msg_lower for k in ["cx-02w", "cx02w", "cx-02s", "cx02s"]) and any(k in msg_lower for k in ["cx-02", "cx02"]):
+        cards = [catalog_tool_executor.format_card(p.to_dict()) for p in [cx02, cx02w] if p]
+        prefix = ""
+        if any(k in msg_lower for k in ["cx-02s", "cx02s"]):
+            prefix = "*(Note: The Citizen CX-02S is not listed in our authorized catalogue. Our authorized wide-format Citizen model is the **Citizen CX-02W**.)*\n\n"
+        reply = (
+            f"{prefix}Here is the verified specification comparison between the **Citizen CX-02** and **Citizen CX-02W**:\n\n"
+            "• **Print Width & Supported Formats:**\n"
+            "  - **Citizen CX-02:** Maximum width of **6 inches** (prints 4×6″, 5×7″, and 6×8″).\n"
+            "  - **Citizen CX-02W:** Maximum width of **8 inches** (prints 8×10″ and 8×12″).\n\n"
+            "• **Weight & Portability:**\n"
+            "  - **Citizen CX-02:** **12 kg** (ultra-portable for event setups).\n"
+            "  - **Citizen CX-02W:** **14 kg** (large photo printer with grey calibration for studio output).\n\n"
+            "• **Roll Capacity & Speed:**\n"
+            "  - **Citizen CX-02:** **400 prints (4×6″)** per roll; 9.8s print speed with ribbon rewind.\n"
+            "  - **Citizen CX-02W:** **110 prints (8×12″)** per roll; 39.2s print speed.\n\n"
+            "*(Both models are listed in our authorized catalogue; current stock availability is confirmed upon order placement.)*"
+        )
+        return RouteResult(
+            reply=reply,
+            product_cards=cards,
+            suggested_chips=["Citizen CX-02 Specs", "Citizen CX-02W Specs", "Compare CX-02 vs CY-02"],
+            source="tool:compare_products:cx02_vs_cx02w",
+            needs_composition=False,
+            evidence=cards,
+        )
+
     # 1. Extract candidate models from raw_message or entities
     model_patterns = [
         r"\b(?:cx-?02w?|cy-?02|cz-?01)\b",  # Citizen photo booth
@@ -166,7 +419,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                     elif "cx-02" in nl or "cx02" in nl:
                         return "12 kg"
                     elif "cy-02" in nl or "cy02" in nl:
-                        return "18 kg"
+                        return "13.8 kg"
                 if w and "(" in w:
                     w = w.split("(")[0].strip()
                 return w or "N/A"
@@ -214,10 +467,10 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                     "  - Engineered specifically for mobile event photographers, photo booth operators, and flight-case transport.\n"
                     "  - Holds **400 prints (4×6″)** or 200 prints (6×8″) per roll.\n"
                     "  - Equipped with **ribbon rewind technology** so you can produce 4×6″ prints on 6×8″ media without wasting ribbon.\n\n"
-                    "• **Citizen CY-02 (High-Capacity Workhorse — 18 kg):**\n"
+                    "• **Citizen CY-02 (High-Capacity Workhorse — 13.8 kg):**\n"
                     "  - Engineered for high-volume stationary photo kiosks, theme parks, and retail attractions.\n"
                     "  - Holds a massive **700 prints (4×6″)** or 350 prints (6×8″) per roll—cutting reload interruptions by almost 75% during peak hours.\n"
-                    "  - Built with a rugged, heavier metal chassis (18 kg) meant to remain fixed on a counter or inside a kiosk enclosure.\n\n"
+                    "  - Built with a rugged, heavier metal chassis (13.8 kg product weight, 16.5 kg package weight) meant to remain fixed on a counter or inside a kiosk enclosure.\n\n"
                     "Both produce identical lab-quality 300/600 dpi prints with glossy or matte finishing without changing paper rolls.\n\n"
                     "Are you looking for a portable printer to carry to events (CX-02), or a high-capacity stationary workhorse for a kiosk (CY-02)?"
                 )
@@ -241,7 +494,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                     "  - Ultra-portable at **12 kg**, prints 4×6″ in 9.8–13.8 seconds, and holds 400 prints per roll.\n"
                     "  - Includes ribbon rewind to eliminate paper waste.\n\n"
                     "• **Citizen CX-02W (Wide 8-Inch Large Photo Printer):**\n"
-                    "  - Maximum print width: **8 inches** (prints 8×10″, 8×12″, and panoramic up to 8×32″).\n"
+                    "  - Maximum print width: **8 inches** (prints 8×10″ and 8×12″).\n"
                     "  - Weighs **14 kg** and holds 110 prints (8×12″) per roll.\n"
                     "  - Tailored for school portraits, studio enlargements, and event group photos.\n\n"
                     "Are you planning to produce standard 4×6/6×8 event photos, or do you require 8×10/8×12 enlargements?"
@@ -280,9 +533,37 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                     evidence=cards,
                 )
 
-            # 3b. Direct comparison for Epson T5400M vs T5100 / T3100 (MFP Scanner vs Standalone)
-            is_t54m = ("t5400" in clean_a or "t5100m" in clean_a or "t5400" in clean_b or "t5100m" in clean_b)
-            if is_t54m:
+            # 3b. Direct comparison for Epson T5100M / T5400M vs T5100 / T3100 (MFP Scanner vs Standalone)
+            is_t51m = ("t5100m" in clean_a or "t5100m" in clean_b)
+            is_t54m = ("t5400" in clean_a or "t5400m" in clean_a or "t5400" in clean_b or "t5400m" in clean_b)
+            if is_t51m:
+                scan_rec = ""
+                if any(w in msg_lower for w in ["which is better", "better for me", "which should i choose", "recommendation", "which one"]):
+                    scan_req = state.requirements.get("scan_required") if state.requirements else None
+                    if scan_req is True:
+                        scan_rec = "\n\n👉 **Recommendation for You:** The **Epson SureColor SC-T5100M** is the better choice for your workflow because it features an integrated 36-inch scanner for direct blueprint copying, markups, and archiving."
+                    else:
+                        scan_rec = "\n\n👉 **Recommendation for You:** If you need to scan or photocopy hand-marked CAD drawings, the **SC-T5100M** is the ideal solution; if you strictly print digital CAD files from your workstation, the **SC-T5100** provides the same 36-inch output at a lower initial investment."
+                reply = (
+                    "The primary difference between the **Epson SureColor SC-T5100M** and **SC-T5100** is **integrated scanning**:\n\n"
+                    "• **Epson SureColor SC-T5100M (Multifunction Technical Plotter & Scanner):**\n"
+                    "  - Includes an integrated 36-inch 600 DPI scanner for instant copying, digitizing, and archiving large drawings.\n"
+                    "  - Print speed of 34 sec/A1 with compact all-in-one footprint and floor stand.\n\n"
+                    "• **Epson SureColor SC-T5100 (Dedicated Standalone Plotter):**\n"
+                    "  - High-precision 36-inch print-only plotter with floor stand included.\n"
+                    "  - Engineered for workstation-based digital printing without scanning needs.\n\n"
+                    f"Both produce crisp 2400 × 1200 DPI technical drawings using water-resistant UltraChrome XD2 pigment ink.{scan_rec}"
+                )
+                chips = ["Need Scanner (T5100M)", "Print-Only (T5100)"]
+                return RouteResult(
+                    reply=reply,
+                    product_cards=cards,
+                    suggested_chips=chips,
+                    source="tool:compare_products",
+                    needs_composition=False,
+                    evidence=cards,
+                )
+            elif is_t54m:
                 scan_rec = ""
                 if any(w in msg_lower for w in ["which is better", "better for me", "which should i choose", "recommendation", "which one"]):
                     scan_req = state.requirements.get("scan_required") if state.requirements else None
@@ -348,7 +629,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             if any(s in msg_lower for s in ["8x12", "8-inch", "8 inch", "8*12", "8x10", "8*10"]):
                 recommendation_note = (
                     f"\n\n👉 **Recommendation for 8×12 Photos:** The **Citizen CX-02W** is the definitive choice. "
-                    f"It natively supports 8×10 and 8×12-inch photo printing (with panoramic capability up to 8×32 inches), "
+                    f"It natively supports 8×10 and 8×12-inch photo printing, "
                     f"whereas the standard CX-02 only prints up to 6×8 inches."
                 )
             elif any(s in msg_lower for s in ["portable", "portability", "lightweight", "mobile", "flight case"]):

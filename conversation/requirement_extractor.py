@@ -28,8 +28,10 @@ class RequirementExtractor:
             extracted["print_size"] = "A4"
         elif re.search(r"\b(?:44\s*inch|44\"|44inch|large format production)\b", msg_lower):
             extracted["print_size"] = "44-inch"
-        elif re.search(r"\b(?:4x6|5x7|6x8)\b", msg_lower):
-            extracted["print_size"] = re.search(r"\b(?:4x6|5x7|6x8)\b", msg_lower).group(0)
+        elif re.search(r"\b(?:4x6|5x7|6x8|8x10|8x12|4\s*x\s*6|5\s*x\s*7|6\s*x\s*8|8\s*x\s*10|8\s*x\s*12)\b", msg_lower):
+            raw_sz = re.search(r"\b(?:4x6|5x7|6x8|8x10|8x12|4\s*x\s*6|5\s*x\s*7|6\s*x\s*8|8\s*x\s*10|8\s*x\s*12)\b", msg_lower).group(0)
+            norm_sz = re.sub(r"\s+", "", raw_sz)
+            extracted["print_size"] = f"{norm_sz} inches"
         else:
             # Check for numeric dimensions in cm, meters, or mm
             m_metric = re.search(r"\b(\d+(?:\.\d+)?)\s*(cm|m|meter|metre|metter|mm)\b", msg_lower)
@@ -48,41 +50,12 @@ class RequirementExtractor:
                 elif mm >= 210:
                     extracted["print_size"] = "A4"
 
-        # Contextual relative size mappings (small vs large)
+        # Contextual relative size mappings: Guardrail - NEVER normalize vague terms ("large", "small", etc.) into exact specs
         if not extracted.get("print_size"):
-            brand = (getattr(state, "requirements", {}) or {}).get("brand")
-            if re.search(r"\b(?:small|smaller|compact|mini|cheriya)\b", msg_lower):
-                cat = getattr(state, "category", None)
-                if brand == "Citizen" or "citizen" in msg_lower:
-                    extracted["print_size"] = "4x6 inches"
-                elif cat == "technical_cad":
-                    extracted["print_size"] = "A1"
-                elif cat == "photo_fine_art":
-                    extracted["print_size"] = "A3+"
-                elif cat == "photo_booth":
-                    extracted["print_size"] = "4x6 inches"
-                elif cat == "office_enterprise":
-                    extracted["print_size"] = "A4"
-                elif cat == "scanner":
-                    extracted["document_type"] = "standard_documents"
-                else:
-                    extracted["print_size"] = "A1"
-            elif re.search(r"\b(?:large|larger|big|bigger|huge|wide|large format|large-format|valiya)\b", msg_lower):
-                cat = getattr(state, "category", None)
-                if brand == "Citizen" or "citizen" in msg_lower:
-                    extracted["print_size"] = "8x12 inches"
-                elif cat == "photo_fine_art":
-                    extracted["print_size"] = "24-inch"
-                elif cat == "photo_booth":
-                    extracted["print_size"] = "8x12 inches"
-                elif cat == "technical_cad":
-                    extracted["print_size"] = "A0"
-                elif cat == "office_enterprise":
-                    extracted["print_size"] = "A3"
-                elif cat == "scanner":
-                    extracted["document_type"] = "flatbed_ids"
-                else:
-                    extracted["print_size"] = "A0"
+            vague_size_matches = re.findall(r"\b(?:large|larger|big|bigger|huge|wide|small|smaller|compact|mini|large format|large-format)\b", msg_lower)
+            if vague_size_matches:
+                extracted.setdefault("vague_terms", []).append("size")
+
 
 
         # ── 2. Scanner Requirement Extraction ────────────────────────────────
@@ -109,7 +82,13 @@ class RequirementExtractor:
         # Only extract if awaiting volume or explicitly in volume context
         is_volume_context = (
             state.awaiting_field in ("daily_volume", "print_volume", "volume")
-            or any(vkw in msg_lower for vkw in ["volume", "per day", "a day", "daily", "per month", "monthly", "drawings per", "pages per", "page per", "pages", "page", "workload", "heavy duty", "production volume"])
+            or any(vkw in msg_lower for vkw in [
+                "volume", "per day", "a day", "daily", "per month", "monthly",
+                "drawings per", "pages per", "page per", "pages", "page",
+                "workload", "heavy duty", "production volume",
+                "photos at each event", "photos per event", "at each event", "each event",
+                "per event", "photos at", "prints at", "photos", "prints per", "photos per"
+            ])
         )
         if is_volume_context:
             msg_no_dims = re.sub(r"\b\d+\s*(?:x|\*)\s*\d+\b", "", msg_lower)
@@ -122,34 +101,39 @@ class RequirementExtractor:
                         val = max(1, val // 30)
                     if "drawings per day" in msg_lower or "20 drawings" in msg_lower or "drawings" in msg_lower:
                         extracted["daily_volume"] = "high" if val >= 100 else ("medium" if val >= 20 else "low")
+                    elif any(ekw in msg_lower for ekw in ["event", "photos", "prints"]):
+                        # For events/photos, 400+ requires high-capacity roll units (like CY-02 with 700 prints)
+                        extracted["daily_volume"] = val
+                        extracted["event_volume"] = val
                     else:
                         extracted["daily_volume"] = val
                 except ValueError:
                     pass
 
             if "daily_volume" not in extracted:
-                if any(re.search(rf"\b{re.escape(hv)}\b", msg_lower) for hv in ["high volume", "heavy duty", "50+", "50 drawings", "production volume", "100+", "high", "heavy"]):
-                    extracted["daily_volume"] = "high"
-                elif any(re.search(rf"\b{re.escape(mv)}\b", msg_lower) for mv in ["medium volume", "10-50", "20 drawings", "30 drawings", "moderate", "medium", "standard"]):
-                    extracted["daily_volume"] = "medium"
-                elif any(re.search(rf"\b{re.escape(lv)}\b", msg_lower) for lv in ["low volume", "1-10", "occasional", "few prints", "5 drawings", "rarely", "low", "few"]):
-                    extracted["daily_volume"] = "low"
+                if any(re.search(rf"\b{re.escape(hv)}\b", msg_lower) for hv in ["high volume", "heavy duty", "production volume", "low volume", "moderate volume", "medium volume"]):
+                    extracted.setdefault("vague_terms", []).append("volume")
 
-        # ── 4. Speed Extraction ──────────────────────────────────────────────
-        if any(hs in msg_lower for hs in ["60-100", "high speed", "fast", "100 ppm", "75 ppm", "60 ppm"]):
-            extracted["speed"] = "60-100 ppm"
-        elif any(ms in msg_lower for ms in ["40-55", "40 ppm", "55 ppm", "medium speed", "heat-free"]):
-            extracted["speed"] = "40-55 ppm"
+        # ── 4. Speed Extraction (Exact numbers only; flag vague terms) ───────
+        m_ppm = re.search(r"\b(\d{1,3})\s*ppm\b", msg_lower)
+        if m_ppm:
+            extracted["speed"] = f"{m_ppm.group(1)} ppm"
+        elif any(hs in msg_lower for hs in ["high speed", "fast", "speedy", "quick"]):
+            extracted.setdefault("vague_terms", []).append("speed")
 
-        # ── 5. Application Extraction ────────────────────────────────────────
+        # ── 5. Quality / Vague Professional Flags ────────────────────────────
+        if any(q in msg_lower for q in ["professional", "pro quality"]):
+            extracted.setdefault("vague_terms", []).append("professional")
+
+        # ── 6. Application Extraction ────────────────────────────────────────
         if any(app in msg_lower for app in ["architect", "architecture", "cad", "blueprint", "engineering", "technical drawings"]):
             extracted["application"] = "CAD"
-        elif any(app in msg_lower for app in ["fine art", "photo gallery", "exhibition", "photography"]):
+        elif any(app in msg_lower for app in ["fine art", "photo gallery", "exhibition"]):
             extracted["application"] = "Photo & Fine Art"
-        elif any(app in msg_lower for app in ["photo booth", "events", "party booth"]):
+        elif any(app in msg_lower for app in ["photo booth", "event photo", "events", "party booth"]):
             extracted["application"] = "Photo Booth"
 
-        # ── 6. Brand Extraction ──────────────────────────────────────────────
+        # ── 7. Brand Extraction ──────────────────────────────────────────────
         if re.search(r"\b(?:citizen|cx-?02|cy-?02|cz-?01|op900)\b", msg_lower):
             extracted["brand"] = "Citizen"
         elif re.search(r"\b(?:epson|surecolor|workforce)\b", msg_lower):
@@ -165,11 +149,12 @@ CATEGORY_RULES = {
     ],
     "photo_booth": [
         "photo booth", "event photo", "instant photo",
-        "citizen photo printer", "dye sublimation photo"
+        "citizen photo printer", "dye sublimation photo",
+        "8x12", "8x10"
     ],
     "photo_fine_art": [
         "fine art", "gallery", "exhibition",
-        "professional photography", "p700", "p900",
+        "fine art photography", "gallery proof", "p700", "p900",
         "p7500", "p9500"
     ],
     "office_enterprise": [

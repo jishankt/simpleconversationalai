@@ -37,6 +37,8 @@ from nlp.dialogue_act import (
 from agent.orchestrator import orchestrator as new_orchestrator
 from agent.ai_orchestrator import ai_orchestrator  # Kept for fallback
 from rag.consumables_engine import consumables_engine
+from agents import list_agent_metadata
+from persistence import lead_repository
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("conversational_ai")
@@ -127,7 +129,8 @@ def readiness():
     """Readiness probe — confirms catalog loaded and Ollama is reachable."""
     from catalog.repository import catalog_repository
     catalog_ok = len(catalog_repository.get_all()) > 0
-    ollama_ok = ollama_client.check_health().get("ollama_available", False)
+    health_info = ollama_client.check_health()
+    ollama_ok = bool(health_info.get("online") or health_info.get("model_available"))
     status = "ready" if (catalog_ok and ollama_ok) else "not_ready"
     return jsonify({
         "status": status,
@@ -275,15 +278,19 @@ def chat():
         for r in retrieved_items
     ]
 
+    active_agent = orchestrator_res.get("active_agent")
+
     return jsonify({
         "success": True,
         "session_id": session_id,
         "reply": assistant_reply,
         "source": source,
+        "active_agent": active_agent,
         "suggested_chips": suggested_chips,
         "retrieved_sources": sources_summary,
         "product_cards": product_cards,
         "consumable_cards": consumable_cards,
+        "recommendation_audit": orchestrator_res.get("recommendation_audit"),
         "canonical_state": state.to_dict(),
         "nlp": {
             "raw_input": raw_message,
@@ -301,6 +308,27 @@ def chat():
             "notes": grounding_result.get("notes", [])
         },
         "turns_count": len(history) // 2
+    })
+
+
+@app.route("/api/agents", methods=["GET"])
+def get_agents():
+    """Returns visual and operational metadata for all 4 specialized sub-agents."""
+    return jsonify({
+        "success": True,
+        "agents": list_agent_metadata()
+    })
+
+
+@app.route("/api/leads", methods=["GET"])
+def get_leads():
+    """Admin endpoint to inspect captured commercial sales leads."""
+    limit = int(request.args.get("limit", 50))
+    leads = lead_repository.get_leads(limit=limit)
+    return jsonify({
+        "success": True,
+        "count": len(leads),
+        "leads": leads
     })
 
 

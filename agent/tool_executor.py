@@ -170,12 +170,19 @@ class CatalogToolExecutor:
         }
 
     def _get_product_specs(self, identifier: str) -> Dict[str, Any]:
-        """Finds a product and extracts detailed specs."""
+        """Finds a product and extracts detailed specs with strict identifier matching."""
         from catalog.repository import catalog_repository
-        norm_p = catalog_repository.get_by_id(identifier.lower())
-        if not norm_p:
+        from catalog.product_resolver import resolve_canonical_id, normalize_model_identifier
+        
+        target_id = resolve_canonical_id(identifier) or identifier.lower().strip()
+        norm_p = catalog_repository.get_by_id(target_id)
+        
+        norm_id = normalize_model_identifier(identifier)
+        if not norm_p and norm_id:
             for p in catalog_repository.get_all():
-                if identifier.lower() in p.id.lower() or identifier.lower() in p.name.lower():
+                p_norm_id = normalize_model_identifier(p.id)
+                p_norm_name = normalize_model_identifier(p.name)
+                if norm_id in (p_norm_id, p_norm_name):
                     norm_p = p
                     break
 
@@ -185,11 +192,13 @@ class CatalogToolExecutor:
 
         if not prod:
             prod = rag_retriever.get_by_sku(identifier) or rag_retriever.get_by_name(identifier)
-        if not prod:
-            # Fallback search top match
-            s = rag_retriever.search(identifier, limit=1)
-            if s:
-                prod = s[0]
+        if not prod and norm_id:
+            for p in rag_retriever.products:
+                p_sku_norm = normalize_model_identifier(str(p.get("sku", "")))
+                p_name_norm = normalize_model_identifier(str(p.get("name", "")))
+                if norm_id in (p_sku_norm, p_name_norm):
+                    prod = p
+                    break
 
         if not prod:
             return {"success": False, "error": f"Product '{identifier}' not found in catalog."}

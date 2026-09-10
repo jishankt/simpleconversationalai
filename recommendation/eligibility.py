@@ -21,6 +21,9 @@ class AssessmentResult:
 
 
 class EligibilityEngine:
+    def assess(self, product: NormalizedProduct, requirements: Dict[str, Any]) -> AssessmentResult:
+        return self.assess_product(product, requirements)
+
     def assess_product(self, product: NormalizedProduct, requirements: Dict[str, Any]) -> AssessmentResult:
         """
         Assesses whether a product satisfies all critical customer requirements.
@@ -88,12 +91,12 @@ class EligibilityEngine:
                     rejection_reason = "Product does not support A1 (24-inch) wide-format printing."
             elif req_size in ("A2+", "A2", "17-inch"):
                 if specs.max_width_mm is not None:
-                    if specs.max_width_mm >= 432:
+                    if 400 <= specs.max_width_mm <= 550:
                         matched.append("print_size")
                     else:
                         failed.append("print_size")
                         is_eligible = False
-                        rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A2 (17-inch)."
+                        rejection_reason = f"Product maximum width ({specs.max_width_label or specs.max_width_mm}) does not match the required 17-inch (A2) format."
                 else:
                     matched.append("print_size")
             elif req_size in ("A3+", "A3", "13-inch"):
@@ -117,7 +120,8 @@ class EligibilityEngine:
                 elif specs.max_width_label and "a4" in specs.max_width_label.lower():
                     matched.append("print_size")
                 else:
-                    matched.append("print_size")
+                    failed.append("print_size")
+                    is_eligible = False
             elif any(s in str(req_size).lower() for s in ["8x10", "8x12", "8x10 inches", "8x12 inches", "8 inch", "8-inch"]):
                 if specs.max_width_mm is not None:
                     if specs.max_width_mm >= 203:
@@ -131,13 +135,37 @@ class EligibilityEngine:
                 else:
                     failed.append("print_size")
                     is_eligible = False
+                    rejection_reason = "Product does not support 8x12-inch printing."
             elif any(s in str(req_size).lower() for s in ["4x6", "5x7", "6x8", "4x6 inches", "6x8 inches"]):
                 if "photo" in product.category or "dye_sub" in product.category or (specs.max_width_mm and specs.max_width_mm >= 152):
                     matched.append("print_size")
+                else:
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = "Product does not support standard 4x6 / 6x8 photo sizes."
             elif any(s in str(req_size).lower() for s in ["compact desktop", "compact", "small", "desktop"]):
-                # Compact desktop matches desktop models across photo, booth, CAD
                 if specs.max_width_mm is None or specs.max_width_mm <= 610:
                     matched.append("print_size")
+
+        # ── 1b. Printing Technology Gate (Hard Constraint) ───────────────────
+        req_tech = requirements.get("printing_technology")
+        if req_tech:
+            tech_lower = req_tech.lower()
+            p_tech = (specs.ink_technology or product.technology or "").lower()
+            if "dye_sub" in tech_lower or "dye-sub" in tech_lower or "sublimation" in tech_lower:
+                if "dye" in p_tech or "sublimation" in p_tech or product.category in ("photo_booth", "promotional_dye_sub"):
+                    matched.append("printing_technology")
+                else:
+                    failed.append("printing_technology")
+                    is_eligible = False
+                    rejection_reason = f"Product uses {p_tech or 'inkjet'}, not dye-sublimation technology."
+            elif "inkjet" in tech_lower or "pigment" in tech_lower:
+                if "piezo" in p_tech or "precisioncore" in p_tech or "pigment" in p_tech or "ink" in p_tech or product.category in ("photo_fine_art", "technical_cad", "office_enterprise"):
+                    matched.append("printing_technology")
+                else:
+                    failed.append("printing_technology")
+                    is_eligible = False
+                    rejection_reason = f"Product uses {p_tech or 'thermal transfer'}, not archival pigment inkjet technology."
 
 
 

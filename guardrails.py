@@ -42,13 +42,39 @@ PROHIBITED_OUTPUT_PATTERNS = [
 ]
 
 
+def is_commercial_negated(text: str) -> bool:
+    """Check if the user is explicitly asking to exclude commercial/discount/price discussion."""
+    if not text:
+        return False
+    t_lower = text.lower()
+    neg_patterns = [
+        r"\b(?:without|no|not|excluding|ignore|don't|dont|never|free of)\s+(?:discussing|mentioning|including|talking about|asking for|getting into)?\s*(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?|commercials?)(?:\s*(?:and|or|,)\s*(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?|commercials?))*\b",
+        r"\bdo not (?:mention|discuss|include)\s+(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?)(?:\s*(?:and|or|,)\s*(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?))*\b",
+    ]
+    return any(re.search(p, t_lower) for p in neg_patterns)
+
+
+def strip_negated_commercial(text: str) -> str:
+    """Strips negated commercial phrases from the query to prevent false-positive intercept."""
+    if not text:
+        return ""
+    neg_patterns = [
+        r"\b(?:without|no|not|excluding|ignore|don't|dont|never|free of)\s+(?:discussing|mentioning|including|talking about|asking for|getting into)?\s*(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?|commercials?)(?:\s*(?:and|or|,)\s*(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?|commercials?))*\b",
+        r"\bdo not (?:mention|discuss|include)\s+(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?)(?:\s*(?:and|or|,)\s*(?:prices?|discounts?|costs?|rates?|pricing|quotations?|quotes?))*\b",
+    ]
+    cleaned = text
+    for p in neg_patterns:
+        cleaned = re.sub(p, " ", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
 def check_user_intent_for_pricing_or_discount(user_message: str):
     """
     Checks if the user message asks for discounts, bargaining, or negotiations.
     Strictly returns refusal if detected.
     Direct price queries proceed to the price resolver to return official catalog rates.
     """
-    clean_msg = user_message.lower().strip()
+    clean_msg = strip_negated_commercial(user_message.lower().strip())
 
     for pattern in DISCOUNT_USER_PATTERNS:
         if re.search(pattern, clean_msg):
@@ -71,9 +97,14 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     text = re.sub(r"```[a-zA-Z]*\n?.*?\n?```", "", text, flags=re.DOTALL)
 
-    # Check if user asked for discount or negotiation
-    if any(re.search(p, user_message.lower()) for p in DISCOUNT_USER_PATTERNS):
+    # Check if user asked for discount or negotiation (ignoring negated mentions)
+    clean_user_msg = strip_negated_commercial(user_message.lower().strip())
+    if any(re.search(p, clean_user_msg) for p in DISCOUNT_USER_PATTERNS):
         return DISCOUNT_REFUSAL
+
+    # If user explicitly specified not to discuss price or discounts, scrub any commercial terms
+    if is_commercial_negated(user_message):
+        text = re.sub(r"(?i)[^.!?\n]*\b(?:discount|discounts|pricing policy|zero-discount|quotation|quote|rate|rates|pricing)\b[^.!?\n]*[.!?]?", "", text)
 
     # Check if the model inadvertently asked about budget
     if re.search(r"\b(?:budget|how much are you willing to spend)\b", text, re.IGNORECASE):
@@ -84,13 +115,16 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
             text
         )
 
-    # Check if model inadvertently offered handover
-    if re.search(r"\b(?:human|agent|representative|transfer|escalate)\b", text, re.IGNORECASE):
+    # Check if model inadvertently offered handover, sales representative, or lead capture
+    if re.search(r"\b(?:human|agent|representative|transfer|escalate|lead capture|handover|sales rep)\b", text, re.IGNORECASE):
         text = re.sub(
-            r"(?i)[^.!?]*\b(?:transfer|human|escalat|representative)\b[^.!?]*[.!?]?",
+            r"(?i)[^.!?\n]*\b(?:transfer|human|escalat|representative|sales rep|handover)\b[^.!?\n]*[.!?]?",
             "",
             text
         )
+
+    # Remove internal grounding/audit tags from user-facing responses
+    text = re.sub(r"\s*\[(?:VERIFIED|CONFLICT|INFERRED|CALCULATED)[^\]]*\]", "", text)
 
     # Clean up excess horizontal whitespace while preserving clean paragraph and bullet newlines
     lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.splitlines()]
@@ -100,3 +134,4 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
         return "Could you tell me a little more about the specific requirements you have in mind?"
 
     return text
+

@@ -555,7 +555,7 @@ class OllamaClient:
                 return "The Epson SureColor SC-F100 is an A4 desktop dye-sublimation printer featuring refillable 140ml ink bottles and UltraChrome DS inks, designed for personalized gifts, mugs, and small promotional items. What type of merchandise are you planning to sublimate?"
             if "f500" in customer_msg or "sc-f500" in customer_msg:
                 return "The Epson SureColor SC-F500 is a 24-inch dye-sublimation roll printer using refillable UltraChrome DS ink tanks, ideal for sportswear, soft signage, and apparel printing. Are you printing roll textiles or cut-sheet transfers?"
-            if "cx-02" in customer_msg:
+            if re.search(r"\bcx-?02\b", customer_msg, re.IGNORECASE):
                 return "The Citizen CX-02 weighs 12 kg, produces a 4x6 print in 13.8 seconds, supports both glossy and matte finishes from the same roll, and features ribbon rewind to prevent media waste. Will this printer be integrated into a mobile flight case or a desktop kiosk?"
 
         # Contact / Hours / Location from https://www.keplertechllc.com/
@@ -614,7 +614,7 @@ class OllamaClient:
                 return "For the Epson WorkForce Enterprise AM-C4000, we supply genuine high-yield T08H series ink cartridges (Black, Cyan, Magenta, Yellow) and the C12C937181 maintenance box. Do you require black or color replacement cartridges?"
             if "am-c550" in customer_msg or "c550" in customer_msg or "am-c400" in customer_msg:
                 return "For the Epson WorkForce Enterprise AM-C550 and AM-C400, we supply genuine high-yield ink supplies and the C12C937201 maintenance box. Which items do you need to replenish?"
-            if "cx-02" in customer_msg or "cx02" in customer_msg:
+            if re.search(r"\bcx-?02\b", customer_msg, re.IGNORECASE):
                 return "For the Citizen CX-02 digital photo printer, we supply genuine Citizen CX-02 dye-sub media packs (4x6 and 6x8 paper with matching ribbon rolls) and thermal head cleaning pens. Which print dimensions are you configuring for your setup?"
             if "cy-02" in customer_msg or "cy02" in customer_msg:
                 return "For the Citizen CY-02, we supply genuine CY-MS46 (4x6) and CY-MS68 (6x8) media packs with ribbon and carry bags. What event print sizes are you preparing for?"

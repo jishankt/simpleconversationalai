@@ -81,6 +81,10 @@ class TestGroundedRecommendationEngine(unittest.TestCase):
         self.assertEqual(resolve_canonical_id("Epson T5400"), "epson-t5400m")
         self.assertEqual(resolve_canonical_id("T3100"), "epson-t3100")
         self.assertEqual(resolve_canonical_id("Citizen CX-02"), "citizen-cx-02")
+        self.assertEqual(resolve_canonical_id("Citizen CX-02W"), "citizen-cx-02w")
+        self.assertIsNone(resolve_canonical_id("Citizen CX-02S"))
+        self.assertIsNone(resolve_canonical_id("CX-02-S"))
+        self.assertIsNone(resolve_canonical_id("SC-T3100X"))
         self.assertIsNone(resolve_canonical_id("Epson ABC-99999"))
 
     def test_04_hard_eligibility_contradiction_gate(self):
@@ -138,6 +142,55 @@ class TestGroundedRecommendationEngine(unittest.TestCase):
         ok, msg, _ = output_validator.validate_all(fake_scanner_text, evidence)
         self.assertFalse(ok)
         self.assertIn("claims scanner exists", msg)
+
+    def test_11_unverified_product_not_falsely_fetched(self):
+        """Test that unverified models like CX-02S are rejected and not falsely mapped to CX-02."""
+        from agent.orchestrator import orchestrator as new_orchestrator
+        from domain.conversation_state import ConversationState
+
+        state = ConversationState(session_id="test_unv_suite")
+        res = new_orchestrator.process_turn(
+            raw_message="Give me the specifications of the CX-02S",
+            session_id="test_unv_suite",
+            history=[],
+            state=state,
+            model_name="qwen2.5:32b"
+        )
+        self.assertTrue("catalog" in res["source"] or "route:unverified_product" in res["source"])
+        self.assertIn("CX-02S", res["reply"])
+        self.assertIn("authorized Kepler Tech", res["reply"])
+        self.assertEqual(len(res["product_cards"]), 0)
+
+    def test_12_citizen_product_set_and_cy02_resolution(self):
+        """Test verified product set and CY-02 resolution dual-mode without contradiction."""
+        cx02 = self.repo.get_by_id("citizen-cx-02")
+        cx02w = self.repo.get_by_id("citizen-cx-02w")
+        cy02 = self.repo.get_by_id("citizen-cy-02")
+        cz01 = self.repo.get_by_id("citizen-cz-01")
+
+        self.assertIsNotNone(cx02)
+        self.assertIsNotNone(cx02w)
+        self.assertIsNotNone(cy02)
+        self.assertIsNotNone(cz01)
+
+        # CY-02 resolution dual-mode check: 300 dpi and 600 dpi verified
+        cy02_res = cy02.structured_specs.get("resolution", {}).get("options", [])
+        self.assertIn("300 dpi", cy02_res)
+        self.assertIn("600 dpi", cy02_res)
+
+        # CX-02S must not be in catalog
+        self.assertIsNone(self.repo.get_by_id("citizen-cx-02s"))
+
+    def test_13_no_unsupported_consumable_claims(self):
+        """Test that unsupported consumable claims (core diameter, IC chips, jamming, printhead mismatch) are caught."""
+        unsupported_phrases = [
+            "The ribbon core diameter is different",
+            "This cartridge includes an IC chip to prevent usage",
+            "Using this media will cause mechanical jamming",
+            "There is a severe printhead mismatch between models",
+        ]
+        for phrase in unsupported_phrases:
+            self.assertTrue(output_validator.contains_unsupported_consumable_claim(phrase))
 
 
 if __name__ == "__main__":
