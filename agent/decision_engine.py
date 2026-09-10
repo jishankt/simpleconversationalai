@@ -248,7 +248,7 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             "photo black", "matte black", "light cyan", "light magenta", "vivid magenta"
         ])
     )
-    if is_ink_color_followup:
+    if is_ink_color_followup or state.awaiting_field == "printer_model" or (state.category == "consumable" and state.requested_ink_color):
         is_ink_requested = True
 
     # Distinguish hardware spec questions about ink (e.g. "does it use liquid ink cartridges?")

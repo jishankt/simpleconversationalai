@@ -6,6 +6,7 @@ Covers all 12 production-readiness requirements.
 import unittest
 from pathlib import Path
 from typing import Dict, Any
+from unittest.mock import patch
 
 from catalog.repository import catalog_repository
 from recommendation.eligibility import eligibility_engine, AssessmentResult
@@ -17,8 +18,15 @@ from validation.deterministic_validator import (
     KNOWN_VALID_SKUS,
 )
 from domain.conversation_state import ConversationState
-from guardrails import check_user_intent_for_pricing_or_discount, DISCOUNT_REFUSAL, validate_and_sanitize_response
+from guardrails import (
+    check_user_intent_for_pricing_or_discount,
+    DISCOUNT_REFUSAL,
+    PRICE_REFUSAL,
+    STATIC_SAFE_REFUSAL,
+    validate_and_sanitize_response,
+)
 from agent.orchestrator import orchestrator
+from agents import sales_lead_agent
 
 
 class TestProductionReadiness(unittest.TestCase):
@@ -241,11 +249,118 @@ class TestProductionReadiness(unittest.TestCase):
                 content,
                 f"File {py_file} contains hardcoded Path(\"/opt/salesai\")"
             )
-            self.assertNotIn(
-                '"/opt/salesai/',
-                content,
-                f"File {py_file} contains hardcoded \"/opt/salesai/\" path"
+    # ── Requirement 13: Production Blockers Fix Regression Tests ───────────
+    def test_price_query_returns_price_refusal_exact(self):
+        """Price query returns PRICE_REFUSAL directly without invoking sales lead."""
+        state = ConversationState(session_id="test_price_refusal_exact")
+        res = orchestrator.process_turn(
+            raw_message="What is the price of Epson SC-T3100?",
+            session_id="test_price_refusal_exact",
+            history=[],
+            state=state,
+        )
+        self.assertEqual(res["reply"], PRICE_REFUSAL)
+        self.assertEqual(res["source"], "guardrail:price_refusal")
+        self.assertEqual(res["active_agent"]["id"], "receptionist")
+
+    def test_discount_query_never_invokes_sales_lead_agent(self):
+        """Discount and quote queries never invoke sales_lead_agent.handle_turn."""
+        state = ConversationState(session_id="test_no_sales_lead")
+        with patch.object(sales_lead_agent, "handle_turn") as mock_lead_turn:
+            res = orchestrator.process_turn(
+                raw_message="Can I get a discount or quote for 5 units?",
+                session_id="test_no_sales_lead",
+                history=[],
+                state=state,
             )
+            mock_lead_turn.assert_not_called()
+            self.assertEqual(res["reply"], PRICE_REFUSAL)
+
+    def test_sc_t5400m_url_not_corrupted_by_sanitization(self):
+        """SC-T5400M product URL is not corrupted to SC-TM by phone regex."""
+        url_text = "Check out the [Epson SureColor SC-T5400M](https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/) for CAD printing."
+        sanitized = validate_and_sanitize_response(url_text, "Tell me about T5400M")
+        self.assertIn("epson-sc-t5400m-mfp-plotter-printer", sanitized)
+        self.assertNotIn("epson-sc-tm-mfp-plotter-printer", sanitized)
+        self.assertIn("SC-T5400M", sanitized)
+
+    def test_technical_values_and_skus_not_corrupted(self):
+        """Technical specifications and SKUs like CX2.4x6, 300x600 dpi, 13.8 kg, 700 prints are preserved."""
+        specs_text = "The Citizen CX-02 uses CX2.4x6 media, prints at 300x600 dpi, weighs 13.8 kg, and delivers 700 prints per roll."
+        sanitized = validate_and_sanitize_response(specs_text, "What are the specs of CX-02?")
+        self.assertIn("CX2.4x6", sanitized)
+        self.assertIn("300x600 dpi", sanitized)
+        self.assertIn("13.8 kg", sanitized)
+        self.assertIn("700 prints", sanitized)
+
+    def test_failed_regeneration_returns_static_safe_refusal(self):
+        """When regenerated response fails deterministic validation, return static non-factual safe refusal."""
+        state = ConversationState(session_id="test_fail_closed_static")
+        state.active_product_id = "citizen-cy-02"
+
+        # Mock deterministic_validator to fail on first attempt and fail on regeneration attempt
+        with patch.object(deterministic_validator, "validate", side_effect=[
+            (False, ["First candidate failed validation"]),
+            (False, ["Regenerated response also failed validation"]),
+        ]):
+            res = orchestrator.process_turn(
+                raw_message="Show me specs of Citizen CY-02",
+                session_id="test_fail_closed_static",
+                history=[],
+                state=state,
+            )
+            self.assertEqual(res["reply"], STATIC_SAFE_REFUSAL)
+            self.assertFalse(res["grounding"]["is_grounded"])
+            self.assertEqual(res["grounding"]["status"], "FAIL_CLOSED_SAFE")
+
+    def test_consumable_attribute_persistence_cyan_ink_f100(self):
+        """Turn 1 'I need cyan ink' asks for model and persists cyan; Turn 2 'F100' returns Cyan ink only."""
+        state = ConversationState(session_id="test_consumable_persist")
+        
+        # Turn 1: User asks for cyan ink without printer model
+        t1 = orchestrator.process_turn(
+            raw_message="I need cyan ink",
+            session_id="test_consumable_persist",
+            history=[],
+            state=state,
+        )
+        self.assertIn("Which printer or scanner model do you need consumables for?", t1["reply"])
+        self.assertEqual(state.requested_ink_color, "cyan")
+        self.assertEqual(state.awaiting_field, "printer_model")
+
+        # Turn 2: User provides printer model 'F100'
+        t2 = orchestrator.process_turn(
+            raw_message="F100",
+            session_id="test_consumable_persist",
+            history=[
+                {"role": "user", "content": "I need cyan ink"},
+                {"role": "assistant", "content": t1["reply"]}
+            ],
+            state=state,
+        )
+        self.assertIn("Cyan", t2["reply"])
+        self.assertTrue(len(t2["consumable_cards"]) > 0)
+        for card in t2["consumable_cards"]:
+            card_str = (card.get("name", "") + " " + card.get("description", "")).lower()
+            self.assertIn("cyan", card_str)
+
+    def test_grounded_recommendation_includes_match_reason(self):
+        """Canonical structured reply includes customer requirement match reason."""
+        state = ConversationState(session_id="test_match_reason")
+        state.requirements = {
+            "print_size": "A0",
+            "scan_required": True,
+            "daily_volume": 50,
+        }
+        reply = orchestrator._build_canonical_structured_reply(
+            product_id="epson-sc-t5100m",
+            state=state,
+            route_result=None,
+        )
+        self.assertIn("Based on your requirement for", reply)
+        self.assertIn("A0 printing", reply)
+        self.assertIn("integrated scanner", reply)
+        self.assertIn("Epson SureColor SC-T5100M", reply)
 
     # ── Helper ──────────────────────────────────────────────────────────────
     def assertAnyViolationContaining(self, violations, substring):

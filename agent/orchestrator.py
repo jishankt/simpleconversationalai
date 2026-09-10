@@ -22,7 +22,7 @@ from domain.conversation_types import (
     Intent, LLMUnderstanding, RouteName, RouteResult,
 )
 from domain.conversation_state import ConversationState
-from guardrails import validate_and_sanitize_response
+from guardrails import validate_and_sanitize_response, PRICE_REFUSAL, STATIC_SAFE_REFUSAL
 from nlp.grounding_validator import validate_grounding
 from validation.deterministic_validator import deterministic_validator, VERIFIED_METRICS
 from ollama_client import OllamaClient
@@ -79,19 +79,12 @@ class Orchestrator:
             nlp_result["intent"] = intercept_result.intent or ""
             source = "guardrail_rule" if intercept_result.intent in ("price_inquiry", "discount_inquiry") else f"interceptor:{intercept_result.intent}"
             
-            # Map intercepted turn to active specialist agent
+            # Map intercepted turn
             if intercept_result.intent in ("price_inquiry", "discount_inquiry", "quote", "commercial"):
-                active_agent = sales_lead_agent
-                lead_res = sales_lead_agent.handle_turn(
-                    raw_message=raw_message,
-                    normalized_message=normalized_msg,
-                    understanding=None,
-                    state=state,
-                    session_id=session_id,
-                )
-                reply_text = lead_res.reply
-                chips_to_return = lead_res.suggested_chips
-                source = lead_res.source
+                active_agent = receptionist_agent
+                reply_text = PRICE_REFUSAL
+                chips_to_return = []
+                source = "guardrail:price_refusal"
             else:
                 active_agent = receptionist_agent
                 reply_text = intercept_result.response
@@ -343,17 +336,14 @@ class Orchestrator:
         state.last_intent = intent_val
 
         # ── 5. Specialist Agent Routing & Execution ─────────────────────
-        # Check if customer submitted commercial contact details (email / phone)
-        contacts = sales_lead_agent.extract_contact_info(raw_message)
-        
-        if contacts["email"] or contacts["phone"]:
-            active_agent = sales_lead_agent
-            route_result = sales_lead_agent.handle_turn(
+        if state.awaiting_field == "printer_model" and (understanding.entities.get("model_code") or normalized_msg):
+            active_agent = product_catalog_agent
+            route_result = product_catalog_agent.handle_turn(
                 raw_message=raw_message,
                 normalized_message=normalized_msg,
                 understanding=understanding,
                 state=state,
-                session_id=session_id,
+                route=RouteName.CONSUMABLES,
             )
         elif decision.route in (RouteName.PRODUCT, RouteName.QUALIFICATION, RouteName.CONSUMABLES):
             active_agent = product_catalog_agent
@@ -373,14 +363,13 @@ class Orchestrator:
                 state=state,
                 route=decision.route,
             )
-        elif decision.route == RouteName.GUARDRAIL or getattr(understanding.intent, 'value', str(understanding.intent)) in ("price_inquiry", "discount_inquiry"):
-            active_agent = sales_lead_agent
-            route_result = sales_lead_agent.handle_turn(
-                raw_message=raw_message,
-                normalized_message=normalized_msg,
-                understanding=understanding,
-                state=state,
-                session_id=session_id,
+        elif decision.route == RouteName.GUARDRAIL or getattr(understanding.intent, 'value', str(understanding.intent)) in ("price_inquiry", "discount_inquiry", "quote", "commercial"):
+            active_agent = receptionist_agent
+            route_result = RouteResult(
+                reply=PRICE_REFUSAL,
+                suggested_chips=[],
+                source="guardrail:price_refusal",
+                needs_composition=False,
             )
         else:
             # RouteName.SOCIAL, RouteName.BUSINESS_INFO, RouteName.CLARIFICATION, RouteName.CONVERSATION_HELP
@@ -462,10 +451,9 @@ class Orchestrator:
                 grounding_result["is_grounded"] = True
                 grounding_result["status"] = "REGENERATED_CANONICAL"
             else:
-                # FAIL CLOSED: Return safe response containing ONLY directly retrieved catalogue fields
+                # FAIL CLOSED: Return static non-factual safe refusal (never return unvalidated product card)
                 logger.error(f"Deterministic validation failed after regeneration: {regen_violations}. FAILING CLOSED.")
-                safe_reply = self._build_canonical_structured_reply(active_pid, state, route_result)
-                current_reply = safe_reply
+                current_reply = STATIC_SAFE_REFUSAL
                 grounding_result["sanitized_response"] = current_reply
                 grounding_result["is_grounded"] = False
                 grounding_result["status"] = "FAIL_CLOSED_SAFE"
@@ -515,11 +503,33 @@ class Orchestrator:
 
         specs = prod.verified
         p_url = prod.product_url or prod.source.website_url or f"https://www.keplertechllc.com/product/{prod.id}/"
-        lines = [
+        lines = []
+
+        # Retain customer context / match reason if requirements or category exist in state
+        req_parts = []
+        reqs = state.requirements or {}
+        if reqs.get("print_size"):
+            req_parts.append(f"{reqs['print_size']} printing")
+        if reqs.get("scan_required"):
+            req_parts.append("integrated scanner")
+        if reqs.get("daily_volume"):
+            req_parts.append(f"{reqs['daily_volume']} prints/day")
+        if reqs.get("speed"):
+            req_parts.append(f"{reqs['speed']} speed")
+        if reqs.get("workload"):
+            req_parts.append(f"{reqs['workload']} volume")
+
+        if req_parts:
+            lines.append(f"Based on your requirement for {', '.join(req_parts)}, here is the recommended equipment from our verified catalogue:\n")
+        elif state.category:
+            cat_display = state.category.replace('_', ' ').title()
+            lines.append(f"Here are the verified technical specifications for your {cat_display} requirement:\n")
+
+        lines.extend([
             f"**[{prod.display_name}]({p_url})**\n",
             f"- **Model**: {prod.display_name}",
             f"- **SKU**: {prod.sku}",
-        ]
+        ])
         if specs and specs.ink_technology:
             lines.append(f"- **Printing Technology**: {specs.ink_technology}")
         elif prod.category:

@@ -40,6 +40,12 @@ PROHIBITED_OUTPUT_PATTERNS = [
 ]
 
 
+STATIC_SAFE_REFUSAL = (
+    "I am unable to verify the requested product details against our official catalogue. "
+    "Please specify a verified product model or tell me your technical requirements."
+)
+
+
 def is_commercial_negated(text: str) -> bool:
     """Check if the user is explicitly asking to exclude commercial/discount/price discussion."""
     if not text:
@@ -85,6 +91,7 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
     """
     Validates model output against the strict commercial rules and output guidelines.
     Guarantees no discounts, no negotiations, and no budget queries.
+    Never modifies text inside product URLs, model names, SKUs, or technical specifications.
     """
     if not response_text:
         return "I am here to help. Could you tell me what type of product or service you're looking for?"
@@ -97,7 +104,7 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
 
     # Check if user asked for discount or negotiation (ignoring negated mentions)
     clean_user_msg = strip_negated_commercial(user_message.lower().strip())
-    if any(re.search(p, clean_user_msg) for p in DISCOUNT_USER_PATTERNS):
+    if any(re.search(p, clean_user_msg) for p in DISCOUNT_USER_PATTERNS + PRICE_USER_PATTERNS):
         return DISCOUNT_REFUSAL
 
     # If user explicitly specified not to discuss price or discounts, scrub any commercial terms
@@ -121,9 +128,14 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
             text
         )
 
-    # Scrub sales email addresses and phone numbers globally
-    text = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "", text)
-    text = re.sub(r"\+?\d{1,4}[-.\s]?\(?\d{1,3}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}", "", text)
+    # Scrub contact information ONLY from explicit contact sentences or raw email addresses
+    # Never use broad digit regexes that corrupt technical model names, SKUs, dimensions, or URLs
+    text = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "", text)
+    text = re.sub(
+        r"(?i)[^.!?\n]*\b(?:call|phone|whatsapp|tel|reach us|contact us|contact sales|sales team|email us)\b[^.!?\n]*[.!?]?",
+        "",
+        text
+    )
 
     # Remove internal grounding/audit tags from user-facing responses
     text = re.sub(r"\s*\[(?:VERIFIED|CONFLICT|INFERRED|CALCULATED)[^\]]*\]", "", text)
