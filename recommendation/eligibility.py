@@ -65,93 +65,96 @@ class EligibilityEngine:
                 elif mm >= 210:
                     req_size = "A4"
 
-            if req_size in ("A0", "36-inch"):
-                if specs.max_width_mm is not None:
-                    if specs.max_width_mm >= 914:
-                        matched.append("print_size")
+            supported_sizes = set(
+                (product.supported_print_sizes or (specs.supported_print_sizes if specs else []) or [])
+            )
+            supported_sizes_lower = {str(s).strip().lower().replace("×", "x").replace('"', '').replace("inches", "").replace("inch", "").strip() for s in supported_sizes}
+
+            # Check for photo dimension patterns (e.g. 4x6, 6x8, 5x7, 6x9, 8x10, 8x12, 4.5x8)
+            photo_matches = re.findall(r"\b(\d+(?:\.\d+)?)\s*(?:x|×)\s*(\d+(?:\.\d+)?)\b", str(req_size).lower())
+            if photo_matches:
+                all_matched = True
+                failed_sizes = []
+                p_tech = ((specs.ink_technology if specs else None) or getattr(product, "technology", None) or "").lower()
+                is_dye_sub = "dye" in p_tech or "sublimation" in p_tech or product.category in ("photo_booth", "promotional_dye_sub") or "citizen" in product.id.lower()
+
+                for w_str, h_str in photo_matches:
+                    target_pair1 = f"{w_str}x{h_str}".replace(" ", "")
+                    target_pair2 = f"{h_str}x{w_str}".replace(" ", "")
+                    
+                    if target_pair1 in supported_sizes_lower or target_pair2 in supported_sizes_lower:
+                        continue
+                    
+                    # Width alone must NEVER prove dye-sub media compatibility
+                    if is_dye_sub:
+                        all_matched = False
+                        failed_sizes.append(target_pair1)
                     else:
-                        failed.append("print_size")
-                        is_eligible = False
-                        rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A0 (36-inch)."
+                        # Non-dye-sub printers with no explicit photo media specs: check width
+                        w_val = float(w_str)
+                        h_val = float(h_str)
+                        min_dim_mm = min(w_val, h_val) * 25.4
+                        if specs.max_width_mm is not None and specs.max_width_mm >= min_dim_mm:
+                            continue
+                        all_matched = False
+                        failed_sizes.append(target_pair1)
+
+                if all_matched:
+                    matched.append("print_size")
                 else:
                     failed.append("print_size")
                     is_eligible = False
-                    rejection_reason = "Product does not support A0 (36-inch) wide-format printing."
+                    rejection_reason = f"Product does not support required photo print size(s): {', '.join(failed_sizes)}."
+
+            elif req_size in ("A0", "36-inch"):
+                if "a0" in supported_sizes_lower or "36-inch" in supported_sizes_lower or (specs.max_width_mm is not None and specs.max_width_mm >= 914):
+                    matched.append("print_size")
+                else:
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A0 (36-inch)."
             elif req_size in ("A1", "24-inch"):
-                if specs.max_width_mm is not None:
-                    if specs.max_width_mm >= 610:
-                        matched.append("print_size")
-                    else:
-                        failed.append("print_size")
-                        is_eligible = False
-                        rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A1 (24-inch)."
+                if "a1" in supported_sizes_lower or "24-inch" in supported_sizes_lower or (specs.max_width_mm is not None and specs.max_width_mm >= 610):
+                    matched.append("print_size")
                 else:
                     failed.append("print_size")
                     is_eligible = False
-                    rejection_reason = "Product does not support A1 (24-inch) wide-format printing."
+                    rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A1 (24-inch)."
             elif req_size in ("A2+", "A2", "17-inch"):
-                if specs.max_width_mm is not None:
-                    if 400 <= specs.max_width_mm <= 550:
-                        matched.append("print_size")
-                    else:
-                        failed.append("print_size")
-                        is_eligible = False
-                        rejection_reason = f"Product maximum width ({specs.max_width_label or specs.max_width_mm}) does not match the required 17-inch (A2) format."
-                else:
+                # A2 is 420mm (17 inches). Wide format roll/sheet printers with width >= 420mm support A2.
+                if "a2" in supported_sizes_lower or "17-inch" in supported_sizes_lower or (specs.max_width_mm is not None and specs.max_width_mm >= 420):
                     matched.append("print_size")
+                else:
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = f"Product maximum width ({specs.max_width_label or specs.max_width_mm}) does not support A2 (17-inch) prints."
             elif req_size in ("A3+", "A3", "13-inch"):
-                if specs.max_width_mm is not None:
-                    if specs.max_width_mm >= 329:
-                        matched.append("print_size")
-                    else:
-                        failed.append("print_size")
-                        is_eligible = False
-                        rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A3 (13-inch)."
-                else:
+                if "a3" in supported_sizes_lower or "a3+" in supported_sizes_lower or "13-inch" in supported_sizes_lower or (specs.max_width_mm is not None and specs.max_width_mm >= 329):
                     matched.append("print_size")
+                else:
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A3 (13-inch)."
             elif req_size in ("A4", "A4 Desktop", "a4"):
-                if specs.max_width_mm is not None:
-                    if specs.max_width_mm >= 210:
-                        matched.append("print_size")
-                    else:
-                        failed.append("print_size")
-                        is_eligible = False
-                        rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A4."
-                elif specs.max_width_label and "a4" in specs.max_width_label.lower():
+                if "a4" in supported_sizes_lower or (specs.max_width_mm is not None and specs.max_width_mm >= 210) or (specs.max_width_label and "a4" in specs.max_width_label.lower()):
                     matched.append("print_size")
                 else:
                     failed.append("print_size")
                     is_eligible = False
-            elif any(s in str(req_size).lower() for s in ["8x10", "8x12", "8x10 inches", "8x12 inches", "8 inch", "8-inch"]):
-                if specs.max_width_mm is not None:
-                    if specs.max_width_mm >= 203:
-                        matched.append("print_size")
-                    else:
-                        failed.append("print_size")
-                        is_eligible = False
-                        rejection_reason = f"Product maximum width ({specs.max_width_label or specs.max_width_mm}) cannot print 8x12-inch photos."
-                elif specs.max_width_label and ("8x12" in specs.max_width_label or "8x10" in specs.max_width_label):
-                    matched.append("print_size")
-                else:
-                    failed.append("print_size")
-                    is_eligible = False
-                    rejection_reason = "Product does not support 8x12-inch printing."
-            elif any(s in str(req_size).lower() for s in ["4x6", "5x7", "6x8", "4x6 inches", "6x8 inches"]):
-                if "photo" in product.category or "dye_sub" in product.category or (specs.max_width_mm and specs.max_width_mm >= 152):
-                    matched.append("print_size")
-                else:
-                    failed.append("print_size")
-                    is_eligible = False
-                    rejection_reason = "Product does not support standard 4x6 / 6x8 photo sizes."
+                    rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A4."
             elif any(s in str(req_size).lower() for s in ["compact desktop", "compact", "small", "desktop"]):
                 if specs.max_width_mm is None or specs.max_width_mm <= 610:
                     matched.append("print_size")
+                else:
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = "Product is a floor-standing or wide-format unit, not a compact desktop."
 
         # ── 1b. Printing Technology Gate (Hard Constraint) ───────────────────
         req_tech = requirements.get("printing_technology")
         if req_tech:
             tech_lower = req_tech.lower()
-            p_tech = (specs.ink_technology or product.technology or "").lower()
+            p_tech = ((specs.ink_technology if specs else None) or getattr(product, "technology", None) or "").lower()
             if "dye_sub" in tech_lower or "dye-sub" in tech_lower or "sublimation" in tech_lower:
                 if "dye" in p_tech or "sublimation" in p_tech or product.category in ("photo_booth", "promotional_dye_sub"):
                     matched.append("printing_technology")

@@ -304,7 +304,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     if not all_consumables:
         return RouteResult(
-            reply=f"I could not locate verified consumables for '{target}' in our catalog. Please contact sales@keplertech.ae for specialty sourcing.",
+            reply=f"I could not locate verified consumables for '{target}' in our approved catalogue. What printer model or media size are you looking to supply?",
             source="tool:get_compatible_consumables",
         )
 

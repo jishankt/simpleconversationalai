@@ -63,17 +63,21 @@ class ConversationState:
             "last_assistant_response": self.last_assistant_response,
             "pending_question": self.pending_question,
             "pending_field": self.pending_field,
+            "interrupted_field": self.interrupted_field,
             "frustrated": self.frustration_count,
+            "frustration_count": self.frustration_count,
             # Product
             "category": self.category,
             "requirements": self.requirements,
             "active_product": self.active_product,
             "active_product_id": self.active_product_id,
             "candidate_products": self.candidate_products,
+            "compared_product_ids": self.compared_product_ids,
             "active_printer_for_consumables": self.active_printer_for_consumables,
             "requested_ink_color": self.requested_ink_color,
             # Operational
             "awaiting_field": self.awaiting_field,
+            "history_turns": self.history_turns,
             "turn_count": self.turn_count or len(self.history_turns),
             "state_version": self.state_version,
         }
@@ -94,6 +98,7 @@ class ConversationState:
             last_assistant_response=data.get("last_assistant_response"),
             pending_question=data.get("pending_question"),
             pending_field=data.get("pending_field"),
+            interrupted_field=data.get("interrupted_field"),
             frustration_count=data.get("frustrated", data.get("frustration_count", 0)),
             # Product
             category=data.get("category"),
@@ -101,6 +106,7 @@ class ConversationState:
             active_product=data.get("active_product"),
             active_product_id=data.get("active_product_id"),
             candidate_products=data.get("candidate_products", []),
+            compared_product_ids=data.get("compared_product_ids", []),
             active_printer_for_consumables=data.get("active_printer_for_consumables"),
             requested_ink_color=data.get("requested_ink_color"),
             # Operational

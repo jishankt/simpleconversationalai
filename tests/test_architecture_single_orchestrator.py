@@ -12,7 +12,8 @@ class TestArchitectureSingleOrchestrator(unittest.TestCase):
     def test_primary_orchestrator_is_canonical(self):
         """Ensure app.py uses agent.orchestrator as the primary orchestrator, not ai_orchestrator."""
         import ast, pathlib
-        app_source = pathlib.Path("/opt/salesai/app.py").read_text()
+        repo_root = pathlib.Path(__file__).resolve().parent.parent
+        app_source = (repo_root / "app.py").read_text()
         tree = ast.parse(app_source)
         # The new_orchestrator.process_turn call must reference agent.orchestrator, not ai_orchestrator
         self.assertIn("from agent.orchestrator import orchestrator as new_orchestrator", app_source,

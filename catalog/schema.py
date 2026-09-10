@@ -28,6 +28,7 @@ class VerifiedSpecs:
     weight: Optional[str] = None
     warranty: Optional[str] = None
     duplex: Optional[bool] = None
+    supported_print_sizes: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -47,6 +48,7 @@ class VerifiedSpecs:
             "weight": self.weight,
             "warranty": self.warranty,
             "duplex": self.duplex,
+            "supported_print_sizes": list(self.supported_print_sizes),
         }
 
 
@@ -90,6 +92,7 @@ class NormalizedProduct:
     tags: List[str] = field(default_factory=list)
     consumables: List[str] = field(default_factory=list)
     comparison_highlights: Optional[str] = None
+    supported_print_sizes: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         img = self.image_url or "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
@@ -97,6 +100,7 @@ class NormalizedProduct:
         real_sku = self.sku or self.id
         price_str = f"AED {self.price:,.2f}" if (self.price is not None and self.price > 0) else "Price on Request"
         vat_note = "(Excl. VAT)" if (self.price is not None and self.price > 0) else ""
+        sizes = self.supported_print_sizes or self.verified.supported_print_sizes or []
         return {
             "id": self.id,
             "canonical_id": self.canonical_id or self.id,
@@ -131,6 +135,7 @@ class NormalizedProduct:
             "tags": list(self.tags),
             "consumables": list(self.consumables),
             "comparison_highlights": self.comparison_highlights,
+            "supported_print_sizes": list(sizes),
             "width": self.verified.max_width_label,
             "print_sizes": self.verified.max_width_label,
             "speed": getattr(self.verified, "speed", None),

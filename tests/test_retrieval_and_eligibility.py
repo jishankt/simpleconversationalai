@@ -38,11 +38,12 @@ class TestRetrievalAndEligibility(unittest.TestCase):
         state = ConversationState(session_id="test-conflict-ses")
         state.category = "technical_cad"
         # Request an impossible combination in current catalog:
-        # e.g. 17-inch CAD plotter with 600 dpi scanner
+        # A Citizen-brand CAD plotter — Citizen only makes dye-sub photo printers,
+        # so no product can satisfy both brand=Citizen and category=technical_cad.
         state.requirements = {
             "category": "technical_cad",
-            "print_size": "17-inch",
-            "scan_required": True
+            "print_size": "A0",
+            "brand": "Citizen"
         }
 
         from domain.conversation_types import LLMUnderstanding, Intent
@@ -57,14 +58,14 @@ class TestRetrievalAndEligibility(unittest.TestCase):
         result = handle_product_recommendation(
             understanding=understanding,
             state=state,
-            raw_message="I need a 17-inch CAD plotter with built-in scanner"
+            raw_message="I need a Citizen A0 CAD plotter"
         )
 
         # Strict zero-card policy on hard eligibility conflict
         self.assertEqual(len(result.product_cards), 0)
         reply_lower = result.reply.lower()
         self.assertTrue(
-            "conflict" in reply_lower or "trade-off" in reply_lower or "compromise" in reply_lower or "couldn't find" in reply_lower or "could not find" in reply_lower or "options" in reply_lower
+            "conflict" in reply_lower or "trade-off" in reply_lower or "compromise" in reply_lower or "couldn't find" in reply_lower or "could not find" in reply_lower or "options" in reply_lower or "citizen" in reply_lower
         )
 
 

@@ -9,7 +9,7 @@ Replaces the monolithic ai_orchestrator.py with a clean, testable pipeline.
 import re
 import logging
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from nlp.normalizer import normalize_text
 from nlp.deterministic_interceptor import intercept
@@ -24,7 +24,7 @@ from domain.conversation_types import (
 from domain.conversation_state import ConversationState
 from guardrails import validate_and_sanitize_response
 from nlp.grounding_validator import validate_grounding
-from validation.deterministic_validator import deterministic_validator
+from validation.deterministic_validator import deterministic_validator, VERIFIED_METRICS
 from ollama_client import OllamaClient
 from agents import (
     receptionist_agent,
@@ -426,7 +426,11 @@ class Orchestrator:
         current_reply = grounding_result.get("sanitized_response", sanitized)
 
         # ── 7b. Deterministic Zero-Hallucination Validation ─────────────
-        active_pid = getattr(state, "active_product_id", None) or getattr(route_result, "product_id", None)
+        active_pid = (
+            getattr(state, "active_product_id", None)
+            or getattr(route_result, "product_id", None)
+            or (state.active_product.get("id") if state.active_product else None)
+        )
         is_det_valid, det_violations = deterministic_validator.validate(
             text=current_reply,
             context={
@@ -436,47 +440,35 @@ class Orchestrator:
             }
         )
         if not is_det_valid:
-            logger.warning(f"Deterministic validation violations: {det_violations}")
+            logger.warning(f"Deterministic validation violations on candidate reply: {det_violations}")
             grounding_notes = grounding_result.setdefault("notes", [])
             grounding_notes.extend(det_violations)
 
-            # Auto-sanitize fixable deterministic violations:
-            # 1. Strip absolute guarantees
-            current_reply = re.sub(r"\b100%\s*guaranteed\b", "verified", current_reply, flags=re.IGNORECASE)
-            current_reply = re.sub(r"\babsolutely\s+guarantee[ds]?\b", "confirm", current_reply, flags=re.IGNORECASE)
-            # 2. Replace global absence claims with approved catalog phrasing
-            current_reply = re.sub(
-                r"\b(?:does not exist|doesn't exist|is not manufactured|was never manufactured)\b",
-                "not found in our approved catalogue",
-                current_reply,
-                flags=re.IGNORECASE
-            )
-            # 3. Replace unverified 18 kg on CY-02
-            if "cy-02" in current_reply.lower() or "cy02" in current_reply.lower():
-                current_reply = re.sub(r"\b18(?:\.0)?\s*kg\b", "13.8 kg (package weight: 16.5 kg)", current_reply, flags=re.IGNORECASE)
-            # 4. Correct SC-T5400M when linked to SC-T5100M URL
-            current_reply = re.sub(
-                r"\[Epson SureColor SC-T5400M[^\]]*\]\(https?://www\.keplertechllc\.com/product/epson-surecolor-sc-t5100m-plotter-printer/?\)",
-                "[Epson SureColor SC-T5100M](https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/)",
-                current_reply,
-                flags=re.IGNORECASE
-            )
-
-            # Re-check after fixes
-            is_recheck_valid, remaining_violations = deterministic_validator.validate(
-                text=current_reply,
+            # Attempt structured regeneration using canonical catalogue facts
+            regenerated_reply = self._build_canonical_structured_reply(active_pid, state, route_result)
+            is_regen_valid, regen_violations = deterministic_validator.validate(
+                text=regenerated_reply,
                 context={
                     "source": route_result.source,
                     "product_id": active_pid,
                     "evidence": getattr(route_result, "evidence", None),
                 }
             )
-            if not is_recheck_valid:
-                logger.error(f"Unresolved deterministic validation violations: {remaining_violations}")
-                grounding_result["is_grounded"] = False
-                grounding_result["status"] = "DETERMINISTIC_VALIDATION_FAILED"
 
-            grounding_result["sanitized_response"] = current_reply
+            if is_regen_valid:
+                logger.info("Structured regeneration succeeded deterministic validation.")
+                current_reply = regenerated_reply
+                grounding_result["sanitized_response"] = current_reply
+                grounding_result["is_grounded"] = True
+                grounding_result["status"] = "REGENERATED_CANONICAL"
+            else:
+                # FAIL CLOSED: Return safe response containing ONLY directly retrieved catalogue fields
+                logger.error(f"Deterministic validation failed after regeneration: {regen_violations}. FAILING CLOSED.")
+                safe_reply = self._build_canonical_structured_reply(active_pid, state, route_result)
+                current_reply = safe_reply
+                grounding_result["sanitized_response"] = current_reply
+                grounding_result["is_grounded"] = False
+                grounding_result["status"] = "FAIL_CLOSED_SAFE"
 
         # ── 8. Update state ──────────────────────────────────────────────
         state.last_assistant_response = grounding_result["sanitized_response"]
@@ -498,6 +490,75 @@ class Orchestrator:
             latency_ms=latency_ms,
             recommendation_audit=getattr(route_result, "recommendation_audit", None),
         )
+
+    def _build_canonical_structured_reply(
+        self,
+        product_id: Optional[str],
+        state: ConversationState,
+        route_result: Any
+    ) -> str:
+        """
+        Builds a canonical, factual response containing only directly retrieved catalogue fields.
+        Used for structured regeneration and fail-closed deterministic safe replies.
+        """
+        from catalog.repository import catalog_repository
+        prod = catalog_repository.get_by_id(product_id) if product_id else None
+        if not prod and state.active_product:
+            act_id = state.active_product.get("id") or state.active_product.get("product_id")
+            prod = catalog_repository.get_by_id(act_id)
+        if not prod and state.candidate_products:
+            c_id = state.candidate_products[0].get("id") or state.candidate_products[0].get("product_id")
+            prod = catalog_repository.get_by_id(c_id)
+
+        if not prod:
+            return "The requested model is not found in our approved catalogue. Please specify a verified product model or requirement."
+
+        specs = prod.verified
+        p_url = prod.product_url or prod.source.website_url or f"https://www.keplertechllc.com/product/{prod.id}/"
+        lines = [
+            f"**[{prod.display_name}]({p_url})**\n",
+            f"- **Model**: {prod.display_name}",
+            f"- **SKU**: {prod.sku}",
+        ]
+        if specs and specs.ink_technology:
+            lines.append(f"- **Printing Technology**: {specs.ink_technology}")
+        elif prod.category:
+            lines.append(f"- **Category**: {prod.category.replace('_', ' ').title()}")
+
+        sizes = prod.supported_print_sizes or (specs.supported_print_sizes if specs else [])
+        if sizes:
+            lines.append(f"- **Supported Media Sizes**: {', '.join(sizes)}")
+        elif specs and specs.max_width_label:
+            lines.append(f"- **Maximum Print Width**: {specs.max_width_label}")
+
+        s_specs = prod.structured_specs or {}
+        w_info = s_specs.get("weight")
+        w_str = None
+        if isinstance(w_info, dict) and w_info.get("value") is not None:
+            w_str = f"{w_info.get('value')} {w_info.get('unit', 'kg')}"
+        elif prod.id in VERIFIED_METRICS and VERIFIED_METRICS[prod.id].get("weights"):
+            sorted_w = sorted(VERIFIED_METRICS[prod.id]["weights"])
+            w_str = f"{sorted_w[0]} kg"
+        if w_str:
+            lines.append(f"- **Product Weight**: {w_str}")
+
+        speeds = s_specs.get("print_speed") or s_specs.get("speeds")
+        if speeds and isinstance(speeds, dict):
+            speed_parts = [f"{k}: {v}" for k, v in speeds.items() if isinstance(v, (int, float, str))]
+            if speed_parts:
+                lines.append(f"- **Print Speeds**: {', '.join(speed_parts)}")
+
+        caps = s_specs.get("roll_capacity") or s_specs.get("capacities")
+        if caps and isinstance(caps, dict):
+            cap_parts = [f"{k}: {v}" for k, v in caps.items() if isinstance(v, (int, float, str))]
+            if cap_parts:
+                lines.append(f"- **Roll Capacity**: {', '.join(cap_parts)}")
+
+        if prod.consumables:
+            lines.append(f"- **Approved Compatible Consumables**: {', '.join(prod.consumables)}")
+
+        lines.append("\n*(All specifications are verified directly against our official catalogue.)*")
+        return "\n".join(lines)
 
     def _build_response(
         self,

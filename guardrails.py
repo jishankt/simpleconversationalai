@@ -7,19 +7,17 @@ and strictly enforces standard refusal phrases.
 import re
 
 # Exact refusal templates defined in the system prompt
-# Strict zero discount and zero negotiation refusal template
+# Strict zero discount, zero pricing and product-finding-only global policy
 DISCOUNT_REFUSAL = (
-    "All listed prices are official standard partner rates. We do not offer direct discounts "
-    "or price negotiations through this chat. For enterprise volume orders, project tenders, "
-    "or customized corporate quotations, please contact our commercial sales team directly at "
-    "sales@keplertech.ae or +971 4 323 1008."
+    "Pricing, commercial discounts, and quotations are not provided through this chat assistant. "
+    "I am here to help you identify the right equipment and verified technical specifications from our authorized catalogue."
 )
-PRICE_REFUSAL = DISCOUNT_REFUSAL  # In case legacy callers reference it
+PRICE_REFUSAL = DISCOUNT_REFUSAL
 
 PRICE_USER_PATTERNS = [
-    r"\b(?:how much|price|pricing|cost|costs|rate|quotation|quote|charge|charges|fee|fees|expensive|cheap|affordable)\b",
+    r"\b(?:how much|prices?|pricing|costs?|rates?|commercial rates?|quotations?|quotes?|charges?|fees?|expensive|cheap|affordable)\b",
     r"[$₹€£]\s*\d+",
-    r"\b\d+\s*(?:dollars|bucks|rupees|inr|usd|eur|cents)\b",
+    r"\b\d+\s*(?:dollars|bucks|rupees|inr|usd|eur|cents|aed)\b",
     r"\bwhat is the price\b",
     r"\bwhat does it cost\b",
 ]
@@ -70,13 +68,13 @@ def strip_negated_commercial(text: str) -> str:
 
 def check_user_intent_for_pricing_or_discount(user_message: str):
     """
-    Checks if the user message asks for discounts, bargaining, or negotiations.
-    Strictly returns refusal if detected.
-    Direct price queries proceed to the price resolver to return official catalog rates.
+    Checks if the user message asks for discounts, bargaining, negotiations, or pricing.
+    Strictly enforces the product-finding-only global policy: zero prices, zero discounts,
+    zero quotations, zero sales contact.
     """
     clean_msg = strip_negated_commercial(user_message.lower().strip())
 
-    for pattern in DISCOUNT_USER_PATTERNS:
+    for pattern in DISCOUNT_USER_PATTERNS + PRICE_USER_PATTERNS:
         if re.search(pattern, clean_msg):
             return DISCOUNT_REFUSAL
 
@@ -122,6 +120,10 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
             "",
             text
         )
+
+    # Scrub sales email addresses and phone numbers globally
+    text = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "", text)
+    text = re.sub(r"\+?\d{1,4}[-.\s]?\(?\d{1,3}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}", "", text)
 
     # Remove internal grounding/audit tags from user-facing responses
     text = re.sub(r"\s*\[(?:VERIFIED|CONFLICT|INFERRED|CALCULATED)[^\]]*\]", "", text)

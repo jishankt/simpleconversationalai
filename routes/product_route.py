@@ -62,7 +62,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             "   • Includes driver grey calibration for professional studio portraiture.\n\n"
             "3. **[Citizen CY-02 High-Capacity Photo Printer](https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/)**:\n"
             "   • Heavy-duty kiosk workhorse holding 700 prints (4×6″) or 350 prints (6×8″) per roll.\n"
-            "   • Robust chassis weighing 13.8 kg (approx. 18 kg loaded).\n"
+            "   • Robust chassis weighing 13.8 kg (package weight: 16.5 kg).\n"
             "   • Ideal for unattended retail kiosks and high-volume event stations.\n\n"
             "4. **[Citizen CZ-01 Compact 4.5-Inch Photo Printer](https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/)**:\n"
             "   • Ultra-lightweight and compact at only 5.8 kg.\n"
@@ -588,7 +588,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
         is_repeat_turn = bool(state.last_assistant_response and reply.strip() == state.last_assistant_response.strip())
         is_same_active = bool(state.active_product and top_product.id == (state.active_product.get("id") or state.active_product.get("name")))
 
-        suggested_chips = ["Download Datasheet", "View Consumables", "Get Quotation"]
+        suggested_chips = ["Download Datasheet", "View Consumables", "Technical Specs"]
 
         if is_alt_request or is_repeat_turn or (is_alt_request and is_same_active):
             if len(ranked_tuples) > 1:
@@ -621,7 +621,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                         f"The **[{top_product.name}]({top_url})** is the **only verified match** in our catalogue satisfying your stated requirements ({req_summary}).\n\n"
                         f"Before presenting alternatives, which constraint would you be willing to adjust (such as required print dimensions, scanner need, or printing technology)?"
                     )
-                    suggested_chips = ["Adjust Print Size", "Adjust Scanner Need", "Contact Sales Team"]
+                    suggested_chips = ["Adjust Print Size", "Adjust Scanner Need", "View All Models"]
 
         # ── 5. Internal Audit Object ─────────────────────────────────────────
         audit_object = {
@@ -661,9 +661,9 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             req_details.append(f"brand {state.requirements['brand']}")
         criteria_str = f" ({', '.join(req_details)})" if req_details else ""
         return RouteResult(
-            reply=f"None of our authorized Kepler Tech models simultaneously satisfy all your specified requirements{criteria_str}. Rather than suggesting an incompatible unit, please let me know if you would like to adjust your size or scanner preferences, or contact our sales team at sales@keplertechllc.com for customized equipment options.",
+            reply=f"I could not find an authorized Kepler Tech model that simultaneously satisfies all your specified requirements{criteria_str}. Rather than suggesting an incompatible unit, which constraint are you open to adjusting (e.g. print size, brand, or scanner preference)?",
             product_cards=[],
-            suggested_chips=["Adjust Requirements", "View All Plotters", "Contact Sales Team"],
+            suggested_chips=["Adjust Print Size", "View All Plotters", "Citizen Photo Printers"],
             source="recommendation:honest_rejection",
         )
 

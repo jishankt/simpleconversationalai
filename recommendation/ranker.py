@@ -23,13 +23,16 @@ class ProductRanker:
         combined_text = f"{msg_l} {req_keys_str}"
 
         # ── Detect Customer Priorities Dynamically ───────────────────────────
-        is_portability_priority = any(k in combined_text for k in ["portable", "portability", "compact", "lightweight", "light", "travel", "carry", "mobile", "small footprint", "transport", "flight case", "limited space"])
-        is_speed_priority = any(k in combined_text for k in ["speed", "fast", "faster", "fastest", "quick", "seconds", "throughput", "rapid"])
-        is_volume_priority = any(k in combined_text for k in ["high volume", "volume", "700", "500", "600", "800", "busy", "capacity", "unattended", "continuous", "heavy", "production"])
-        is_quality_priority = any(k in combined_text for k in ["quality", "image quality", "resolution", "fine art", "600 dpi", "color", "skin tone", "archival"])
+        # Use only the raw message for priority detection to avoid false matches
+        # on requirement key names (e.g., 'daily_volume' should not trigger volume priority)
+        priority_text = msg_l
+        is_portability_priority = any(k in priority_text for k in ["portable", "portability", "compact", "lightweight", "light", "travel", "carry", "mobile", "small footprint", "transport", "flight case", "limited space"])
+        is_speed_priority = any(k in priority_text for k in ["speed", "fast", "faster", "fastest", "quick", "seconds", "throughput", "rapid"])
+        is_volume_priority = any(k in priority_text for k in ["high volume", "high-volume", "700", "500", "600", "800", "busy", "capacity", "unattended", "continuous", "heavy duty", "production"])
+        is_quality_priority = any(k in priority_text for k in ["quality", "image quality", "resolution", "fine art", "600 dpi", "color", "skin tone", "archival"])
 
-        # Determine dynamic weights based on stated priorities
-        weights = {
+        # Base weights total exactly 100.0
+        base_weights = {
             "use_case": 25.0,
             "volume": 20.0,
             "portability": 15.0,
@@ -37,17 +40,35 @@ class ProductRanker:
             "preferred_features": 15.0,
             "size_fit": 10.0,
         }
+        weights = dict(base_weights)
+
+        # Resolve overlapping priorities explicitly and normalize
+        active_priorities = []
         if is_portability_priority:
-            weights["portability"] = 35.0
-            weights["volume"] = 10.0
+            active_priorities.append("portability")
         if is_speed_priority:
-            weights["speed"] = 35.0
-            weights["volume"] = 10.0
+            active_priorities.append("speed")
         if is_volume_priority:
-            weights["volume"] = 35.0
-            weights["portability"] = 10.0
+            active_priorities.append("volume")
         if is_quality_priority:
-            weights["use_case"] = 35.0
+            active_priorities.append("use_case")
+
+        if active_priorities:
+            bonus = 24.0 / len(active_priorities)
+            for p_key in active_priorities:
+                weights[p_key] += bonus
+            non_p = [k for k in weights if k not in active_priorities]
+            reduction = 24.0 / len(non_p)
+            for np_key in non_p:
+                weights[np_key] = max(5.0, weights[np_key] - reduction)
+
+        # Explicit normalization ensuring weights always total 100.0
+        total_w = sum(weights.values())
+        weights = {k: round((v / total_w) * 100.0, 2) for k, v in weights.items()}
+        diff = round(100.0 - sum(weights.values()), 2)
+        if diff != 0.0:
+            lead_key = max(weights.keys(), key=lambda k: weights[k])
+            weights[lead_key] = round(weights[lead_key] + diff, 2)
 
         ranked = []
         for item in assessments:
@@ -73,12 +94,20 @@ class ProductRanker:
             elif "fine art" in combined_text or "gallery" in combined_text or "studio" in combined_text:
                 if p.category == "photo_fine_art":
                     use_case_pts = 100.0
-                elif p.category == "photo_booth" and "cx-02w" in p.id:
+                elif p.category == "photo_booth" and p.id == "citizen-cx-02w":
                     use_case_pts = 85.0
                 else:
                     use_case_pts = 50.0
             elif "cad" in combined_text or "technical" in combined_text:
-                use_case_pts = 100.0 if p.category == "technical_cad" else 20.0
+                if p.category == "technical_cad":
+                    # Standard single-roll plotters are the default CAD recommendation
+                    # Production dual-roll plotters rank lower unless volume/speed is prioritized
+                    if p.id in ("epson-t5700d",) and not is_volume_priority and not is_speed_priority:
+                        use_case_pts = 80.0  # Production plotter without production need
+                    else:
+                        use_case_pts = 100.0
+                else:
+                    use_case_pts = 20.0
             else:
                 use_case_pts = 80.0
             score_factors["use_case"] = round(use_case_pts * (weights["use_case"] / 100.0), 1)
@@ -88,18 +117,18 @@ class ProductRanker:
             vol_val = requirements.get("event_volume") or requirements.get("daily_volume")
             vol_pts = 50.0
             if isinstance(vol_val, (int, float)) and vol_val >= 500:
-                if "cy-02" in p.id.lower() or "cy02" in p.id.lower():
+                if p.id == "citizen-cy-02":
                     vol_pts = 100.0  # 700 prints/roll
-                elif "cx-02" in p.id.lower() or "cx02" in p.id.lower():
+                elif p.id == "citizen-cx-02":
                     vol_pts = 75.0   # 400 prints/roll
-                elif "cz-01" in p.id.lower():
+                elif p.id == "citizen-cz-01":
                     vol_pts = 40.0   # 150 prints/roll
-                elif "production" in p_name_l or "5700" in p.id or "p9500" in p.id or "am-c4000" in p.id:
+                elif "production" in p_name_l or p.id in ("epson-sc-t5700d", "epson-sc-p9500", "epson-am-c4000"):
                     vol_pts = 100.0
             elif is_volume_priority:
-                if "cy-02" in p.id or "production" in p_name_l or "5700" in p.id:
+                if p.id == "citizen-cy-02" or "production" in p_name_l or p.id == "epson-sc-t5700d":
                     vol_pts = 100.0
-                elif "cx-02" in p.id or "am-c550" in p.id:
+                elif p.id in ("citizen-cx-02", "citizen-cx-02w", "epson-am-c550"):
                     vol_pts = 70.0
                 else:
                     vol_pts = 40.0
@@ -110,15 +139,15 @@ class ProductRanker:
 
             # 3. Portability Alignment
             port_pts = 50.0
-            if "cz-01" in p.id:
+            if p.id == "citizen-cz-01":
                 port_pts = 100.0  # 5.8 kg ultra-compact
-            elif "cx-02" in p.id and "cx-02w" not in p.id:
+            elif p.id == "citizen-cx-02":
                 port_pts = 80.0   # 12 kg portable
-            elif "cx-02w" in p.id:
+            elif p.id == "citizen-cx-02w":
                 port_pts = 65.0   # 14 kg
-            elif "cy-02" in p.id:
-                port_pts = 45.0   # 18 kg high-capacity
-            elif "p700" in p.id or "ds-530" in p.id or "am-c550" in p.id or "t3100" in p.id:
+            elif p.id == "citizen-cy-02":
+                port_pts = 45.0   # 13.8 kg high-capacity
+            elif p.id in ("epson-sc-p700", "epson-ds-530ii", "epson-am-c550", "epson-sc-t3100"):
                 port_pts = 70.0   # compact desktop
             else:
                 port_pts = 30.0   # large floor-standing
@@ -127,16 +156,17 @@ class ProductRanker:
 
             # 4. Speed Alignment
             speed_pts = 50.0
-            if "cx-02" in p.id and "cx-02w" not in p.id:
-                speed_pts = 95.0  # 9.8s high-speed 4x6
-            elif "cy-02" in p.id:
+            if p.id == "citizen-cx-02":
+                speed_pts = 95.0  # 9.8s high-speed 4x6, 15.6s 6x8
+            elif p.id == "citizen-cy-02":
                 speed_pts = 85.0  # 12.4s high-speed 4x6
-            elif "cz-01" in p.id:
+            elif p.id == "citizen-cz-01":
                 speed_pts = 70.0  # 18.8s 4x6
-            elif "cx-02w" in p.id:
+            elif p.id == "citizen-cx-02w":
                 speed_pts = 70.0  # 33.4s 8x10
-            elif "t5700d" in p.id or "am-c4000" in p.id:
-                speed_pts = 95.0
+            elif p.id in ("epson-sc-t5700d", "epson-t5700d", "epson-am-c4000"):
+                # Production speed premium only when speed is actually prioritized
+                speed_pts = 95.0 if is_speed_priority else 65.0
             else:
                 speed_pts = 60.0
             score_factors["speed"] = round(speed_pts * (weights["speed"] / 100.0), 1)
@@ -145,15 +175,15 @@ class ProductRanker:
             # 5. Preferred Features Alignment
             feat_pts = 50.0
             if any(k in combined_text for k in ["ribbon rewind", "rewind"]):
-                feat_pts = 100.0 if ("cx-02" in p.id or "cx-02w" in p.id) else 20.0
+                feat_pts = 100.0 if p.id in ("citizen-cx-02", "citizen-cx-02w") else 20.0
             elif any(k in combined_text for k in ["gloss", "matte", "finishing", "luster"]):
                 feat_pts = 100.0 if p.category in ("photo_booth", "photo_fine_art") else 40.0
             elif any(k in combined_text for k in ["grey calibration", "gray calibration"]):
-                feat_pts = 100.0 if "cx-02w" in p.id else 30.0
+                feat_pts = 100.0 if p.id == "citizen-cx-02w" else 30.0
             elif any(k in combined_text for k in ["dual roll", "two rolls"]):
-                feat_pts = 100.0 if "t5700d" in p.id else 20.0
+                feat_pts = 100.0 if p.id == "epson-sc-t5700d" else 20.0
             elif any(k in combined_text for k in ["heat-free", "line head"]):
-                feat_pts = 100.0 if "am-c" in p.id else 30.0
+                feat_pts = 100.0 if "epson-am-c" in p.id else 30.0
             else:
                 feat_pts = 70.0
             score_factors["preferred_features"] = round(feat_pts * (weights["preferred_features"] / 100.0), 1)

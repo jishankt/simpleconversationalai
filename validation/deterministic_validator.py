@@ -60,6 +60,29 @@ SLUG_TO_PRODUCT_RULE = {
     },
 }
 
+KNOWN_VALID_SLUGS = {
+    "epson-surecolor-sc-t5100m-plotter-printer",
+    "epson-sc-t5400m-mfp-plotter-printer",
+    "citizen-cx-02-photo-printer",
+    "citizen-cx-02w-large-photo-printer",
+    "citizen-cy-02-photo-printer",
+    "citizen-cz-01-photo-printer",
+    "epson-surecolor-sc-t3100-plotter-printer",
+    "epson-surecolor-sc-t3100m-plotter-printer",
+    "epson-surecolor-sc-t5100-plotter-printer",
+    "epson-surecolor-sc-t5700d-dual-roll-plotter-printer",
+    "epson-surecolor-sc-p700-photo-printer",
+    "epson-surecolor-sc-p7500-large-format-printer",
+    "epson-surecolor-sc-p900-photo-printer",
+    "epson-surecolor-sc-p9500-large-format-printer",
+    "epson-surecolor-sc-f100-dye-sublimation-printer",
+    "epson-surecolor-sc-f500-dye-sublimation-printer",
+    "epson-workforce-ds-530ii-color-document-scanner",
+    "epson-workforce-ds-730n-network-color-document-scanner",
+    "epson-workforce-ds-770ii-color-document-scanner",
+    "epson-expression-12000xl-pro-scanner",
+}
+
 # Known valid catalogue SKUs that MUST NOT be rejected as unverified or non-existent
 KNOWN_VALID_SKUS = {
     "CX2.4X6": "citizen-cx-02",
@@ -75,10 +98,10 @@ KNOWN_VALID_SKUS = {
     "C11CJ54301A1": "epson-t5100m",
 }
 
-# Consumables linked to each hardware model
+# Consumables linked to each hardware model (only verified SKUs and model numbers)
 PRINTER_CONSUMABLE_LINKS = {
     "citizen-cx-02": ["cx2.4x6", "cx2.6x8", "cx2-ms46-2pc", "cx2-ms46", "cx2-ms68"],
-    "citizen-cx-02w": ["cx2w 812", "cx2w812", "cw-ms812"],
+    "citizen-cx-02w": ["cx2w 812", "cx2w812"],
     "citizen-cy-02": ["cy-ms46", "cy-ms68"],
     "citizen-cz-01": ["cz-ms46", "cz-ms458"],
     "epson-t5100m": ["c13s210057", "c13t40d140", "c13t40d240", "c13t40d340", "c13t40d440"],
@@ -166,11 +189,19 @@ class DeterministicResponseValidator:
 
     def validate_product_name_matches_url(self, text: str) -> List[str]:
         """
-        Check 2: product name matches URL.
+        Check 2: product name matches URL, and no unknown/fabricated URL slugs exist.
         Every URL slug in markdown link or plain text must match its authorized product name.
         """
         violations = []
         text_lower = text.lower()
+
+        # Reject any fabricated or non-catalogue URL slugs
+        all_url_slugs = re.findall(r"https?://www\.keplertechllc\.com/product/([a-zA-Z0-9\-_]+)/?", text)
+        for slug in all_url_slugs:
+            if slug not in SLUG_TO_PRODUCT_RULE and slug not in KNOWN_VALID_SLUGS:
+                violations.append(
+                    f"Fabricated or unknown URL slug detected: '{slug}' is not an authorized catalogue URL."
+                )
 
         # Find markdown links: [Link Text](URL)
         link_matches = re.findall(r"\[([^\]]+)\]\((https?://www\.keplertechllc\.com/product/([a-z0-9\-_]+)/?)\)", text)
@@ -215,45 +246,71 @@ class DeterministicResponseValidator:
     def validate_numeric_values(self, text: str, evidence: Optional[Dict[str, Any]] = None, product_id: Optional[str] = None) -> List[str]:
         """
         Check 3: every numeric value exists in retrieved evidence.
-        Automatically fail an answer when any speed, weight, size, capacity lacks exact evidence.
+        General claim-to-evidence validation for numbers with units and attributes.
         """
         violations = []
         text_lower = text.lower()
 
-        # 3a. CY-02 Weight Check: Product weight is 13.8 kg, package is 16.5 kg. Must NOT state 18 kg.
-        if "cy-02" in text_lower or "cy02" in text_lower or (product_id and "cy-02" in product_id):
-            if re.search(r"\b18(?:\.0)?\s*kg\b", text_lower):
-                violations.append(
-                    "Numeric value violation: CY-02 product weight is 13.8 kg and package weight is 16.5 kg. "
-                    "The unverified '18 kg' statement lacks exact evidence."
-                )
+        active_pids = []
+        if product_id:
+            active_pids.append(product_id)
+        else:
+            for pid in VERIFIED_METRICS:
+                tok = pid.replace("citizen-", "").replace("epson-", "")
+                if tok in text_lower:
+                    active_pids.append(pid)
 
-        # 3b. CX-02 6x8 Speed Check: Catalogue value is 15.6 seconds (not 21.8s, not 13.8s)
-        if "cx-02" in text_lower or "cx02" in text_lower or (product_id and "cx-02" in product_id):
-            # Check for 6x8 near wrong speed values
-            if re.search(r"6\s*[x×]\s*8.*?21\.8\s*(?:sec|s\b)", text_lower) or re.search(r"21\.8\s*(?:sec|s\b).*?6\s*[x×]\s*8", text_lower):
-                violations.append(
-                    "Numeric speed violation: CX-02 6x8 speed is 15.6 seconds (claimed 21.8s lacks exact evidence)."
-                )
+        # 3a. Weights validation (general unit check)
+        weight_matches = re.finditer(r"\b(\d+(?:\.\d+)?)\s*(?:kg|kilograms?)\b", text_lower)
+        for wm in weight_matches:
+            val_str = wm.group(1)
+            val = float(val_str)
+            for pid in active_pids:
+                m_info = VERIFIED_METRICS.get(pid, {})
+                allowed_w = m_info.get("weights", set())
+                forbidden_w = m_info.get("forbidden_weights", set())
+                if val_str in forbidden_w or f"{val_str} kg" in forbidden_w:
+                    violations.append(
+                        f"Numeric weight violation for {pid}: claimed {val_str} kg is an unverified / forbidden value."
+                    )
+                elif allowed_w and val_str not in allowed_w and f"{val:.1f}" not in allowed_w:
+                    tok = pid.replace("citizen-", "").replace("epson-", "")
+                    if tok in text_lower:
+                        violations.append(
+                            f"Numeric weight violation for {pid}: claimed {val_str} kg lacks exact evidence (verified: {allowed_w})."
+                        )
 
-        # 3c. Check speed-size pairings for all models
-        for model_id, m_metrics in VERIFIED_METRICS.items():
-            if "speed_pairs" in m_metrics:
-                for sz, allowed_spds in m_metrics["speed_pairs"].items():
-                    pattern = rf"{re.escape(sz)}[^\.\n]*?(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|s\b)"
-                    for m in re.finditer(pattern, text_lower):
-                        claimed_spd = m.group(1)
-                        if claimed_spd not in allowed_spds and claimed_spd not in {"300", "600"}:
-                            m_token = model_id.replace("citizen-", "").replace("epson-", "")
-                            if m_token in text_lower:
+        # 3b. Speeds validation (general unit check)
+        for pid in (active_pids or VERIFIED_METRICS.keys()):
+            m_metrics = VERIFIED_METRICS.get(pid, {})
+            tok = pid.replace("citizen-", "").replace("epson-", "")
+            if tok in text_lower:
+                if "speed_pairs" in m_metrics:
+                    for sz, allowed_spds in m_metrics["speed_pairs"].items():
+                        pattern = rf"{re.escape(sz)}[^\.\n\(\)]{{0,50}}?(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|s\b)"
+                        for m in re.finditer(pattern, text_lower):
+                            claimed_spd = m.group(1)
+                            if claimed_spd not in allowed_spds and claimed_spd not in {"300", "600"}:
+                                allowed_str = ", ".join(sorted(allowed_spds))
+                                model_lbl = pid.replace("citizen-", "").replace("epson-", "").upper()
                                 violations.append(
-                                    f"Numeric speed violation for {model_id}: {sz} claimed at {claimed_spd}s "
-                                    f"(verified evidence specifies {allowed_spds})."
+                                    f"Numeric speed violation: {model_lbl} {sz} speed is {allowed_str} seconds "
+                                    f"(claimed {claimed_spd}s lacks exact evidence)."
                                 )
 
-        # 3d. Check capacity claims
-        if "1,000" in text or "1000 photos" in text_lower or "1000 prints" in text_lower:
-            violations.append("Numeric capacity violation: 1,000 photos per roll lacks exact evidence in catalogue.")
+        # 3c. Capacity validation (general unit check)
+        cap_matches = re.finditer(r"\b(\d{3,4})\s*(?:photos|prints|sheets|copies)\b", text_lower)
+        for cm in cap_matches:
+            val_str = cm.group(1)
+            for pid in active_pids:
+                m_info = VERIFIED_METRICS.get(pid, {})
+                allowed_c = m_info.get("capacities", set())
+                if allowed_c and val_str not in allowed_c:
+                    other_has_cap = any(val_str in VERIFIED_METRICS[o].get("capacities", set()) for o in VERIFIED_METRICS)
+                    if not other_has_cap:
+                        violations.append(
+                            f"Numeric capacity violation for {pid}: claimed capacity of {val_str} lacks exact evidence in catalogue."
+                        )
 
         return violations
 
@@ -354,13 +411,31 @@ class DeterministicResponseValidator:
                 )
         return violations
 
+    def validate_no_unsupported_speculative_claims(self, text: str) -> List[str]:
+        """
+        Check 8: no unsupported speculative claims.
+        Flags unverified statements about printhead damage, chassis fit, spool construction,
+        and warranty invalidation.
+        """
+        violations = []
+        text_lower = text.lower()
+        speculative_patterns = [
+            (r"\b(?:damage[ds]? the printhead|cause printhead damage|damage to the printhead)\b", "unsupported printhead damage claim"),
+            (r"\b(?:spool construction|chassis fit)\b", "unsupported chassis fit or spool construction claim"),
+            (r"\b(?:void[s]? (?:the |your )?warranty|invalidat(?:e|es|ing) (?:the |your )?warranty)\b", "unsupported warranty invalidation claim"),
+        ]
+        for pattern, claim_name in speculative_patterns:
+            if re.search(pattern, text_lower):
+                violations.append(f"Unsupported claim violation: '{claim_name}' lacks catalogue backing.")
+        return violations
+
     def validate(
         self,
         text: str,
         context: Optional[Dict[str, Any]] = None
     ) -> Tuple[bool, List[str]]:
         """
-        Run all 7 deterministic validation checks.
+        Run all deterministic validation checks.
         Returns (is_valid: bool, violations: List[str]).
         """
         if not text or not text.strip():
@@ -380,6 +455,7 @@ class DeterministicResponseValidator:
         violations.extend(self.validate_no_rejected_sku_in_catalogue(text))
         violations.extend(self.validate_no_global_absence_claims(text))
         violations.extend(self.validate_no_absolute_guarantees(text))
+        violations.extend(self.validate_no_unsupported_speculative_claims(text))
 
         is_valid = len(violations) == 0
         return is_valid, violations
