@@ -67,7 +67,8 @@ class ConsumablesEngine:
             "get_compatible_consumables",
             {"printer_identifier": printer_query, "limit": limit}
         )
-        cards = res.get("consumable_cards", [])
+        from routes.consumables_route import sort_consumables_inks_first
+        cards = sort_consumables_inks_first(res.get("consumable_cards", []))
         if consumable_filter:
             cf_low = consumable_filter.lower()
             filtered = [c for c in cards if cf_low in c.get("badge", "").lower() or cf_low in c.get("name", "").lower()]

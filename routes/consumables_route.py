@@ -20,6 +20,28 @@ KNOWN_COLORS = [
 ]
 
 
+def sort_consumables_inks_first(cards: list) -> list:
+    """
+    Sorts consumable items so genuine inks/cartridges/bottles/ribbons come first,
+    followed by maintenance boxes, paper rolls, media, and other accessories.
+    """
+    if not cards:
+        return []
+
+    def _rank(c: dict) -> int:
+        name = (str(c.get("name", "")) + " " + str(c.get("description", "")) + " " + str(c.get("badge", ""))).lower()
+        # Non-ink accessories (maintenance boxes, waste tanks, cutters, cleaning liquid) go last
+        if any(w in name for w in ["maintenance box", "maintenance tank", "waste ink", "cleaning", "roller", "cutter", "blade"]):
+            return 2
+        # Inks, cartridges, bottles, ribbons, toners go first
+        if any(w in name for w in ["ink", "cartridge", "tank", "bottle", "ribbon", "toner", "cyan", "magenta", "yellow", "black", "ds ink"]):
+            return 0
+        # Media / paper in between or after
+        return 1
+
+    return sorted(cards, key=_rank)
+
+
 def handle(understanding: LLMUnderstanding, state: ConversationState, raw_message: str = "") -> RouteResult:
     """Handle consumable queries — find inks/cartridges/ribbons with color specificity."""
     entities = understanding.entities
@@ -299,13 +321,33 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         {"printer_identifier": target, "limit": 16}
     )
     all_consumables = res.get("consumable_cards", [])
+    all_consumables = sort_consumables_inks_first(all_consumables)
     product_cards = res.get("product_cards", [])
     printer_name = res.get("printer_name") or target
+
+    target_prod = None
+    from catalog.repository import catalog_repository
+    if target:
+        target_prod = catalog_repository.get_by_id(target) or catalog_repository.get_by_name(target)
+    if not target_prod and printer_name:
+        target_prod = catalog_repository.get_by_id(printer_name) or catalog_repository.get_by_name(printer_name)
+    if not target_prod and all_consumables:
+        c_skus = [c.get("sku") for c in all_consumables if c.get("sku")]
+        for p in catalog_repository.get_all():
+            if any(sku in p.consumables for sku in c_skus):
+                target_prod = p
+                break
+    if target_prod:
+        state.active_product = target_prod.to_dict()
+        state.active_product_id = target_prod.id
+        state.active_printer_for_consumables = target_prod.display_name or target_prod.name
 
     if not all_consumables:
         return RouteResult(
             reply=f"I could not locate verified consumables for '{target}' in our approved catalogue. What printer model or media size are you looking to supply?",
             source="tool:get_compatible_consumables",
+            product_id=target_prod.id if target_prod else None,
+            evidence=[target_prod] if target_prod else [],
         )
 
     # Extract ONLY the genuine colors that this printer's consumables actually have
@@ -390,6 +432,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             product_cards=hw_cards_to_show,
             consumable_cards=all_consumables,
             source="tool:get_compatible_consumables",
+            product_id=target_prod.id if target_prod else None,
+            evidence=[target_prod] if target_prod else [],
         )
 
     # For Epson dye-sublimation printers (SC-F100, SC-F500): use 140ml UltraChrome DS bottles & maintenance box
@@ -411,6 +455,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             product_cards=hw_cards_to_show,
             consumable_cards=all_consumables,
             source="tool:get_compatible_consumables",
+            product_id=target_prod.id if target_prod else None,
+            evidence=[target_prod] if target_prod else [],
         )
 
     # For inkjet printers when asked if it uses ink cartridges
@@ -426,6 +472,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             product_cards=hw_cards_to_show,
             consumable_cards=all_consumables[:6],
             source="tool:get_compatible_consumables",
+            product_id=target_prod.id if target_prod else None,
+            evidence=[target_prod] if target_prod else [],
         )
 
     # If user specifically asks for replacement ink or says "buy ink", ask for color if multiple exist:
@@ -440,6 +488,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             consumable_cards=all_consumables[:6],
             source="route:consumables:ask_color",
             needs_composition=False,
+            product_id=target_prod.id if target_prod else None,
+            evidence=[target_prod] if target_prod else [],
         )
 
     # Default: Return verified compatible consumables / media with clean bullet points
@@ -451,5 +501,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         product_cards=hw_cards_to_show,
         consumable_cards=all_consumables[:6],
         source="tool:get_compatible_consumables",
+        product_id=target_prod.id if target_prod else None,
+        evidence=[target_prod] if target_prod else [],
     )
 

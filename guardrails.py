@@ -42,7 +42,7 @@ PROHIBITED_OUTPUT_PATTERNS = [
 
 STATIC_SAFE_REFUSAL = (
     "I am unable to verify the requested product details against our official catalogue. "
-    "Please specify a verified product model or tell me your technical requirements."
+    "Could you please specify your printing requirements again—such as what you plan to print (technical CAD drawings, office documents, or photos) and your desired print size?"
 )
 
 
@@ -128,11 +128,31 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
             text
         )
 
-    # Scrub contact information ONLY from explicit contact sentences or raw email addresses
-    # Never use broad digit regexes that corrupt technical model names, SKUs, dimensions, or URLs
+    # Scrub contact information: remove raw email addresses and explicit phone number values.
+    # IMPORTANT: Do NOT remove legitimate product-feature sentences that happen to contain
+    # words like 'phone', 'mobile', 'WhatsApp printing', 'wireless', or 'AirPrint'.
+    # Only strip actual contact values or explicit handover statements.
+
+    # 1. Raw email addresses
     text = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "", text)
+
+    # 2. Raw phone / WhatsApp numbers (digit strings that look like dial-in numbers).
+    #    Match international formats like +971 4 323 1008, +971-50-123-4567, etc.
+    #    Use a narrow pattern that requires a leading + or country-code prefix so that
+    #    model numbers (T5400M, 300x600 dpi, 13.8 kg) are never touched.
     text = re.sub(
-        r"(?i)[^.!?\n]*\b(?:call|phone|whatsapp|tel|reach us|contact us|contact sales|sales team|email us)\b[^.!?\n]*[.!?]?",
+        r"(?<![\w.])\+\d{1,3}[\s\-]?\d{1,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4}(?![\w])",
+        "",
+        text
+    )
+
+    # 3. Explicit agent-handover or sales-contact sentences.
+    #    Only match when the sentence is clearly directing the user to a human rep,
+    #    NOT when describing a product feature (e.g. 'AirPrint', 'wireless printing').
+    #    The pattern anchors on action verbs ('call us', 'reach us', 'contact sales',
+    #    'email us') that unambiguously signal a handover statement.
+    text = re.sub(
+        r"(?i)[^.!?\n]*\b(?:call us|reach us at|contact (?:our )?sales|email us|sales@|tel:|whatsapp us)\b[^.!?\n]*[.!?]?",
         "",
         text
     )

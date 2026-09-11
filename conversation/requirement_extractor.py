@@ -50,11 +50,18 @@ class RequirementExtractor:
                 elif mm >= 210:
                     extracted["print_size"] = "A4"
 
-        # Contextual relative size mappings: Guardrail - NEVER normalize vague terms ("large", "small", etc.) into exact specs
+        # Contextual relative size mappings:
         if not extracted.get("print_size"):
-            vague_size_matches = re.findall(r"\b(?:large|larger|big|bigger|huge|wide|small|smaller|compact|mini|large format|large-format)\b", msg_lower)
-            if vague_size_matches:
-                extracted.setdefault("vague_terms", []).append("size")
+            if state.awaiting_field == "print_size" or state.category in ("photo_fine_art", "photo_booth") or any(w in msg_lower for w in ["compact desktop", "large format", "large-format"]):
+                if any(k in msg_lower for k in ["compact desktop", "compact", "small desktop"]):
+                    extracted["print_size"] = "compact desktop"
+                elif any(k in msg_lower for k in ["large format", "large-format", "wide format", "production roll", "production print"]):
+                    extracted["print_size"] = "large format"
+
+            if not extracted.get("print_size"):
+                vague_size_matches = re.findall(r"\b(?:large|larger|big|bigger|huge|wide|small|smaller|compact|mini)\b", msg_lower)
+                if vague_size_matches:
+                    extracted.setdefault("vague_terms", []).append("size")
 
 
 

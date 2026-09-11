@@ -285,13 +285,27 @@ class TestProductionReadiness(unittest.TestCase):
         self.assertIn("SC-T5400M", sanitized)
 
     def test_technical_values_and_skus_not_corrupted(self):
-        """Technical specifications and SKUs like CX2.4x6, 300x600 dpi, 13.8 kg, 700 prints are preserved."""
-        specs_text = "The Citizen CX-02 uses CX2.4x6 media, prints at 300x600 dpi, weighs 13.8 kg, and delivers 700 prints per roll."
-        sanitized = validate_and_sanitize_response(specs_text, "What are the specs of CX-02?")
-        self.assertIn("CX2.4x6", sanitized)
-        self.assertIn("300x600 dpi", sanitized)
-        self.assertIn("13.8 kg", sanitized)
-        self.assertIn("700 prints", sanitized)
+        """Technical specifications and SKUs like CX2.4x6, 300x600 dpi are preserved by sanitization.
+
+        NOTE: 700 prints per roll is a CY-02 specification, not CX-02.
+        CX-02 capacities are 400/230/200/180 prints per roll depending on media size.
+        This test validates CY-02 for 700 prints and CX-02 for its correct 400-print capacity.
+        """
+        # CX-02: correct capacity is 400 prints (4x6 media)
+        specs_cx02 = "The Citizen CX-02 uses CX2.4x6 media, prints at 300x600 dpi, weighs 12 kg, and delivers 400 prints per roll."
+        sanitized_cx02 = validate_and_sanitize_response(specs_cx02, "What are the specs of CX-02?")
+        self.assertIn("CX2.4x6", sanitized_cx02)
+        self.assertIn("300x600 dpi", sanitized_cx02)
+        self.assertIn("12 kg", sanitized_cx02)
+        self.assertIn("400 prints", sanitized_cx02)
+
+        # CY-02: correct capacity is 700 prints (4x6 media)
+        specs_cy02 = "The Citizen CY-02 uses CY-MS46 media, prints at 300x600 dpi, weighs 13.8 kg, and delivers 700 prints per roll."
+        sanitized_cy02 = validate_and_sanitize_response(specs_cy02, "What are the specs of CY-02?")
+        self.assertIn("CY-MS46", sanitized_cy02)
+        self.assertIn("300x600 dpi", sanitized_cy02)
+        self.assertIn("13.8 kg", sanitized_cy02)
+        self.assertIn("700 prints", sanitized_cy02)
 
     def test_failed_regeneration_returns_static_safe_refusal(self):
         """When regenerated response fails deterministic validation, return static non-factual safe refusal."""
@@ -366,6 +380,167 @@ class TestProductionReadiness(unittest.TestCase):
     def assertAnyViolationContaining(self, violations, substring):
         found = any(substring.lower() in v.lower() for v in violations)
         self.assertTrue(found, f"Expected '{substring}' in violations, got: {violations}")
+
+
+class TestCatalogueCompleteness(unittest.TestCase):
+    """
+    Requirement 7 & 8: Loop over all catalogue products and assert that:
+      - The product's legitimate URL slug is accepted by validate_product_name_matches_url
+      - product.id == product.canonical_id
+      - product.sku is non-empty and unchanged
+      - A canonical structured reply does not fall into STATIC_SAFE_REFUSAL
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.all_products = catalog_repository.get_all()
+        # Filter to hardware products only (printers, scanners) — skip consumables/software
+        cls.hardware_products = [
+            p for p in cls.all_products
+            if p.entity_type in ("printer", "scanner") and p.product_url
+        ]
+
+    def test_catalogue_has_products(self):
+        """Catalogue must load at least 10 hardware products."""
+        self.assertGreaterEqual(
+            len(self.hardware_products), 10,
+            f"Expected ≥10 hardware products, got {len(self.hardware_products)}"
+        )
+
+    def test_all_product_urls_accepted_by_slug_validator(self):
+        """Every canonical product URL must not be flagged as a fabricated/unknown slug."""
+        from validation.deterministic_validator import KNOWN_VALID_SLUGS, SLUG_TO_PRODUCT_RULE
+        import re as _re
+        failures = []
+        for prod in self.hardware_products:
+            url = prod.product_url or (prod.source.website_url if prod.source else None)
+            if not url:
+                continue
+            m = _re.search(
+                r"https?://www\.keplertechllc\.com/product/([a-zA-Z0-9\-_]+)/?",
+                url,
+            )
+            if not m:
+                continue
+            slug = m.group(1)
+            if slug not in KNOWN_VALID_SLUGS and slug not in SLUG_TO_PRODUCT_RULE:
+                failures.append(f"{prod.id}: slug '{slug}' not in KNOWN_VALID_SLUGS")
+        self.assertEqual(
+            failures, [],
+            f"These product URLs were rejected as unknown slugs:\n" + "\n".join(failures)
+        )
+
+    def test_all_products_have_non_empty_sku(self):
+        """Every hardware product must have a non-empty SKU."""
+        missing = [
+            prod.id for prod in self.hardware_products
+            if not prod.sku or not prod.sku.strip()
+        ]
+        self.assertEqual(
+            missing, [],
+            f"Products with missing SKU: {missing}"
+        )
+
+    def test_product_id_matches_canonical_id(self):
+        """product.id must equal product.canonical_id for all hardware products."""
+        mismatches = [
+            f"{prod.id} → canonical_id={prod.canonical_id!r}"
+            for prod in self.hardware_products
+            if prod.canonical_id and prod.id != prod.canonical_id
+        ]
+        self.assertEqual(
+            mismatches, [],
+            f"product.id / canonical_id mismatches:\n" + "\n".join(mismatches)
+        )
+
+    def test_canonical_replies_do_not_fall_into_static_safe_refusal(self):
+        """For Citizen products, build a canonical reply and confirm it is not STATIC_SAFE_REFUSAL."""
+        citizen_ids = ["citizen-cx-02", "citizen-cy-02", "citizen-cz-01", "citizen-cx-02w"]
+        for pid in citizen_ids:
+            state = ConversationState(session_id=f"cat_complete_{pid}")
+            prod = catalog_repository.get_by_id(pid)
+            if prod is None:
+                self.fail(f"Catalogue product {pid!r} not found")
+            state.active_product_id = pid
+            state.active_product = prod.to_dict()
+            reply = orchestrator._build_canonical_structured_reply(
+                product_id=pid,
+                state=state,
+                route_result=None,
+            )
+            self.assertNotEqual(
+                reply, STATIC_SAFE_REFUSAL,
+                f"Canonical reply for {pid} fell into STATIC_SAFE_REFUSAL"
+            )
+            self.assertIn(pid.split("-", 1)[-1].upper().replace("-", "-"), reply.upper(),
+                          f"Canonical reply for {pid} does not mention the product model")
+
+    def test_required_failure_cx02_700_prints(self):
+        """CX-02 + 700 prints must be rejected — 700 is CY-02's capacity."""
+        text = "The Citizen CX-02 delivers 700 prints per roll on 4x6 media."
+        is_valid, violations = deterministic_validator.validate(
+            text, context={"product_id": "citizen-cx-02"}
+        )
+        self.assertFalse(is_valid, "CX-02 + 700 prints must fail validation")
+        self.assertAnyViolationContaining(violations, "700")
+
+    def test_required_failure_cz01_400_prints(self):
+        """CZ-01 + 400 prints must be rejected — 400 is CX-02's capacity."""
+        text = "The Citizen CZ-01 delivers 400 prints per roll."
+        is_valid, violations = deterministic_validator.validate(
+            text, context={"product_id": "citizen-cz-01"}
+        )
+        self.assertFalse(is_valid, "CZ-01 + 400 prints must fail validation")
+        self.assertAnyViolationContaining(violations, "400")
+
+    def test_required_failure_cy02_200_prints(self):
+        """CY-02 + 200 prints must be rejected — 200 is CX-02's capacity."""
+        text = "The Citizen CY-02 delivers 200 prints per roll."
+        is_valid, violations = deterministic_validator.validate(
+            text, context={"product_id": "citizen-cy-02"}
+        )
+        self.assertFalse(is_valid, "CY-02 + 200 prints must fail validation")
+        self.assertAnyViolationContaining(violations, "200")
+
+    def test_required_failure_cx02_13_8_kg(self):
+        """CX-02 + 13.8 kg must be rejected — 13.8 kg is CY-02's product weight."""
+        text = "The Citizen CX-02 weighs 13.8 kg."
+        is_valid, violations = deterministic_validator.validate(
+            text, context={"product_id": "citizen-cx-02"}
+        )
+        self.assertFalse(is_valid, "CX-02 + 13.8 kg must fail validation")
+        self.assertAnyViolationContaining(violations, "13.8")
+
+    def test_required_failure_cy02_9_8s_for_4x6(self):
+        """CY-02 + 9.8 seconds for 4×6 must be rejected — 9.8 s is CX-02's speed."""
+        text = "The Citizen CY-02 prints 4x6 photos in 9.8 seconds."
+        is_valid, violations = deterministic_validator.validate(
+            text, context={"product_id": "citizen-cy-02"}
+        )
+        self.assertFalse(is_valid, "CY-02 + 9.8s for 4x6 must fail validation")
+        self.assertAnyViolationContaining(violations, "9.8")
+
+    def test_cy02_700_prints_passes(self):
+        """CY-02 + 700 prints must PASS — 700 is CY-02's correct 4x6 capacity."""
+        text = "The Citizen CY-02 delivers 700 prints per roll on 4x6 media."
+        is_valid, violations = deterministic_validator.validate(
+            text, context={"product_id": "citizen-cy-02"}
+        )
+        self.assertTrue(is_valid, f"CY-02 + 700 prints must pass validation; violations: {violations}")
+
+    def test_cx02_400_prints_passes(self):
+        """CX-02 + 400 prints must PASS — 400 is CX-02's correct 4x6 capacity."""
+        text = "The Citizen CX-02 delivers 400 prints per roll on 4x6 media."
+        is_valid, violations = deterministic_validator.validate(
+            text, context={"product_id": "citizen-cx-02"}
+        )
+        self.assertTrue(is_valid, f"CX-02 + 400 prints must pass validation; violations: {violations}")
+
+    # ── Helper ──────────────────────────────────────────────────────────────
+    def assertAnyViolationContaining(self, violations, substring):
+        found = any(substring.lower() in v.lower() for v in violations)
+        self.assertTrue(found, f"Expected '{substring}' in violations, got: {violations}")
+
 
 
 if __name__ == "__main__":

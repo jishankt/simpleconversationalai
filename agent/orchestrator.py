@@ -415,11 +415,38 @@ class Orchestrator:
         current_reply = grounding_result.get("sanitized_response", sanitized)
 
         # ── 7b. Deterministic Zero-Hallucination Validation ─────────────
-        active_pid = (
-            getattr(state, "active_product_id", None)
-            or getattr(route_result, "product_id", None)
-            or (state.active_product.get("id") if state.active_product else None)
-        )
+        active_pid = None
+        if route_result.product_cards:
+            active_pid = route_result.product_cards[0].get("id") or route_result.product_cards[0].get("product_id")
+        elif getattr(route_result, "product_id", None):
+            active_pid = route_result.product_id
+        elif getattr(route_result, "evidence", None) and route_result.evidence:
+            ev0 = route_result.evidence[0]
+            active_pid = getattr(ev0, "id", None) or (ev0.get("id") if isinstance(ev0, dict) else None)
+        elif route_result.consumable_cards or "consumable" in (getattr(route_result, "source", "") or ""):
+            from catalog.repository import catalog_repository
+            if state.active_printer_for_consumables:
+                p_match = catalog_repository.get_by_id(state.active_printer_for_consumables) or catalog_repository.get_by_name(state.active_printer_for_consumables)
+                if p_match:
+                    active_pid = p_match.id
+            if not active_pid and route_result.consumable_cards:
+                c_skus = [c.get("sku") for c in route_result.consumable_cards if c.get("sku")]
+                for p in catalog_repository.get_all():
+                    if any(sku in p.consumables for sku in c_skus):
+                        active_pid = p.id
+                        break
+        elif getattr(state, "active_product_id", None):
+            active_pid = state.active_product_id
+        elif state.active_product:
+            active_pid = state.active_product.get("id") or state.active_product.get("product_id")
+
+        # Crucial: Normalize active_pid to canonical catalogue id (e.g. 'epson-p7500', not raw SKU)
+        from catalog.repository import catalog_repository
+        if active_pid:
+            canon_p = catalog_repository.get_by_id(active_pid) or catalog_repository.get_by_name(active_pid)
+            if canon_p:
+                active_pid = canon_p.id
+
         is_det_valid, det_violations = deterministic_validator.validate(
             text=current_reply,
             context={
@@ -465,12 +492,31 @@ class Orchestrator:
 
         latency_ms = int((time.time() - start_time) * 1000)
 
+        # Ensure that whenever unable to verify or find matching models, NO recommendations or unverified cards are returned!
+        out_product_cards = route_result.product_cards
+        out_consumable_cards = route_result.consumable_cards
+        out_chips = route_result.suggested_chips
+
+        is_safe_or_refusal = (
+            not grounding_result.get("is_grounded", True)
+            or grounding_result.get("status") in ("FAIL_CLOSED_SAFE", "REJECTED_UNGROUNDED")
+            or current_reply == STATIC_SAFE_REFUSAL
+            or "unable to verify" in (current_reply or "").lower()
+            or "not found in our approved catalogue" in (current_reply or "").lower()
+            or "could not find an authorized kepler tech model" in (current_reply or "").lower()
+        )
+        if is_safe_or_refusal:
+            out_product_cards = []
+            out_consumable_cards = []
+            if not out_chips or any("Specs" in c for c in out_chips):
+                out_chips = ["Technical CAD Plotters", "Photo & Fine Art", "Office MFPs"]
+
         return self._build_response(
             reply=grounding_result["sanitized_response"],
             source=route_result.source,
-            product_cards=route_result.product_cards,
-            consumable_cards=route_result.consumable_cards,
-            suggested_chips=route_result.suggested_chips,
+            product_cards=out_product_cards,
+            consumable_cards=out_consumable_cards,
+            suggested_chips=out_chips,
             nlp_result=nlp_result,
             state=state,
             active_agent=active_agent.get_info(),
@@ -499,31 +545,46 @@ class Orchestrator:
             prod = catalog_repository.get_by_id(c_id)
 
         if not prod:
-            return "The requested model is not found in our approved catalogue. Please specify a verified product model or requirement."
+            return "The requested model is not found in our approved catalogue. Could you please specify your printing requirements again—such as what you plan to print (technical CAD drawings, office documents, or photos) and your desired print size?"
+
+        # Handle consumables route regeneration
+        if route_result and (route_result.consumable_cards or "consumable" in (getattr(route_result, "source", "") or "")):
+            from routes.consumables_route import sort_consumables_inks_first
+            lines = [f"Here are the verified genuine consumables for **{prod.display_name}**:\n"]
+            cards_to_show = sort_consumables_inks_first(route_result.consumable_cards) if route_result.consumable_cards else []
+            if cards_to_show:
+                for c in cards_to_show:
+                    lines.append(f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)")
+            elif prod.consumables:
+                for sku in prod.consumables:
+                    lines.append(f"• SKU: `{sku}`")
+            return "\n".join(lines)
 
         specs = prod.verified
         p_url = prod.product_url or prod.source.website_url or f"https://www.keplertechllc.com/product/{prod.id}/"
         lines = []
 
-        # Retain customer context / match reason if requirements or category exist in state
+        # Retain customer context / match reason if requirements exist
         req_parts = []
-        reqs = state.requirements or {}
-        if reqs.get("print_size"):
-            req_parts.append(f"{reqs['print_size']} printing")
-        if reqs.get("scan_required"):
-            req_parts.append("integrated scanner")
-        if reqs.get("daily_volume"):
-            req_parts.append(f"{reqs['daily_volume']} prints/day")
-        if reqs.get("speed"):
-            req_parts.append(f"{reqs['speed']} speed")
-        if reqs.get("workload"):
-            req_parts.append(f"{reqs['workload']} volume")
+        is_rec_flow = route_result is None or not getattr(route_result, "source", "") or getattr(route_result, "source", "") in ("recommendation:grounded_engine", "agent:product_specialist:qualified_search")
+        if is_rec_flow:
+            reqs = state.requirements or {}
+            if reqs.get("print_size"):
+                req_parts.append(f"{reqs['print_size']} printing")
+            if reqs.get("scan_required"):
+                req_parts.append("integrated scanner")
+            if reqs.get("daily_volume"):
+                req_parts.append(f"{reqs['daily_volume']} prints/day")
+            if reqs.get("speed"):
+                req_parts.append(f"{reqs['speed']} speed")
+            if reqs.get("workload"):
+                req_parts.append(f"{reqs['workload']} volume")
 
-        if req_parts:
-            lines.append(f"Based on your requirement for {', '.join(req_parts)}, here is the recommended equipment from our verified catalogue:\n")
-        elif state.category:
-            cat_display = state.category.replace('_', ' ').title()
-            lines.append(f"Here are the verified technical specifications for your {cat_display} requirement:\n")
+            if req_parts:
+                lines.append(f"Based on your requirement for {', '.join(req_parts)}, here is the recommended equipment from our verified catalogue:\n")
+            elif state.category:
+                cat_display = state.category.replace('_', ' ').title()
+                lines.append(f"Here are the verified technical specifications for your {cat_display} requirement:\n")
 
         lines.extend([
             f"**[{prod.display_name}]({p_url})**\n",

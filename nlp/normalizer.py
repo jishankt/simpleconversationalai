@@ -10,6 +10,10 @@ import unicodedata
 TYPO_CORRECTIONS = {
     # Common English typos
     r"\bpribter\b": "printer",
+    r"\bpriner\b": "printer",
+    r"\bpriners\b": "printers",
+    r"\bpritner\b": "printer",
+    r"\bprinr\b": "printer",
     r"\bprintr\b": "printer",
     r"\bpeinter\b": "printer",
     r"\bprntr\b": "printer",

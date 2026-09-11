@@ -1,22 +1,24 @@
 """
 Deterministic Response Validator for Kepler Tech Conversational AI.
 
-Enforces 7 strict zero-hallucination checks on every generated response:
-1. product_id matches source product_id
+Enforces 8 strict zero-hallucination checks on every generated response:
+1. product_id matches source product_id (and URL product_id and evidence product_id)
 2. product name matches URL
-3. every numeric value exists in retrieved evidence
+3. every numeric value exists in retrieved evidence for the ACTIVE product only
 4. consumable SKU is linked to the selected printer
 5. no rejected SKU exists in the catalogue
 6. no global absence claims ("does not exist" -> "not found in our approved catalogue")
 7. no absolute guarantees ("100% guaranteed" -> forbidden)
+8. no unsupported speculative claims
 
 Automatically fails an answer when any product name, SKU, speed, weight,
-size, capacity or compatibility claim lacks exact evidence.
+size, capacity or compatibility claim lacks exact evidence for the active product.
+Never accepts a value merely because another catalogue product has it.
 """
 
 import re
 import logging
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Set
 
 logger = logging.getLogger("validation:deterministic_validator")
 
@@ -60,28 +62,40 @@ SLUG_TO_PRODUCT_RULE = {
     },
 }
 
-KNOWN_VALID_SLUGS = {
-    "epson-surecolor-sc-t5100m-plotter-printer",
-    "epson-sc-t5400m-mfp-plotter-printer",
-    "citizen-cx-02-photo-printer",
-    "citizen-cx-02w-large-photo-printer",
-    "citizen-cy-02-photo-printer",
-    "citizen-cz-01-photo-printer",
-    "epson-surecolor-sc-t3100-plotter-printer",
-    "epson-surecolor-sc-t3100m-plotter-printer",
-    "epson-surecolor-sc-t5100-plotter-printer",
-    "epson-surecolor-sc-t5700d-dual-roll-plotter-printer",
-    "epson-surecolor-sc-p700-photo-printer",
-    "epson-surecolor-sc-p7500-large-format-printer",
-    "epson-surecolor-sc-p900-photo-printer",
-    "epson-surecolor-sc-p9500-large-format-printer",
-    "epson-surecolor-sc-f100-dye-sublimation-printer",
-    "epson-surecolor-sc-f500-dye-sublimation-printer",
-    "epson-workforce-ds-530ii-color-document-scanner",
-    "epson-workforce-ds-730n-network-color-document-scanner",
-    "epson-workforce-ds-770ii-color-document-scanner",
-    "epson-expression-12000xl-pro-scanner",
-}
+# ---------------------------------------------------------------------------
+# Dynamic approved-slug set – generated at startup from every canonical
+# catalogue record so no slug is ever silently missing or stale.
+# ---------------------------------------------------------------------------
+
+def _build_known_valid_slugs() -> Set[str]:
+    """
+    Build the approved URL-to-product slug set from the catalogue repository.
+    Called once at module import time; the result is cached as KNOWN_VALID_SLUGS.
+    """
+    slugs: Set[str] = set()
+    # Always include slugs from the static SLUG_TO_PRODUCT_RULE detail map
+    slugs.update(SLUG_TO_PRODUCT_RULE.keys())
+    try:
+        from catalog.repository import catalog_repository
+        for prod in catalog_repository.get_all():
+            # Extract slug from the product's website_url
+            url = (
+                getattr(prod, "product_url", None)
+                or (prod.source.website_url if prod.source else None)
+            )
+            if url:
+                m = re.search(
+                    r"https?://www\.keplertechllc\.com/product/([a-zA-Z0-9\-_]+)/?",
+                    url
+                )
+                if m:
+                    slugs.add(m.group(1))
+    except Exception as exc:
+        logger.warning("Could not build dynamic KNOWN_VALID_SLUGS from catalogue: %s", exc)
+    return slugs
+
+
+KNOWN_VALID_SLUGS: Set[str] = _build_known_valid_slugs()
 
 # Known valid catalogue SKUs that MUST NOT be rejected as unverified or non-existent
 KNOWN_VALID_SKUS = {
@@ -98,17 +112,21 @@ KNOWN_VALID_SKUS = {
     "C11CJ54301A1": "epson-t5100m",
 }
 
-# Consumables linked to each hardware model (only verified SKUs and model numbers)
+# Consumables linked to each hardware model (only explicitly catalogue-evidenced
+# SKUs and model numbers; no speculative aliases).
+# NOTE: input-normalisation aliases (e.g. "cx2w812") belong exclusively in
+# product_resolver.py::ALIAS_TO_CANONICAL_ID, never here.
 PRINTER_CONSUMABLE_LINKS = {
     "citizen-cx-02": ["cx2.4x6", "cx2.6x8", "cx2-ms46-2pc", "cx2-ms46", "cx2-ms68"],
-    "citizen-cx-02w": ["cx2w 812", "cx2w812"],
+    "citizen-cx-02w": ["cx2w 812"],          # canonical only; "cx2w812" is an input alias
     "citizen-cy-02": ["cy-ms46", "cy-ms68"],
     "citizen-cz-01": ["cz-ms46", "cz-ms458"],
     "epson-t5100m": ["c13s210057", "c13t40d140", "c13t40d240", "c13t40d340", "c13t40d440"],
     "epson-t5400m": ["c13t699700", "c13t41f540", "c13t41f240", "c13t41f340", "c13t41f440"],
 }
 
-# Verified ground-truth metrics for Citizen & Technical printers
+# Verified ground-truth metrics for Citizen & Technical printers.
+# These are keyed by canonical product_id and used for per-product validation only.
 VERIFIED_METRICS = {
     "citizen-cx-02": {
         "speeds": {"8.4", "9.8", "14.2", "15.6", "20.8"},
@@ -136,12 +154,22 @@ VERIFIED_METRICS = {
     },
     "citizen-cz-01": {
         "speeds": {"16.3", "18.8", "19.5", "23.1"},
+        "speed_pairs": {
+            "4x4": {"16.3"},
+            "4x6": {"18.8"},
+            "4.5x4.5": {"19.5"},
+            "4.5x8": {"23.1"},
+        },
         "weights": {"5.8", "8.5"},
         "capacities": {"150", "110", "300", "220"},
         "sizes": {"4x4", "4×4", "4x6", "4×6", "4.5x4.5", "4.5×4.5", "4.5x8", "4.5×8"},
     },
     "citizen-cx-02w": {
         "speeds": {"39.2", "38.4", "33.4"},
+        "speed_pairs": {
+            "8x12": {"39.2"},
+            "a4": {"38.4"},
+        },
         "weights": {"14", "14.0", "16.5"},
         "capacities": {"110", "220"},
         "sizes": {"8x10", "8×10", "8x12", "8×12", "a4", "A4"},
@@ -158,9 +186,16 @@ VERIFIED_METRICS = {
 class DeterministicResponseValidator:
     """Deterministic validation of response claims against approved evidence."""
 
-    def validate_product_id_source_match(self, text: str, source: str, product_id: Optional[str] = None) -> List[str]:
+    def validate_product_id_source_match(
+        self,
+        text: str,
+        source: str,
+        product_id: Optional[str] = None,
+        url_product_id: Optional[str] = None,
+        evidence_product_id: Optional[str] = None,
+    ) -> List[str]:
         """
-        Check 1: product_id matches source product_id.
+        Check 1: product_id == URL product_id == evidence product_id.
         Never allow a product name, URL and specification record belonging to
         different product IDs in the same answer.
         """
@@ -169,6 +204,22 @@ class DeterministicResponseValidator:
         src_lower = (source or "").lower()
         pid_lower = (product_id or "").lower()
 
+        # --- Triple-ID consistency ---
+        ids_to_compare = {
+            k: v.lower() for k, v in {
+                "product_id": product_id,
+                "url_product_id": url_product_id,
+                "evidence_product_id": evidence_product_id,
+            }.items() if v
+        }
+        unique_vals = set(ids_to_compare.values())
+        if len(unique_vals) > 1:
+            violations.append(
+                f"Product ID triple mismatch: {ids_to_compare} — "
+                "product_id, URL product_id, and evidence product_id must all match."
+            )
+
+        # --- Source / text consistency ---
         # If source is SC-T5100M or URL has sc-t5100m, text must NOT refer to SC-T5400M
         if "t5100m" in src_lower or "t5100m" in pid_lower or "sc-t5100m" in text_lower:
             if "sc-t5400m" in text_lower or "t5400m" in text_lower:
@@ -191,6 +242,7 @@ class DeterministicResponseValidator:
         """
         Check 2: product name matches URL, and no unknown/fabricated URL slugs exist.
         Every URL slug in markdown link or plain text must match its authorized product name.
+        Approved slugs are generated dynamically from the catalogue at startup.
         """
         violations = []
         text_lower = text.lower()
@@ -204,7 +256,7 @@ class DeterministicResponseValidator:
                 )
 
         # Find markdown links: [Link Text](URL)
-        link_matches = re.findall(r"\[([^\]]+)\]\((https?://www\.keplertechllc\.com/product/([a-z0-9\-_]+)/?)\)", text)
+        link_matches = re.findall(r"\[([^\]]+)\]\((https?://www\.keplertechllc\.com/product/([a-z0-9\-_]+)/?)?\)", text)
         for link_text, full_url, slug in link_matches:
             link_text_lower = link_text.lower()
             rule = SLUG_TO_PRODUCT_RULE.get(slug)
@@ -243,15 +295,25 @@ class DeterministicResponseValidator:
 
         return violations
 
-    def validate_numeric_values(self, text: str, evidence: Optional[Dict[str, Any]] = None, product_id: Optional[str] = None) -> List[str]:
+    def validate_numeric_values(
+        self,
+        text: str,
+        evidence: Optional[Dict[str, Any]] = None,
+        product_id: Optional[str] = None,
+    ) -> List[str]:
         """
-        Check 3: every numeric value exists in retrieved evidence.
-        General claim-to-evidence validation for numbers with units and attributes.
+        Check 3: every numeric value exists in retrieved evidence for the ACTIVE product.
+
+        Critical rule: a value is only accepted if the ACTIVE product has it.
+        We never skip a violation merely because another catalogue product carries
+        the same number.  This prevents cross-product contamination where, for
+        example, CY-02's 700-print capacity is silently accepted for CX-02.
         """
         violations = []
         text_lower = text.lower()
 
-        active_pids = []
+        # Determine which product(s) to validate against
+        active_pids: List[str] = []
         if product_id:
             active_pids.append(product_id)
         else:
@@ -260,7 +322,7 @@ class DeterministicResponseValidator:
                 if tok in text_lower:
                     active_pids.append(pid)
 
-        # 3a. Weights validation (general unit check)
+        # 3a. Weight validation — active product only
         weight_matches = re.finditer(r"\b(\d+(?:\.\d+)?)\s*(?:kg|kilograms?)\b", text_lower)
         for wm in weight_matches:
             val_str = wm.group(1)
@@ -277,11 +339,12 @@ class DeterministicResponseValidator:
                     tok = pid.replace("citizen-", "").replace("epson-", "")
                     if tok in text_lower:
                         violations.append(
-                            f"Numeric weight violation for {pid}: claimed {val_str} kg lacks exact evidence (verified: {allowed_w})."
+                            f"Numeric weight violation for {pid}: claimed {val_str} kg lacks exact evidence "
+                            f"(verified: {allowed_w})."
                         )
 
-        # 3b. Speeds validation (general unit check)
-        for pid in (active_pids or VERIFIED_METRICS.keys()):
+        # 3b. Speed validation — active product only
+        for pid in (active_pids or list(VERIFIED_METRICS.keys())):
             m_metrics = VERIFIED_METRICS.get(pid, {})
             tok = pid.replace("citizen-", "").replace("epson-", "")
             if tok in text_lower:
@@ -298,7 +361,9 @@ class DeterministicResponseValidator:
                                     f"(claimed {claimed_spd}s lacks exact evidence)."
                                 )
 
-        # 3c. Capacity validation (general unit check)
+        # 3c. Capacity validation — active product only.
+        # IMPORTANT: We validate exclusively against the active product's allowed
+        # capacities.  We never skip the check because another product has the value.
         cap_matches = re.finditer(r"\b(\d{3,4})\s*(?:photos|prints|sheets|copies)\b", text_lower)
         for cm in cap_matches:
             val_str = cm.group(1)
@@ -306,11 +371,10 @@ class DeterministicResponseValidator:
                 m_info = VERIFIED_METRICS.get(pid, {})
                 allowed_c = m_info.get("capacities", set())
                 if allowed_c and val_str not in allowed_c:
-                    other_has_cap = any(val_str in VERIFIED_METRICS[o].get("capacities", set()) for o in VERIFIED_METRICS)
-                    if not other_has_cap:
-                        violations.append(
-                            f"Numeric capacity violation for {pid}: claimed capacity of {val_str} lacks exact evidence in catalogue."
-                        )
+                    violations.append(
+                        f"Numeric capacity violation for {pid}: claimed capacity of {val_str} "
+                        f"lacks exact evidence (verified: {allowed_c})."
+                    )
 
         return violations
 
@@ -373,8 +437,8 @@ class DeterministicResponseValidator:
     def validate_no_global_absence_claims(self, text: str) -> List[str]:
         """
         Check 6: no global absence claims.
-        For unknown models, say “not found in our approved catalogue,”
-        not “does not exist” or “is not manufactured.”
+        For unknown models, say "not found in our approved catalogue,"
+        not "does not exist" or "is not manufactured."
         """
         violations = []
         patterns = [
@@ -393,7 +457,7 @@ class DeterministicResponseValidator:
     def validate_no_absolute_guarantees(self, text: str) -> List[str]:
         """
         Check 7: no absolute guarantees.
-        Never say “100% guaranteed” or make absolute compatibility promises.
+        Never say "100% guaranteed" or make absolute compatibility promises.
         """
         violations = []
         patterns = [
@@ -436,6 +500,14 @@ class DeterministicResponseValidator:
     ) -> Tuple[bool, List[str]]:
         """
         Run all deterministic validation checks.
+
+        Context keys:
+          product_id        – canonical product ID being discussed
+          source            – source slug or URL
+          url_product_id    – product ID inferred from the URL in use
+          evidence_product_id – product ID from evidence record used
+          evidence          – evidence dict (optional)
+
         Returns (is_valid: bool, violations: List[str]).
         """
         if not text or not text.strip():
@@ -444,11 +516,15 @@ class DeterministicResponseValidator:
         ctx = context or {}
         source = ctx.get("source", "")
         product_id = ctx.get("product_id")
+        url_product_id = ctx.get("url_product_id")
+        evidence_product_id = ctx.get("evidence_product_id")
         evidence = ctx.get("evidence")
 
         violations: List[str] = []
 
-        violations.extend(self.validate_product_id_source_match(text, source, product_id))
+        violations.extend(self.validate_product_id_source_match(
+            text, source, product_id, url_product_id, evidence_product_id
+        ))
         violations.extend(self.validate_product_name_matches_url(text))
         violations.extend(self.validate_numeric_values(text, evidence, product_id))
         violations.extend(self.validate_consumable_linkage(text, product_id))

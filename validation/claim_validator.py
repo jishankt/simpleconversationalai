@@ -5,36 +5,59 @@ Validates:
   2. Product weight is distinguished from package weight.
   3. Model names link to verified, exact URL slugs (rejects constructed URLs).
   4. Grounding statuses ([VERIFIED], [INFERRED], [CONFLICT], [CALCULATED]) are accurately maintained.
+
+Approved URL-to-product mapping is generated from every canonical catalogue
+record at startup.  There is no static partial allowlist.
 """
 
 import re
 import logging
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Set
 
 logger = logging.getLogger("validation:claim_validator")
 
-# Verified URL slugs for authorized hardware models
-VERIFIED_PRODUCT_SLUGS = {
-    "citizen-cx-02": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
-    "citizen-cy-02": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
-    "citizen-cz-01": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
-    "citizen-cx-02w": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
-    "epson-am-c4000": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/",
-    "epson-am-c550": "https://www.keplertechllc.com/product/epson-wf-am-c550-a4-multifunction-printer/",
-    "epson-t3100": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
-    "epson-t5100": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
-    "epson-t5100m": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
-    "epson-t5400m": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
-    "epson-t5700d": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
-    "epson-p700": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
-    "epson-p7500": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-    "epson-p9500": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
-    "epson-sc-f100": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
-    "epson-sc-f500": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
-    "epson-ds-530ii": "https://www.keplertechllc.com/product/epson-workforce-ds-530-ii-scanner/",
-}
 
-# Verified speed-to-size mappings
+# ---------------------------------------------------------------------------
+# Dynamic approved slug → URL mapping – generated from the catalogue at startup
+# so the allowlist is always complete and never stale.
+# ---------------------------------------------------------------------------
+
+def _build_verified_product_slugs() -> Dict[str, str]:
+    """
+    Build {slug_key: full_url} from every canonical catalogue product.
+    The slug_key is derived from the product ID (e.g. 'citizen-cx-02' →
+    'citizen-cx-02').  The URL is the product's registered website_url.
+    """
+    mapping: Dict[str, str] = {}
+    try:
+        from catalog.repository import catalog_repository
+        for prod in catalog_repository.get_all():
+            url = (
+                getattr(prod, "product_url", None)
+                or (prod.source.website_url if prod.source else None)
+            )
+            if url:
+                m = re.search(
+                    r"https?://www\.keplertechllc\.com/product/([a-zA-Z0-9\-_]+)/?",
+                    url,
+                )
+                if m:
+                    slug = m.group(1)
+                    normalized_url = url.rstrip("/") + "/"
+                    mapping[slug] = normalized_url
+                    # Also map by canonical product_id as a secondary key
+                    mapping[prod.id] = normalized_url
+    except Exception as exc:
+        logger.warning("Could not build dynamic VERIFIED_PRODUCT_SLUGS: %s", exc)
+    return mapping
+
+
+# Exposed as module-level name for backward compatibility with existing imports
+VERIFIED_PRODUCT_SLUGS: Dict[str, str] = _build_verified_product_slugs()
+
+# ---------------------------------------------------------------------------
+# Verified speed-to-size mappings – keyed by model token
+# ---------------------------------------------------------------------------
 SPEED_SIZE_RULES = {
     "cx-02": {
         "8.4": ["4x6", "4×6"],
@@ -60,7 +83,9 @@ SPEED_SIZE_RULES = {
     }
 }
 
-# Verified weight specifications
+# ---------------------------------------------------------------------------
+# Verified weight specifications – keyed by model token
+# ---------------------------------------------------------------------------
 WEIGHT_RULES = {
     "cx-02": {"product": "12", "package": "13.5"},
     "cy-02": {"product": "13.8", "package": "16.5"},
@@ -74,56 +99,78 @@ class OutputValidator:
         """
         Validates that print speed values correctly pair with their corresponding print size.
         For example, CX-02 8.4s/9.8s must pair with 4x6, not 6x8.
+        Validation is scoped to the active product_id when provided.
         """
         text_lower = text.lower()
         for model_key, rules in SPEED_SIZE_RULES.items():
-            if model_key in (product_id or text_lower):
-                for speed_val, allowed_sizes in rules.items():
-                    if speed_val in text_lower:
-                        # Find nearby context within 50 characters of the speed value
-                        idx = text_lower.find(speed_val)
-                        start = max(0, idx - 60)
-                        end = min(len(text_lower), idx + 60)
-                        context = text_lower[start:end]
-                        # Check if any forbidden size is mentioned in the immediate context
-                        all_sizes = ["4x6", "4×6", "5x7", "5×7", "6x8", "6×8", "6x9", "6×9", "8x12", "8×12", "4x4", "4.5x8"]
-                        forbidden = [s for s in all_sizes if s not in allowed_sizes and s in context]
-                        allowed_found = any(s in context for s in allowed_sizes)
-                        if forbidden and not allowed_found:
-                            return False, f"Speed-size pairing violation: {speed_val}s claimed with wrong size {forbidden} for {model_key} (expected {allowed_sizes})."
+            # Only validate against this model if it matches the active product
+            if product_id:
+                active_tok = product_id.lower().replace("citizen-", "").replace("epson-", "")
+                if active_tok != model_key:
+                    continue
+            elif model_key not in text_lower:
+                continue
+
+            for speed_val, allowed_sizes in rules.items():
+                if speed_val in text_lower:
+                    # Find nearby context within 60 characters of the speed value
+                    idx = text_lower.find(speed_val)
+                    start = max(0, idx - 60)
+                    end = min(len(text_lower), idx + 60)
+                    context = text_lower[start:end]
+                    # Check if any forbidden size is mentioned in the immediate context
+                    all_sizes = ["4x6", "4×6", "5x7", "5×7", "6x8", "6×8", "6x9", "6×9", "8x12", "8×12", "4x4", "4.5x8"]
+                    forbidden = [s for s in all_sizes if s not in allowed_sizes and s in context]
+                    allowed_found = any(s in context for s in allowed_sizes)
+                    if forbidden and not allowed_found:
+                        return False, (
+                            f"Speed-size pairing violation: {speed_val}s claimed with wrong size {forbidden} "
+                            f"for {model_key} (expected {allowed_sizes})."
+                        )
 
         return True, "OK"
 
     def validate_weights(self, text: str, product_id: Optional[str] = None) -> Tuple[bool, str]:
         """
         Validates that product weight is not confused with package weight.
+        Validation is scoped to the active product_id when provided.
         """
         text_lower = text.lower()
         for model_key, w_info in WEIGHT_RULES.items():
-            if model_key in (product_id or text_lower):
-                pkg_val = w_info["package"]
-                prod_val = w_info["product"]
-                # If package weight is stated as the printer weight
-                pattern_pkg_as_prod = rf"(?:printer weight|product weight|chassis weight|weighs|weight of the {model_key})\s*(?:is|:)?\s*{pkg_val}\s*kg"
-                if re.search(pattern_pkg_as_prod, text_lower):
-                    return False, f"Weight violation: Package weight {pkg_val} kg stated as product weight for {model_key} (actual product weight: {prod_val} kg)."
+            # Only validate against this model if it matches the active product
+            if product_id:
+                active_tok = product_id.lower().replace("citizen-", "").replace("epson-", "")
+                if active_tok != model_key:
+                    continue
+            elif model_key not in text_lower:
+                continue
+
+            pkg_val = w_info["package"]
+            prod_val = w_info["product"]
+            # If package weight is stated as the printer weight
+            pattern_pkg_as_prod = rf"(?:printer weight|product weight|chassis weight|weighs|weight of the {model_key})\s*(?:is|:)?\s*{pkg_val}\s*kg"
+            if re.search(pattern_pkg_as_prod, text_lower):
+                return False, (
+                    f"Weight violation: Package weight {pkg_val} kg stated as product weight "
+                    f"for {model_key} (actual product weight: {prod_val} kg)."
+                )
 
         return True, "OK"
 
     def validate_model_slugs(self, text: str) -> Tuple[bool, str]:
         """
-        Verifies that any product URL in text matches the authorized, verified URL slug.
-        Rejects fabricated or invented slugs.
+        Verifies that any product URL in text matches the dynamically-generated
+        catalogue mapping.  Rejects fabricated or invented slugs.
         """
         url_matches = re.findall(r"https?://www\.keplertechllc\.com/product/([a-z0-9\-_]+)/?", text)
         for slug in url_matches:
             full_url = f"https://www.keplertechllc.com/product/{slug}/"
-            # Verify if this URL exists in our verified slug dictionary
-            is_verified = any(v_url.rstrip("/") == full_url.rstrip("/") for v_url in VERIFIED_PRODUCT_SLUGS.values())
+            is_verified = any(
+                v_url.rstrip("/") == full_url.rstrip("/")
+                for v_url in VERIFIED_PRODUCT_SLUGS.values()
+            )
             if not is_verified:
-                # Check if it's an invented slug from product names
-                if slug not in ["citizen-cx-02-photo-printer", "citizen-cy-02-photo-printer", "citizen-cz-01-photo-printer", "citizen-cx-02w-large-photo-printer"]:
-                    logger.warning(f"Unverified or constructed URL slug detected: {full_url}")
+                logger.warning(f"Unverified or constructed URL slug detected: {full_url}")
 
         return True, "OK"
 
@@ -295,4 +342,3 @@ class OutputValidator:
 
 claim_validator = OutputValidator()
 output_validator = claim_validator
-

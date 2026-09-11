@@ -143,12 +143,23 @@ class EligibilityEngine:
                     is_eligible = False
                     rejection_reason = f"Maximum print width ({specs.max_width_label or specs.max_width_mm}) is smaller than required A4."
             elif any(s in str(req_size).lower() for s in ["compact desktop", "compact", "small", "desktop"]):
-                if specs.max_width_mm is None or specs.max_width_mm <= 610:
-                    matched.append("print_size")
-                else:
+                # Compact desktop: Max 17 inches (432mm), e.g. P700 (13"), P900 (17"), CX-02, CZ-01
+                # SC-P7500 (24", 610mm) and SC-P9500 (44", 1118mm) are floor-standing production large-format units!
+                if specs.max_width_mm is not None and specs.max_width_mm > 432:
                     failed.append("print_size")
                     is_eligible = False
-                    rejection_reason = "Product is a floor-standing or wide-format unit, not a compact desktop."
+                    rejection_reason = f"Product width ({specs.max_width_label or specs.max_width_mm}) is a large-format production unit, not a compact desktop."
+                else:
+                    matched.append("print_size")
+            elif any(s in str(req_size).lower() for s in ["large format", "large-format", "large", "wide format", "production"]):
+                # Large format: At least 24 inches (610mm), e.g. SC-P7500 (24"), SC-P9500 (44"), T3100 (24"), T5100 (36"), T5400M (36"), T5700D (36")
+                # Compact desktop units like P700 (13") and P900 (17") must be rejected when large format is requested!
+                if specs.max_width_mm is not None and specs.max_width_mm < 610:
+                    failed.append("print_size")
+                    is_eligible = False
+                    rejection_reason = f"Product width ({specs.max_width_label or specs.max_width_mm}) is a compact desktop model, not large format (24\"+ required)."
+                else:
+                    matched.append("print_size")
 
         # ── 1b. Printing Technology Gate (Hard Constraint) ───────────────────
         req_tech = requirements.get("printing_technology")
@@ -175,14 +186,16 @@ class EligibilityEngine:
         # ── 2. Scanner Gate (Strict logic) ───────────────────────────────────
         req_scan = requirements.get("scan_required")
         if req_scan is not None:
-            if req_scan is True:
+            is_scan_needed = req_scan is True or str(req_scan).lower() in ("true", "yes", "1")
+            is_print_only = req_scan is False or str(req_scan).lower() in ("false", "no", "0")
+            if is_scan_needed:
                 if specs.has_scanner is True:
                     matched.append("scan_required")
                 else:
                     failed.append("scan_required")
                     is_eligible = False
                     rejection_reason = "Product does not have an integrated scanner (customer requires scanning)."
-            elif req_scan is False:
+            elif is_print_only:
                 # Customer explicitly does NOT want a scanner (print-only requested)
                 if specs.has_scanner is False or specs.has_scanner is None:
                     matched.append("scan_required")

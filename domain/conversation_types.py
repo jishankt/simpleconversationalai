@@ -192,6 +192,7 @@ class RouteResult:
     evidence: List[Dict[str, Any]] = field(default_factory=list)
     instruction: str = ""  # Instruction for the response composer
     recommendation_audit: Optional[Dict[str, Any]] = None  # Internal audit object for recommendation traceability
+    product_id: Optional[str] = None  # Canonical product ID if specific to a single product
 
     def __post_init__(self):
         if self.reply and isinstance(self.reply, str):

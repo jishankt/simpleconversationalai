@@ -737,6 +737,9 @@ class CatalogRepository:
                                     model=name.split()[0] if name else "Epson Scanner",
                                     name=name,
                                     category="scanner",
+                                    # SKU: prefer the item's own sku field; fall back to the part-number
+                                    # that forms the product ID (already the canonical SKU for these items)
+                                    sku=sku or p_id.upper(),
                                     verified=specs,
                                     source=ProductSource(website_url=item.get("website_url") or item.get("web_url")),
                                     image_url=item.get("image_url") or item.get("image"),
@@ -817,10 +820,17 @@ class CatalogRepository:
             max_width_label = "4x6, 4.5x8 inches"
 
         # Scanner: strict 3-valued logic (True / False / None)
-        name_desc = (item.get("name", "") + " " + item.get("media_handling", "") + " " + item.get("comparison_highlights", "")).lower()
-        if "integrated scanner" in name_desc or "scanner included" in name_desc or "multifunction" in name_desc or "mfp" in name_desc:
+        name_desc = (
+            str(item.get("name", "")) + " " +
+            str(item.get("title", "")) + " " +
+            str(item.get("short_description", "")) + " " +
+            str(item.get("full_description", "")) + " " +
+            str(item.get("media_handling", "")) + " " +
+            str(item.get("comparison_highlights", ""))
+        ).lower()
+        if p_id in ("epson-t5100m", "epson-t5400m", "epson-surecolor-sc-t5100m", "epson-sc-t5400m", "epson-am-c4000", "epson-am-c550") or "integrated scanner" in name_desc or "scanner included" in name_desc or "multifunction" in name_desc or "mfp" in name_desc:
             has_scanner = True
-        elif "print only" in name_desc or "standalone plotter" in name_desc or "desktop plotter" in name_desc or "dual-roll production plotter" in name_desc or p_id in ("epson-t3100", "epson-t5100", "epson-t5700d", "epson-p700", "epson-p900", "citizen-cx-02"):
+        elif "print only" in name_desc or "standalone plotter" in name_desc or "desktop plotter" in name_desc or "dual-roll production plotter" in name_desc or p_id in ("epson-t3100", "epson-t5100", "epson-t5700d", "epson-p700", "epson-p900", "epson-p7500", "epson-p9500", "epson-p5300", "citizen-cx-02", "citizen-cx-02w", "citizen-cy-02", "citizen-cz-01", "epson-f100", "epson-f500"):
             has_scanner = False
         else:
             has_scanner = None
