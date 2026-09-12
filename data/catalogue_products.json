@@ -1672,5 +1672,44 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "citizen"
+  },
+  {
+    "id": "epson-sc-f100",
+    "display_name": "Epson SureColor SC-F100",
+    "model_family": "SC-F100",
+    "configuration": null,
+    "brand": "Epson",
+    "catalogue": "dye_sublimation",
+    "main_category": "dye_sublimation",
+    "subcategory": "dye_sublimation_desktop",
+    "paper_size": "a4",
+    "max_width_inches": 8.5,
+    "colour_mode": "colour",
+    "functions": [
+      "print"
+    ],
+    "applications": [
+      "dye_sublimation",
+      "garment_printing",
+      "fabric_printing",
+      "transfer_printing",
+      "personalised_products"
+    ],
+    "supported_print_sizes": [
+      "A4",
+      "A5",
+      "Letter"
+    ],
+    "scanner_integrated": false,
+    "dual_roll": false,
+    "spectro": null,
+    "recommended_monthly_min": null,
+    "recommended_monthly_max": null,
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
+    "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
+    "source_catalogue": "DYE SUBLIMATION PRINTERS_CATALOG.pdf",
+    "catalogue_verified": true,
+    "active": true,
+    "product_line": "surecolor_f"
   }
 ]

@@ -19,6 +19,7 @@ APPROVED_CATALOGUES = {
     "technical_large_format": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "photography_and_fine_art": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "citizen_photo": "CITIZEN PHOTO PRINTERS_CATALOG.pdf",
+    "dye_sublimation": "DYE SUBLIMATION PRINTERS_CATALOG.pdf",
 }
 
 APPROVED_CATEGORIES = {
@@ -26,6 +27,7 @@ APPROVED_CATEGORIES = {
     "technical_large_format",
     "photography_large_format",
     "citizen_photo",
+    "dye_sublimation",
 }
 
 APPROVED_PRODUCT_LINES = {
@@ -33,10 +35,11 @@ APPROVED_PRODUCT_LINES = {
     "workforce_enterprise",
     "surecolor_t",
     "surecolor_p",
+    "surecolor_f",
     "citizen",
 }
 
-EXPECTED_CATALOGUE_COUNT = 41
+EXPECTED_CATALOGUE_COUNT = 42
 
 
 class CatalogueIntegrityError(Exception):

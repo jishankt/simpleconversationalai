@@ -19,9 +19,9 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
     def setUp(self):
         self.products = catalogue_loader.load_and_validate()
 
-    def test_catalogue_loader_exact_41_entries(self):
-        """Assert startup validation enforces exactly 41 active products."""
-        self.assertEqual(len(self.products), 41)
+    def test_catalogue_loader_exact_42_entries(self):
+        """Assert startup validation enforces exactly 42 active products."""
+        self.assertEqual(len(self.products), 42)
         # Unique IDs
         ids = [p["id"] for p in self.products]
         self.assertEqual(len(ids), len(set(ids)))
@@ -31,7 +31,8 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
             "business_a3",
             "technical_large_format",
             "photography_and_fine_art",
-            "citizen_photo"
+            "citizen_photo",
+            "dye_sublimation",
         }
         for p in self.products:
             self.assertTrue(p.get("active"))
@@ -189,15 +190,19 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
         self.assertIn("epson-am-c6000", prod_ids)
 
     def test_case_13_unapproved_model_refusal(self):
-        """Unapproved / website-only models (e.g. SC-F100, SC-F500) are refused."""
+        """Unapproved / website-only models (e.g. SC-F500) are refused.
+
+        Note: SC-F100 is now an approved catalogue product.
+        SC-F500 is not in the catalogue and should be refused.
+        """
         state = ConversationState(session_id="unapproved-test")
-        res = orchestrator.process_turn("Do you have the Epson SureColor SC-F100 or SC-F500?", state=state)
+        res = orchestrator.process_turn("Do you have the Epson SureColor SC-F500?", state=state)
         # Validator check: Response text must not endorse unapproved models
         # and cards must not contain unapproved IDs
         cards = res.get("cards", [])
         for card in cards:
             self.assertIn(card["id"], catalogue_loader.approved_ids)
-        # Should inform the user that SC-F100/SC-F500 are not in Kepler's catalogue
+        # Should inform the user that SC-F500 is not in Kepler's catalogue
         msg = res["message"].lower()
         self.assertTrue("not part of" in msg or "not carry" in msg or "catalogue" in msg)
 

@@ -36,6 +36,7 @@ SUBCATEGORY_LABELS = {
     "citizen_4_inch": ("Citizen Photo", "4-inch Compact Photo"),
     "citizen_6_inch": ("Citizen Photo", "6-inch Event Photo"),
     "citizen_8_inch": ("Citizen Photo", "8-inch Wide Event Photo"),
+    "dye_sublimation_desktop": ("Dye Sublimation", "Desktop Dye-Sub Printer"),
 }
 
 # Explicit configuration relationship groupings: (model_family, base_id, variant_id, variant_trigger_key)
