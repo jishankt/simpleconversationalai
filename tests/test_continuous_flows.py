@@ -268,6 +268,38 @@ class TestContinuousFlows(unittest.TestCase):
         card_ids = [c["id"] for c in r4.get("cards", [])]
         self.assertEqual(card_ids, ["citizen-cz-01"])
 
+    def test_flow_13_a3_print_only_relaxation_flow(self):
+        """Office A3 print-only query must offer helpful relaxation and prevent false consumable routing."""
+        state = ConversationState(session_id="flow-13-a3-print-only")
+
+        r1 = orchestrator.process_turn("hello", state=state)
+        r2 = orchestrator.process_turn("i need a printer", state=state)
+        r3 = orchestrator.process_turn("i need a office printer", state=state)
+        r4 = orchestrator.process_turn("i want a3", state=state)
+        r5 = orchestrator.process_turn("print only", state=state)
+        r6 = orchestrator.process_turn("i think its 30", state=state)
+
+        # Confirm turn 6 does not false-trigger consumables via 'think'
+        self.assertNotEqual(r6.get("source"), "route:consumables")
+        self.assertEqual(r6.get("source"), "recommendation:no_match")
+        self.assertIn("multifunction", r6.get("reply", "").lower())
+        self.assertEqual(len(r6.get("product_cards", [])), 0)
+
+        # Follow-up: relax multifunction requirement
+        r7 = orchestrator.process_turn("yes multifunction a3 is fine", state=state)
+        self.assertEqual(r7.get("source"), "recommendation:catalogue_list")
+        card_ids = [c["id"] for c in r7.get("product_cards", [])]
+        self.assertEqual(card_ids, ["epson-wf-c878r-dwf", "epson-wf-c879r-dwf"])
+
+    def test_spaceless_model_detail_query(self):
+        """Models typed without spaces/hyphens like WF-C5890DWF resolve to model detail."""
+        state = ConversationState(session_id="spaceless-model-test")
+        r = orchestrator.process_turn("ineeed WF-C5890DWF", state=state)
+        self.assertEqual(r.get("source"), "route:model_detail")
+        self.assertEqual(len(r.get("product_cards", [])), 1)
+        self.assertEqual(r["product_cards"][0]["id"], "epson-wf-c5890-dwf")
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -414,6 +414,8 @@ class CatalogueFilter:
                 return "No WorkForce Pro model meets all those exact specifications. Would you like to consider the WorkForce Enterprise series or relax other requirements?"
             elif req_line == "workforce_enterprise":
                 return "No WorkForce Enterprise model meets all those exact specifications. Would you like to consider the WorkForce Pro series or relax other requirements?"
+            if str(requirements.get("paper_size", "")).lower() == "a3" and requirements.get("scanner_required") is False:
+                return "All approved A3 office models in our catalogue are multifunction printers with integrated scanning and copying. Would a multifunction A3 model like the WF-C878R DWF work, or would you prefer a dedicated A4 print-only printer?"
             return "Would an A4 colour multifunction printer meet your requirements, or is A3 printing mandatory?"
 
         return "Would you be open to relaxing the size or multifunction requirement to view available catalogue options?"

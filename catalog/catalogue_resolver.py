@@ -44,6 +44,22 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
                 found = True
                 break
 
+        if not found:
+            clean_words = [re.sub(r"[^a-z0-9]", "", w) for w in text_lower.split() if len(re.sub(r"[^a-z0-9]", "", w)) >= 4]
+            clean_text = re.sub(r"[^a-z0-9]", "", text_lower)
+            clean_fam = re.sub(r"[^a-z0-9]", "", fam.lower())
+            clean_pid = re.sub(r"[^a-z0-9]", "", pid.replace("epson-", "").replace("citizen-", "").lower())
+            clean_disp = re.sub(r"[^a-z0-9]", "", disp.lower().replace("epson", "").replace("citizen", "").replace("workforce", "").replace("pro", "").replace("enterprise", "").replace("surecolor", ""))
+
+            candidates = {c for c in [clean_fam, clean_pid, clean_disp] if len(c) >= 4}
+            for cand in candidates:
+                if cand in clean_words:
+                    found = True
+                    break
+                if len(cand) >= 6 and cand in clean_text:
+                    found = True
+                    break
+
         if found and pid not in seen_ids:
             seen_ids.add(pid)
             matched.append(p)

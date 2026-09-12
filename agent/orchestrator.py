@@ -416,7 +416,7 @@ class Orchestrator:
             state.last_assistant_response = reply_text
             state.increment_turn()
             detail_c_cards = []
-            if any(w in normalized_msg.lower() for w in ["ink", "inks", "consumable", "consumables", "cartridge"]):
+            if bool(re.search(r"\b(?:inks?|consumables?|cartridges?)\b", normalized_msg.lower())):
                 detail_c_cards = consumables_engine.get_printer_consumables(target_prod.get("display_name", ""), limit=6)
 
             return self._build_response(
@@ -443,9 +443,22 @@ class Orchestrator:
             state.awaiting_field = None
             state.requested_ink_color = None
 
+        has_ink_keyword = bool(re.search(r"\b(?:inks?|cartridges?|toners?|ribbons?|maintenance\s+(?:box|tank)(?:es|s)?)\b", normalized_msg.lower()))
+
+        # If user explicitly states they want a printer or mentions an approved printer without asking for ink, break out of awaiting_field
+        if state.awaiting_field == "printer_model" and (is_printer_search or (mentioned_products and not has_ink_keyword)):
+            state.awaiting_field = None
+            state.requested_ink_color = None
+
         is_answering_printer_model = (
             state.awaiting_field == "printer_model"
-            or (state.requested_ink_color and not is_printer_search and not has_negated_ink)
+            and not is_printer_search
+            and not has_negated_ink
+            and not mentioned_products
+        ) or (
+            state.requested_ink_color
+            and not is_printer_search
+            and not has_negated_ink
         )
         is_consumables_query = (
             not is_printer_search
@@ -453,7 +466,7 @@ class Orchestrator:
             and (
                 understanding.intent == Intent.CONSUMABLES_QUERY
                 or is_answering_printer_model
-                or any(w in normalized_msg.lower() for w in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon", "maintenance box", "maintenance tank"])
+                or has_ink_keyword
             )
         )
         if is_consumables_query:
@@ -469,7 +482,7 @@ class Orchestrator:
             elif state.active_product:
                 p_name = state.active_product.get("name") or state.active_product.get("display_name")
             else:
-                m_match = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,5}|cx-?02|cy-?02|cz-?01|cx-?02w|am-?c\d{3,4}|wf-?c\d{3,5}|em-?c\d{3,4}|f100|f500)\b", normalized_msg.lower())
+                m_match = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,5}(?:[a-z]{1,4})?|cx-?02w?|cy-?02|cz-?01|am-?c\d{3,4}|wf-?c\d{3,5}(?:[a-z]{1,4})?|em-?c\d{3,4}|f100|f500)\b", normalized_msg.lower())
                 if m_match:
                     p_name = m_match.group(0).upper()
                 elif is_answering_printer_model and len(normalized_msg.split()) <= 3:
@@ -517,11 +530,10 @@ class Orchestrator:
             )
 
         # 6d. Company Information / Business Hours / Location
-        is_product_query = any(k in normalized_msg.lower() for k in [
-            "printer", "printers", "plotter", "plotters", "mfp", "copier", "copiers",
-            "print", "scanner", "scan", "cartridge", "toner", "ink", "a4", "a3", "cad",
-            "photo", "catalogue", "catalog", "model", "models", "show me", "need a", "looking for", "pages"
-        ])
+        is_product_query = bool(re.search(
+            r"\b(?:printers?|plotters?|mfp|copiers?|print(?:ing)?|scanners?|scan(?:ning)?|cartridges?|toners?|inks?|a[34]|cad|photo|catalog(?:ue)?|models?)\b",
+            normalized_msg.lower()
+        )) or any(k in normalized_msg.lower() for k in ["show me", "need a", "looking for", "pages"])
         is_business_info = (
             not is_product_query
             and (
