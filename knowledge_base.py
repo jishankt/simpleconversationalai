@@ -110,7 +110,7 @@ VERIFIED_PRODUCTS = {
         {
             "brand": "Epson",
             "series": "WorkForce Pro",
-            "model": "Epson WorkForce Pro WF-C879R D3TWFC",
+            "model": "Epson WorkForce Pro WF-C879R DWF",
             "category": "A3 Multifunction Business Inkjet",
             "yield": "Up to 86,000 mono / 50,000 color pages per Replaceable Ink Pack System (RIPS)",
             "intended_use": "Mid-to-large offices seeking low intervention and ultra-high yields",

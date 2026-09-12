@@ -18,8 +18,41 @@ if not (raw_ollama_url.startswith("http://") or raw_ollama_url.startswith("https
 OLLAMA_BASE_URL = raw_ollama_url
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
 
+# Environment Configuration
+APP_ENV = os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or os.getenv("ENVIRONMENT") or "development"
+IS_PRODUCTION = APP_ENV.lower() in ("production", "prod")
+
 # Security Configuration
+DEFAULT_SECRET_KEYS = {
+    "kepler-tech-salesai-default-secret-change-in-production",
+    "dev-secret-key",
+    "secret",
+    "change-me",
+    "changeme",
+    "default",
+    ""
+}
 SECRET_KEY = os.getenv("SECRET_KEY", "kepler-tech-salesai-default-secret-change-in-production")
+
+
+def validate_secret_key(secret_key=None, app_env=None, debug=None):
+    """
+    Validates that SECRET_KEY is set and non-default in production mode.
+    Refuses startup if running in production with missing or default secret key.
+    """
+    key = secret_key if secret_key is not None else SECRET_KEY
+    env = (app_env if app_env is not None else APP_ENV).lower()
+    is_debug = debug if debug is not None else DEBUG
+    if env in ("production", "prod") and not is_debug:
+        if not key or key.strip() in DEFAULT_SECRET_KEYS or len(key.strip()) < 16:
+            raise RuntimeError(
+                "CRITICAL SECURITY CONFIGURATION ERROR: "
+                "Insecure or default SECRET_KEY detected in production mode. "
+                "Refusing startup. Set a strong, non-default SECRET_KEY environment variable (minimum 16 characters)."
+            )
+    return True
+
+
 ALLOWED_MODELS = os.getenv(
     "ALLOWED_MODELS",
     "qwen2.5:32b,qwen2.5:14b,qwen2.5:0.5b,qwen3:30b,qwen3:14b,qwen3:8b,gpt-oss:20b,llama3.1:latest,llama3:latest"
@@ -30,6 +63,23 @@ CORS_ORIGINS = os.getenv(
 ).split(",")
 MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", 65536))  # 64 KB
 TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "60"))
+
+# Rate Limiting Configuration
+RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "True").lower() == "true"
+RATE_LIMIT_IP_PER_MINUTE = int(os.getenv("RATE_LIMIT_IP_PER_MINUTE", "60"))
+RATE_LIMIT_SESSION_PER_MINUTE = int(os.getenv("RATE_LIMIT_SESSION_PER_MINUTE", "30"))
+TRUSTED_PROXY_COUNT = int(os.getenv("TRUSTED_PROXY_COUNT", "1"))
+TRUST_CF_CONNECTING_IP = os.getenv("TRUST_CF_CONNECTING_IP", "True").lower() == "true"
+
+# Logging & Response State Safety
+LOG_SENSITIVE_DATA = os.getenv("LOG_SENSITIVE_DATA", "False").lower() == "true"
+EXPOSE_DEBUG_STATE = os.getenv("EXPOSE_DEBUG_STATE", "False").lower() == "true" or DEBUG or (APP_ENV.lower() in ("test", "testing"))
+
+# Ollama Readiness Policy
+# If True: /health/ready returns 503 when Ollama is offline.
+# If False: /health/ready returns 200 with status="degraded" when Ollama is offline but catalogue & persistence are ok.
+OLLAMA_MANDATORY_FOR_READY = os.getenv("OLLAMA_MANDATORY_FOR_READY", "False").lower() == "true"
+
 
 # Advanced Ollama settings for /api/chat methods
 OLLAMA_CONNECT_TIMEOUT = float(os.getenv("OLLAMA_CONNECT_TIMEOUT", "2.5"))

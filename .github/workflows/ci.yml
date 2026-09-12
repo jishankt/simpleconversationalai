@@ -38,6 +38,8 @@ jobs:
       run: |
         pytest tests/test_architecture_single_orchestrator.py
         pytest tests/test_security_hardening.py
+        pytest tests/test_production_hardening_pass.py
+        pytest tests/test_adversarial_and_resilience.py
 
     - name: Run Deterministic Claim & Zero-Hallucination Validation Tests
       run: |
@@ -63,12 +65,14 @@ jobs:
         pytest tests/evaluation/test_evaluation_suite.py
         pytest tests/test_continuous_flows.py
 
-    - name: Run Multi-Agent & RAG Verification
+    - name: Run Multi-Agent, RAG & Consumables Verification
       run: |
         pytest tests/test_multi_agent_system.py
         pytest test_rag.py
         pytest test_nlp.py
+        pytest test_consumables.py
 
     - name: Run Complete Test Suite
       run: |
-        pytest --maxfail=1 tests
+        pytest -q tests test_rag.py test_nlp.py test_consumables.py
+

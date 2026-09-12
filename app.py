@@ -6,10 +6,27 @@ enforces strict commercial guardrails, and guarantees zero-hallucination groundi
 
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
+import time
 import uuid
 import re
 import logging
-from config import PORT, DEBUG, DEFAULT_COMPANY_CONTEXT, DEFAULT_MODEL, OLLAMA_BASE_URL, ALLOWED_MODELS, CORS_ORIGINS, MAX_REQUEST_BYTES
+from config import (
+    PORT,
+    DEBUG,
+    DEFAULT_COMPANY_CONTEXT,
+    DEFAULT_MODEL,
+    OLLAMA_BASE_URL,
+    ALLOWED_MODELS,
+    CORS_ORIGINS,
+    MAX_REQUEST_BYTES,
+    validate_secret_key,
+    APP_ENV,
+    IS_PRODUCTION,
+    LOG_SENSITIVE_DATA,
+    EXPOSE_DEBUG_STATE,
+    OLLAMA_MANDATORY_FOR_READY,
+    RATE_LIMIT_ENABLED,
+)
 from prompts import build_system_prompt, format_generate_prompt, format_evidence_grounded_prompt
 from guardrails import check_user_intent_for_pricing_or_discount, validate_and_sanitize_response, PRICE_REFUSAL, DISCOUNT_REFUSAL
 from ollama_client import OllamaClient
@@ -22,6 +39,10 @@ from agent.orchestrator import orchestrator as new_orchestrator
 from rag.consumables_engine import consumables_engine
 from agents import list_agent_metadata
 from persistence import lead_repository, state_repository
+from security.rate_limiter import rate_limiter, get_client_ip
+
+# Production Security Gate: refuse startup if SECRET_KEY is default/insecure in production
+validate_secret_key()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("conversational_ai")
@@ -103,9 +124,28 @@ def get_config():
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
-    """Returns status of Ollama connection and installed models."""
-    health_data = ollama_client.check_health()
-    return jsonify(health_data)
+    """Returns operational health status without exposing internal Ollama URL or raw server endpoints."""
+    from catalog.catalogue_loader import catalogue_loader, EXPECTED_CATALOGUE_COUNT
+    all_prods = catalogue_loader.get_all()
+    catalogue_ok = len(all_prods) == EXPECTED_CATALOGUE_COUNT
+
+    health_info = ollama_client.check_health()
+    ollama_ok = bool(health_info.get("online") or health_info.get("model_available"))
+    is_ready = catalogue_ok and ollama_ok
+
+    if not DEBUG and not EXPOSE_DEBUG_STATE:
+        return jsonify({
+            "status": "ok" if is_ready else ("degraded" if catalogue_ok else "unavailable"),
+            "online": ollama_ok,
+            "catalogue_ok": catalogue_ok
+        })
+
+    return jsonify({
+        "status": "ok" if is_ready else "degraded",
+        "online": ollama_ok,
+        "catalogue_ok": catalogue_ok,
+        "models_count": len(health_info.get("models", []))
+    })
 
 
 @app.route("/health/live", methods=["GET"])
@@ -116,7 +156,10 @@ def liveness():
 
 @app.route("/health/ready", methods=["GET"])
 def readiness():
-    """Readiness probe — confirms approved 41 catalogue loaded, persistence available, and returns 503 when not ready."""
+    """
+    Readiness probe — confirms approved 41 catalogue loaded, persistence available,
+    and returns 503 when not ready or degraded when Ollama is offline.
+    """
     from catalog.catalogue_loader import catalogue_loader, EXPECTED_CATALOGUE_COUNT
     all_prods = catalogue_loader.get_all()
     catalogue_ok = len(all_prods) == EXPECTED_CATALOGUE_COUNT
@@ -131,10 +174,23 @@ def readiness():
     health_info = ollama_client.check_health()
     ollama_ok = bool(health_info.get("online") or health_info.get("model_available"))
 
-    is_ready = catalogue_ok and persistence_ok
-    status_code = 200 if is_ready else 503
+    if not catalogue_ok or not persistence_ok:
+        status_code = 503
+        status_str = "unavailable"
+    elif ollama_ok:
+        status_code = 200
+        status_str = "ready"
+    else:
+        # Ollama is offline. Check policy.
+        if OLLAMA_MANDATORY_FOR_READY:
+            status_code = 503
+            status_str = "unavailable"
+        else:
+            status_code = 200
+            status_str = "degraded"
+
     return jsonify({
-        "status": "ready" if is_ready else "not_ready",
+        "status": status_str,
         "catalog_count": len(all_prods),
         "catalogue_count": len(all_prods),
         "catalogue_ok": catalogue_ok,
@@ -202,10 +258,13 @@ def chat():
     if not isinstance(data["message"], str):
         return jsonify({"error": "'message' field must be a string"}), 400
 
+    raw_message = data["message"].strip()
+    if not raw_message:
+        return jsonify({"error": "Empty message", "message": "Message cannot be empty or whitespace only"}), 400
+
     if len(data["message"]) > 4000:
         return jsonify({"error": "Message exceeds maximum allowed length of 4000 characters"}), 400
 
-    raw_message = data["message"].strip()
     session_id = data.get("session_id")
     if session_id:
         if not isinstance(session_id, str) or len(session_id) > 128 or not re.match(r"^[a-zA-Z0-9_\-\.:]+$", session_id):
@@ -213,7 +272,21 @@ def chat():
     else:
         session_id = str(uuid.uuid4())
 
+    # Rate Limiting Guard: check IP and session limits
+    client_ip = get_client_ip(request)
+    allowed, rate_err, retry_after = rate_limiter.check_request(client_ip, session_id=session_id)
+    if not allowed:
+        resp = jsonify({
+            "error": "Too many requests",
+            "message": rate_err or "Rate limit exceeded. Please wait a moment before sending another message."
+        })
+        resp.headers["Retry-After"] = str(retry_after)
+        return resp, 429
+
     model_name = data.get("model") or DEFAULT_MODEL
+    request_id = str(uuid.uuid4())[:8]
+    session_prefix = session_id[:8] if session_id else "unknown"
+    turn_start_time = time.time()
 
     # 1. NLP Analysis: Normalization, Intent Classification, Entity Extraction
     nlp_result = analyze_input(raw_message)
@@ -224,7 +297,10 @@ def chat():
     state = state_manager.get_or_create(session_id)
     history = state_manager.get_history(session_id)
 
-    logger.info(f"[{session_id[:8]}] Customer: '{raw_message}' -> Normalized: '{normalized_msg}' | Intent: {detected_intent}")
+    if LOG_SENSITIVE_DATA:
+        logger.info(f"[{session_prefix}] req_id={request_id} Customer: '{raw_message}' -> Normalized: '{normalized_msg}' | Intent: {detected_intent}")
+    else:
+        logger.info(f"[{session_prefix}] req_id={request_id} incoming_chat intent={detected_intent} msg_len={len(raw_message)}")
 
     # Process conversational turn through new orchestrator pipeline
     orchestrator_res = new_orchestrator.process_turn(
@@ -252,7 +328,15 @@ def chat():
     history.append({"role": "assistant", "content": assistant_reply})
     state_manager.save(state, history)
 
-    logger.info(f"[{session_id[:8]}] Assistant ({source} | Grounding: {grounding_result['status']}): {assistant_reply}")
+    latency_ms = int((time.time() - turn_start_time) * 1000)
+    if LOG_SENSITIVE_DATA:
+        logger.info(f"[{session_prefix}] req_id={request_id} Assistant ({source} | Grounding: {grounding_result['status']}): {assistant_reply}")
+    else:
+        logger.info(
+            f"[{session_prefix}] req_id={request_id} route={source} status=200 "
+            f"reply_len={len(assistant_reply)} cards={len(product_cards)} "
+            f"grounding={grounding_result.get('status')} latency_ms={latency_ms}"
+        )
 
     # Format retrieved sources for frontend UI inspection
     sources_summary = orchestrator_res.get("retrieved_sources") or [
@@ -269,7 +353,7 @@ def chat():
 
     active_agent = orchestrator_res.get("active_agent")
 
-    return jsonify({
+    response_payload = {
         "success": True,
         "session_id": session_id,
         "reply": assistant_reply,
@@ -285,7 +369,6 @@ def chat():
         "product_cards": product_cards,
         "consumable_cards": consumable_cards,
         "recommendation_audit": orchestrator_res.get("recommendation_audit"),
-        "canonical_state": state.to_dict(),
         "nlp": {
             "raw_input": raw_message,
             "normalized_input": normalized_msg,
@@ -302,7 +385,14 @@ def chat():
             "notes": grounding_result.get("notes", [])
         },
         "turns_count": len(history) // 2
-    })
+    }
+
+    # Debug state isolation: canonical_state is strictly omitted in production
+    if EXPOSE_DEBUG_STATE:
+        response_payload["canonical_state"] = state.to_dict()
+
+    return jsonify(response_payload)
+
 
 
 @app.route("/api/agents", methods=["GET"])
