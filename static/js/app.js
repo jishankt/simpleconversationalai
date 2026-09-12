@@ -339,99 +339,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     contentWrapper.appendChild(bubble);
 
-    // Product Hardware Cards Carousel
+    // Step 10: Multi-Card Product Grid Rendering
     if (sender === 'bot' && productCards && productCards.length > 0) {
+      // Replace previous card container if new filtered results arrive
+      if (window.lastProductCardsContainer && window.lastProductCardsContainer.parentNode) {
+        window.lastProductCardsContainer.remove();
+      }
+
+      const cardsContainer = document.createElement('div');
+      cardsContainer.className = 'catalogue-cards-block';
+      window.lastProductCardsContainer = cardsContainer;
+
       const headerRow = document.createElement('div');
       headerRow.className = 'consumables-header-row';
       headerRow.innerHTML = `
         <div class="consumables-section-title">
-          <span>🖨️ Hardware & Products (${productCards.length})</span>
-        </div>
-        <div class="carousel-header-controls">
-          <button type="button" class="deck-scroll-btn card-prev" title="Scroll left">&#9664;</button>
-          <button type="button" class="deck-scroll-btn card-next" title="Scroll right">&#9654;</button>
+          <span>🖨️ Verified Catalogue Matches (${productCards.length})</span>
         </div>
       `;
-      contentWrapper.appendChild(headerRow);
+      cardsContainer.appendChild(headerRow);
 
-      const carouselWrap = document.createElement('div');
-      carouselWrap.className = 'carousel-container-wrap';
-
-      const carousel = document.createElement('div');
-      carousel.className = 'product-cards-carousel';
-
-      const prevBtn = headerRow.querySelector('.card-prev');
-      const nextBtn = headerRow.querySelector('.card-next');
+      const grid = document.createElement('div');
+      grid.className = 'product-cards-grid';
 
       productCards.forEach(p => {
         const card = document.createElement('div');
         card.className = 'product-card-item';
-        const cardImg = p.image_url || p.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
-        const cardUrl = p.source_url || p.url || p.website_url || '#';
-        const priceStr = p.price_formatted || (p.price ? 'AED ' + Number(p.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'Price on Request');
-        const isReq = priceStr === 'Price on Request';
-        const vatLabel = (!isReq && p.vat_note) ? p.vat_note : (!isReq ? '(Excl. VAT)' : '');
+        const cardImg = p.image_url || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
+        const cardUrl = p.product_url || p.website_url || 'https://www.keplertechllc.com/';
+        const modelName = p.model || p.display_name || p.name || 'Catalogue Printer';
+        const categoryLabel = p.category || 'Printing Equipment';
+        const subcategoryLabel = p.subcategory || '';
+
+        // Match reasons list
+        const reasonsHtml = (p.match_reasons && p.match_reasons.length > 0)
+          ? `<ul class="card-reasons-list">${p.match_reasons.map(r => `<li>${r}</li>`).join('')}</ul>`
+          : '';
+
+        // Available configurations badge
+        const configsHtml = (p.available_configurations && p.available_configurations.length > 0)
+          ? `<div class="card-configs-badge">⚙️ Configurations: ${p.available_configurations.join(', ')}</div>`
+          : '';
 
         card.innerHTML = `
-          <div class="card-img-wrap" title="Click to enlarge image">
-            <span class="card-sku-badge">${p.sku || 'VERIFIED'}</span>
-            <img src="${cardImg}" alt="${p.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
+          <div class="card-img-wrap" title="Click to view image">
+            <img src="${cardImg}" alt="${modelName}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
           </div>
-          <div class="card-title" title="${p.name}">${p.name}</div>
-          <div class="card-price-wrap ${isReq ? 'card-price-request' : ''}">
-            <span class="card-price-val">${priceStr}</span>
-            ${vatLabel ? `<span class="card-price-vat">${vatLabel}</span>` : ''}
+          <div class="card-badge-row">
+            <span class="card-cat-badge">${subcategoryLabel || categoryLabel}</span>
           </div>
-          <div class="card-desc">${p.description || ''}</div>
-          <div class="card-actions">
-            <a href="${cardUrl}" target="_blank" class="card-btn card-btn-kepler" style="background: #1877f2; border-color: #1877f2; color: #ffffff; font-weight: 600; text-decoration: none;">
-              🌐 View on Kepler ↗
+          <div class="card-title" title="${modelName}">${modelName}</div>
+          ${configsHtml}
+          ${reasonsHtml}
+          <div class="card-actions-row">
+            <a href="${cardUrl}" target="_blank" rel="noopener noreferrer" class="card-action-btn btn-view-details">
+              View Details ↗
             </a>
-            <button type="button" class="card-btn view-consumables-btn" data-printer="${p.name}">
-              ⚡ View Compatible Consumables
+            <button type="button" class="card-action-btn btn-select-model" data-model="${modelName}">
+              Select
             </button>
-            ${p.pdf_url ? `
-            <a href="${p.pdf_url}" target="_blank" rel="noopener noreferrer" class="card-btn card-btn-pdf" style="background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; text-decoration: none; font-weight: 600;">
-              📄 Product Data Sheet (PDF) ↗
-            </a>` : ''}
+            <button type="button" class="btn-compare-check" data-model="${modelName}" data-id="${p.id}">
+              <span class="compare-box">☐</span> Compare
+            </button>
           </div>
         `;
 
-        // Image zoom lightbox
-        card.querySelector('.card-img-wrap').addEventListener('click', () => {
-          openLightbox(cardImg, `${p.name} (${p.sku || ''})`);
-        });
-
-        // View Consumables action
-        card.querySelector('.view-consumables-btn').addEventListener('click', () => {
+        // Select action
+        card.querySelector('.btn-select-model').addEventListener('click', () => {
           if (!isAwaitingReply) {
-            const query = `What consumables and media are compatible with ${p.name}?`;
+            const query = `Tell me more about the ${modelName}`;
             messageInput.value = query;
             sendMessage(query);
           }
         });
 
-        carousel.appendChild(card);
+        // Compare action
+        const compareBtn = card.querySelector('.btn-compare-check');
+        compareBtn.addEventListener('click', () => {
+          if (!window.selectedForComparison) {
+            window.selectedForComparison = new Map();
+          }
+          if (window.selectedForComparison.has(p.id)) {
+            window.selectedForComparison.delete(p.id);
+            compareBtn.classList.remove('selected');
+            compareBtn.querySelector('.compare-box').textContent = '☐';
+          } else {
+            window.selectedForComparison.set(p.id, modelName);
+            compareBtn.classList.add('selected');
+            compareBtn.querySelector('.compare-box').textContent = '☑';
+          }
+          updateComparisonBar();
+        });
+
+        grid.appendChild(card);
       });
 
-      prevBtn.addEventListener('click', () => {
-        carousel.scrollBy({ left: -260, behavior: 'smooth' });
-      });
-
-      nextBtn.addEventListener('click', () => {
-        carousel.scrollBy({ left: 260, behavior: 'smooth' });
-      });
-
-      // Horizontal wheel scrolling
-      carousel.addEventListener('wheel', (e) => {
-        if (e.deltaY !== 0) {
-          e.preventDefault();
-          carousel.scrollLeft += e.deltaY;
-        }
-      }, { passive: false });
-
-      carouselWrap.appendChild(carousel);
-      contentWrapper.appendChild(carouselWrap);
+      cardsContainer.appendChild(grid);
+      contentWrapper.appendChild(cardsContainer);
     }
 
     // Compatible Consumables Deck
@@ -624,6 +628,41 @@ document.addEventListener('DOMContentLoaded', () => {
     lightboxModal.classList.add('open');
   }
 
+  function updateComparisonBar() {
+    let bar = document.getElementById('comparisonFloatingBar');
+    const count = window.selectedForComparison ? window.selectedForComparison.size : 0;
+
+    if (count >= 2) {
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'comparisonFloatingBar';
+        bar.className = 'comparison-floating-bar';
+        document.body.appendChild(bar);
+      }
+      const modelNames = Array.from(window.selectedForComparison.values());
+      bar.innerHTML = `
+        <span>📊 Selected for Comparison: <strong>${modelNames.join(' vs ')}</strong></span>
+        <button type="button" id="triggerComparisonBtn">Compare Now</button>
+      `;
+      bar.style.display = 'flex';
+
+      document.getElementById('triggerComparisonBtn').onclick = () => {
+        const query = `Compare ${modelNames.join(' and ')}`;
+        bar.style.display = 'none';
+        window.selectedForComparison.clear();
+        document.querySelectorAll('.btn-compare-check').forEach(btn => {
+          btn.classList.remove('selected');
+          const box = btn.querySelector('.compare-box');
+          if (box) box.textContent = '☐';
+        });
+        messageInput.value = query;
+        sendMessage(query);
+      };
+    } else if (bar) {
+      bar.style.display = 'none';
+    }
+  }
+
   function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0;
@@ -632,3 +671,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+

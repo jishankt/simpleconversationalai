@@ -16,8 +16,6 @@ from nlp.intent_extractor import analyze_input, INTENT_PRICE, INTENT_DISCOUNT
 from nlp.grounding_validator import validate_grounding
 from nlp.discovery_engine import is_broad_query, get_discovery_question
 from state.conversation_state import CanonicalState
-from state.requirement_updater import RequirementUpdater
-from state.next_question_engine import NextQuestionEngine
 from nlp.dialogue_act import (
     classify_dialogue_act,
     ACT_ANSWERING_QUESTION,
@@ -35,7 +33,6 @@ from nlp.dialogue_act import (
     ACT_GENERAL_DISCOVERY
 )
 from agent.orchestrator import orchestrator as new_orchestrator
-from agent.ai_orchestrator import ai_orchestrator  # Kept for fallback
 from rag.consumables_engine import consumables_engine
 from agents import list_agent_metadata
 from persistence import lead_repository
@@ -161,8 +158,6 @@ from rag.retriever import rag_retriever
 from rag.comparison_engine import detect_comparison_request, generate_comparison_response
 from rag.consumables_engine import consumables_engine
 
-req_updater = RequirementUpdater(consumables_engine=consumables_engine)
-next_question_engine = NextQuestionEngine()
 
 
 @app.route("/api/consumables", methods=["GET"])
@@ -284,6 +279,11 @@ def chat():
         "success": True,
         "session_id": session_id,
         "reply": assistant_reply,
+        "message": assistant_reply,
+        "type": orchestrator_res.get("type", "message"),
+        "result_count": orchestrator_res.get("result_count", len(product_cards)),
+        "subcategory": orchestrator_res.get("subcategory"),
+        "cards": product_cards,
         "source": source,
         "active_agent": active_agent,
         "suggested_chips": suggested_chips,
@@ -295,16 +295,16 @@ def chat():
         "nlp": {
             "raw_input": raw_message,
             "normalized_input": normalized_msg,
-            "corrections": nlp_result["corrections"],
+            "corrections": nlp_result.get("corrections", []),
             "intent": detected_intent,
-            "brands": nlp_result["brands"],
-            "categories": nlp_result["categories"],
-            "models": nlp_result["models"],
-            "sizes": nlp_result["sizes"]
+            "brands": nlp_result.get("brands", []),
+            "categories": nlp_result.get("categories", []),
+            "models": nlp_result.get("models", []),
+            "sizes": nlp_result.get("sizes", [])
         },
         "grounding": {
-            "is_grounded": grounding_result["is_grounded"],
-            "status": grounding_result["status"],
+            "is_grounded": grounding_result.get("is_grounded", True),
+            "status": grounding_result.get("status", "verified_catalogue_source"),
             "notes": grounding_result.get("notes", [])
         },
         "turns_count": len(history) // 2

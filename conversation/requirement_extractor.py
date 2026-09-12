@@ -22,9 +22,11 @@ class RequirementExtractor:
             extracted["print_size"] = "A1"
         elif re.search(r"\b(?:a2|17\s*inch|17\"|17inch)\b", msg_lower):
             extracted["print_size"] = "A2"
-        elif re.search(r"\b(?:a3\+?|13\s*inch|13\"|13inch)\b", msg_lower):
-            extracted["print_size"] = "A3+"
-        elif re.search(r"\b(?:a4|a4\s*size)\b", msg_lower):
+        elif re.search(r"\b(?:both\s*a4\s*(?:and|&)\s*a3|a3\s*(?:and|&)\s*a4)\b", msg_lower):
+            extracted["print_size"] = "A3"
+        elif re.search(r"\b(?:a3\+?|tabloid|ledger|13\s*inch|13\"|13inch)\b", msg_lower):
+            extracted["print_size"] = "A3"
+        elif re.search(r"\b(?:a4|a4\s*size|standard\s*a4)\b", msg_lower):
             extracted["print_size"] = "A4"
         elif re.search(r"\b(?:44\s*inch|44\"|44inch|large format production)\b", msg_lower):
             extracted["print_size"] = "44-inch"
@@ -98,24 +100,42 @@ class RequirementExtractor:
             ])
         )
         if is_volume_context:
-            msg_no_dims = re.sub(r"\b\d+\s*(?:x|\*)\s*\d+\b", "", msg_lower)
-            msg_no_dims = re.sub(r"\b\d+\s*(?:mm|cm|inch|\"|gsm|dpi|ml)\b", "", msg_no_dims)
-            vol_match = re.search(r"\b(\d{1,6})\b", msg_no_dims)
-            if vol_match:
-                try:
-                    val = int(vol_match.group(1))
-                    if "month" in msg_lower:
-                        val = max(1, val // 30)
-                    if "drawings per day" in msg_lower or "20 drawings" in msg_lower or "drawings" in msg_lower:
-                        extracted["daily_volume"] = "high" if val >= 100 else ("medium" if val >= 20 else "low")
-                    elif any(ekw in msg_lower for ekw in ["event", "photos", "prints"]):
-                        # For events/photos, 400+ requires high-capacity roll units (like CY-02 with 700 prints)
-                        extracted["daily_volume"] = val
-                        extracted["event_volume"] = val
-                    else:
-                        extracted["daily_volume"] = val
-                except ValueError:
-                    pass
+            # Check explicit tier keywords if awaiting volume or volume keywords present
+            if state.awaiting_field in ("daily_volume", "print_volume", "volume") or any(vkw in msg_lower for vkw in ["pages per", "drawings per", "prints per", "per day", "daily", "monthly", "per month", "volume"]):
+                if any(re.search(rf"\b{re.escape(hv)}\b", msg_lower) for hv in ["high volume", "large volume", "heavy duty", "production volume", "large"]):
+                    extracted["daily_volume"] = "high"
+                elif any(re.search(rf"\b{re.escape(mv)}\b", msg_lower) for mv in ["medium volume", "moderate volume", "medium", "moderate", "mid"]):
+                    extracted["daily_volume"] = "medium"
+                elif any(re.search(rf"\b{re.escape(lv)}\b", msg_lower) for lv in ["low volume", "small volume", "light duty", "under 50", "minimal", "low", "small"]):
+                    extracted["daily_volume"] = "low"
+
+            if "daily_volume" not in extracted:
+                msg_no_dims = re.sub(r"\b\d+\s*(?:x|\*)\s*\d+\b", "", msg_lower)
+                msg_no_dims = re.sub(r"\b\d+\s*(?:mm|cm|inch|\"|gsm|dpi|ml)\b", "", msg_no_dims)
+                vol_match = re.search(r"\b(\d{1,6})\b", msg_no_dims)
+                if vol_match:
+                    try:
+                        val = int(vol_match.group(1))
+                        if any(mkw in msg_lower for mkw in ["month", "monthly", "per month", "a month", "/month"]):
+                            val = max(1, val // 30)
+                        extracted["exact_daily_volume"] = val
+
+                        if "under" in msg_lower and val <= 50:
+                            extracted["daily_volume"] = "low"
+                        elif "drawings per day" in msg_lower or "20 drawings" in msg_lower or "drawings" in msg_lower or state.category == "technical_cad":
+                            extracted["daily_volume"] = "high" if val >= 50 else ("medium" if val >= 10 else "low")
+                        elif any(ekw in msg_lower for ekw in ["event", "photos", "prints"]):
+                            # For events/photos, 400+ requires high-capacity roll units (like CY-02 with 700 prints)
+                            extracted["daily_volume"] = val
+                            extracted["event_volume"] = val
+                        elif state.category == "office_enterprise":
+                            extracted["daily_volume"] = "high" if val >= 200 else ("medium" if val >= 50 else "low")
+                        elif state.category == "scanner":
+                            extracted["daily_volume"] = "high" if val >= 4000 else ("medium" if val >= 1000 else "low")
+                        else:
+                            extracted["daily_volume"] = val
+                    except ValueError:
+                        pass
 
             if "daily_volume" not in extracted:
                 if any(re.search(rf"\b{re.escape(hv)}\b", msg_lower) for hv in ["high volume", "heavy duty", "production volume", "low volume", "moderate volume", "medium volume"]):
@@ -146,6 +166,13 @@ class RequirementExtractor:
         elif re.search(r"\b(?:epson|surecolor|workforce)\b", msg_lower):
             extracted["brand"] = "Epson"
 
+        # ── 8. Scanner Type Extraction ───────────────────────────────────────
+        if state.category == "scanner" or state.awaiting_field == "scanner_type" or "scanner" in msg_lower:
+            if any(w in msg_lower for w in ["sheetfed", "sheet fed", "sheet-fed", "sheetfed document", "high-speed network", "fast document"]):
+                extracted["scanner_type"] = "sheetfed"
+            elif any(w in msg_lower for w in ["flatbed", "flat bed", "a3 flatbed", "flatbed scanner", "bound book", "photo scanner"]):
+                extracted["scanner_type"] = "flatbed"
+
         return extracted
 
 
@@ -165,8 +192,8 @@ CATEGORY_RULES = {
         "p7500", "p9500"
     ],
     "office_enterprise": [
-        "office printer", "workgroup", "copier",
-        "enterprise mfp", "pages per day"
+        "office printer", "office printing", "office document", "office documents",
+        "office use", "workgroup", "copier", "enterprise mfp", "business printer", "pages per day"
     ],
     "scanner": [
         "document scanner", "sheetfed scanner",

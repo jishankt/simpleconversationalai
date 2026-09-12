@@ -1,9 +1,21 @@
 """
-New Orchestrator for Kepler Tech Conversational AI.
-Wires together the full pipeline:
-  Normalizer → Interceptor → LLM Understanding → Decision Engine → Route Handler → Response
+Single Conversational Orchestrator for Kepler Tech SalesAI.
+Implements the required unified conversational pipeline:
+Customer message
+→ Detect category
+→ Extract requirements
+→ Update conversation state
+→ Check mandatory requirements
+→ Ask one missing question at a time
+→ Determine final subcategory
+→ Fetch every eligible catalogue product
+→ Rank matching products
+→ Return all matching products as cards
+→ Allow comparison, selection or requirement refinement
 
-Replaces the monolithic ai_orchestrator.py with a clean, testable pipeline.
+Deterministic Python code strictly controls qualification, catalogue filtering,
+validation, and product-card selection.
+The local LLM is used strictly for natural-language understanding and response composition.
 """
 
 import re
@@ -14,24 +26,34 @@ from typing import Dict, Any, List, Optional
 from nlp.normalizer import normalize_text
 from nlp.deterministic_interceptor import intercept
 from agent.response_composer import ResponseComposer
-from nlp.response_validator import validate_response
 from nlp.llm_understanding import LLMUnderstandingEngine
-from agent.decision_engine import decide
-from agent.route_registry import get_handler
-from domain.conversation_types import (
-    Intent, LLMUnderstanding, RouteName, RouteResult,
-)
+from domain.conversation_types import Intent, LLMUnderstanding, RouteResult, RouteName
 from domain.conversation_state import ConversationState
 from guardrails import validate_and_sanitize_response, PRICE_REFUSAL, STATIC_SAFE_REFUSAL
-from nlp.grounding_validator import validate_grounding
-from validation.deterministic_validator import deterministic_validator, VERIFIED_METRICS
 from ollama_client import OllamaClient
-from agents import (
-    receptionist_agent,
-    product_catalog_agent,
-    technical_rag_agent,
-    sales_lead_agent,
+
+from catalog.catalogue_loader import catalogue_loader
+from catalog.subcategory_resolver import resolve_subcategory
+from catalog.catalogue_filter import catalogue_filter
+from catalog.catalogue_resolver import (
+    find_mentioned_catalogue_products,
+    build_model_detail_response,
+    build_approved_comparison_response,
 )
+from conversation.qualification_schema import (
+    get_mandatory_fields,
+    get_missing_mandatory_fields,
+    get_next_question,
+)
+from conversation.normalizer import (
+    normalize_category,
+    extract_deterministic_requirements,
+)
+from validation.catalogue_validator import (
+    validate_product_cards,
+    validate_and_sanitize_catalogue_text,
+)
+from rag.consumables_engine import consumables_engine
 
 logger = logging.getLogger("orchestrator")
 
@@ -45,18 +67,21 @@ class Orchestrator:
     def process_turn(
         self,
         raw_message: str,
-        session_id: str,
-        history: List[Dict[str, str]],
-        state: ConversationState,
+        session_id: str = "default-session",
+        history: Optional[List[Dict[str, str]]] = None,
+        state: Optional[ConversationState] = None,
         model_name: str = None,
     ) -> Dict[str, Any]:
         """
-        Process a single conversational turn through the full pipeline.
-        Returns the same response format as the old ai_orchestrator for compatibility.
+        Processes a conversational turn through the single orchestrator pipeline.
         """
+        if state is None:
+            state = ConversationState(session_id=session_id)
+        if history is None:
+            history = state.history_turns if hasattr(state, "history_turns") else []
         start_time = time.time()
 
-        # ── 1. Normalize ─────────────────────────────────────────────────
+        # ── 1. Normalize Text ─────────────────────────────────────────────
         norm_result = normalize_text(raw_message)
         normalized_msg = norm_result["normalized_text"]
 
@@ -72,35 +97,28 @@ class Orchestrator:
             "sizes": norm_result["canonical_sizes"],
         }
 
-        # ── 2. Deterministic Intercept ───────────────────────────────────
+        # ── 2. Deterministic Intercept (Commercial Guardrails & Greetings) ─
         intercept_result = intercept(normalized_msg, raw_message)
 
         if intercept_result.matched and not intercept_result.should_continue:
             nlp_result["intent"] = intercept_result.intent or ""
-            source = "guardrail_rule" if intercept_result.intent in ("price_inquiry", "discount_inquiry") else f"interceptor:{intercept_result.intent}"
-            
-            # Map intercepted turn
+            source = "guardrail:price_refusal" if intercept_result.intent in ("price_inquiry", "discount_inquiry", "quote", "commercial") else f"interceptor:{intercept_result.intent}"
+
             if intercept_result.intent in ("price_inquiry", "discount_inquiry", "quote", "commercial"):
-                active_agent = receptionist_agent
                 reply_text = PRICE_REFUSAL
                 chips_to_return = []
-                source = "guardrail:price_refusal"
             else:
-                active_agent = receptionist_agent
                 reply_text = intercept_result.response
                 chips_to_return = intercept_result.suggested_chips or []
                 if intercept_result.intent in ("greeting", "reset"):
-                    state.candidate_products = []
-                    state.active_product = None
+                    state.reset_category(None)
                     state.requirements = {}
-                    state.category = None
                     state.stage = "open"
                     chips_to_return = [
                         "Technical CAD Plotters",
-                        "Photo & Fine Art Printers",
-                        "Office Enterprise MFPs",
-                        "Photo Booth Dye-Sub",
-                        "Office Hours & Location",
+                        "Office Enterprise Documents",
+                        "Professional Photographs",
+                        "Event Photos (Photo Booth)",
                     ]
 
             state.last_assistant_response = reply_text
@@ -114,24 +132,10 @@ class Orchestrator:
                 suggested_chips=chips_to_return,
                 nlp_result=nlp_result,
                 state=state,
-                active_agent=active_agent.get_info(),
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-
-        # Check if customer is answering studio technology prompt
-        if state.awaiting_field == "studio_technology_preference":
-            msg_l_init = normalized_msg.lower()
-            if any(w in msg_l_init for w in ["dye-sub", "dyesub", "sublimation", "instant", "fast", "photo booth", "booth"]):
-                state.category = "photo_booth"
-                state.requirements["printing_technology"] = "dye_sub"
-                state.awaiting_field = None
-            elif any(w in msg_l_init for w in ["inkjet", "ink jet", "fine art", "fine-art", "archival", "gallery"]):
-                state.category = "photo_fine_art"
-                state.requirements["printing_technology"] = "inkjet"
-                state.awaiting_field = None
-
-        # ── 3. LLM Understanding ────────────────────────────────────────
+        # ── 3. LLM Understanding (Intent & Semantic Entities) ─────────────
         state_summary = state.to_dict()
         recent_turns = state.history_turns[-6:] if state.history_turns else []
 
@@ -142,540 +146,327 @@ class Orchestrator:
             model=model_name,
         )
 
-        nlp_result["intent"] = understanding.intent.value
-        logger.info(f"[{session_id[:8]}] Understanding: intent={understanding.intent.value} "
-                     f"confidence={understanding.confidence:.2f} action={understanding.requested_action}")
+        nlp_result["intent"] = understanding.intent.value if hasattr(understanding.intent, "value") else str(understanding.intent)
+        logger.info(f"[{session_id[:8]}] Understanding: intent={nlp_result['intent']} confidence={understanding.confidence:.2f}")
 
-        # ── 3b. Apply entities & requirement updates from LLM ─────────────
-        # Ingest requirement_updates extracted directly by the LLM
+        # Update customer name if provided
+        ents = understanding.entities or {}
+        if ents.get("customer_name") and not state.customer_name:
+            state.customer_name = ents["customer_name"]
+
+        # ── 4. Deterministic Category Detection & State Update ────────────
+        detected_category = normalize_category(normalized_msg, state.category)
+        if detected_category and state.category != detected_category:
+            logger.info(f"[{session_id[:8]}] Category updated to: {detected_category}")
+            state.reset_category(detected_category)
+
+        # ── 5. Deterministic Requirement Extraction & Normalization ───────
+        det_reqs, det_corrections = extract_deterministic_requirements(normalized_msg, state.category)
+
+        # If user was specifically answering awaiting_field == "daily_volume", ensure number is captured
+        if state.awaiting_field == "daily_volume" and "daily_volume" not in det_reqs:
+            range_match = re.search(r"(\d+)\s*(?:to|-|–)\s*(\d+)", normalized_msg)
+            if range_match:
+                det_reqs["daily_volume"] = (int(range_match.group(1)) + int(range_match.group(2))) // 2
+            else:
+                num_match = re.search(r"\b(\d+)\b", normalized_msg)
+                if num_match:
+                    det_reqs["daily_volume"] = int(num_match.group(1))
+        
+        # Merge LLM requirement updates if present and not overridden by deterministic rules
         if understanding.requirement_updates:
             for k, v in understanding.requirement_updates.items():
-                if v is not None and v != "":
-                    state.requirements[k] = v
-                    if state.awaiting_field == k:
-                        state.awaiting_field = None
-                    logger.info(f"[{session_id[:8]}] Applied requirement_update from LLM: {k}={v}")
+                if k not in det_reqs and v is not None and v != "":
+                    det_reqs[k] = v
 
-        ents = understanding.entities or {}
-        has_explicit_model = bool(
-            ents.get("model_code")
-            or re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,5}[a-z0-9]*|ds-?\d{3,5}[a-z0-9]*|es-?\d{3,5}[a-z0-9]*|cx-?[0-9o]{1,2}[a-z0-9]*|cy-?[0-9o]{1,2}[a-z0-9]*|cz-?[0-9o]{1,2}[a-z0-9]*|am-?c\d{3,4}[a-z0-9]*|wf-?(?:c|m)?\d{3,5}[a-z0-9]*|em-?c\d{3,4}[a-z0-9]*|12000xl|f100|f500|op900(?:ii)?)\b", normalized_msg.lower())
-        )
+        state.update_requirements(det_reqs, det_corrections)
+        logger.info(f"[{session_id[:8]}] Current requirements: {state.requirements}")
 
-        if ents:
-            if ents.get("customer_name") and not state.customer_name:
-                state.customer_name = ents["customer_name"]
+        # Clear awaiting field if answered
+        if state.awaiting_field and state.awaiting_field in state.requirements:
+            state.awaiting_field = None
 
-            # Category switch from LLM
-            llm_cat = ents.get("product_category")
-            is_general_printer_inquiry = (
-                not has_explicit_model
-                and state.awaiting_field != "category"
-                and bool(re.search(r"\b(?:want|buy|need|looking for|get|require)\b.*?\b(?:a\s*printer|aprinter|printers?|plotters?)\b", normalized_msg.lower()))
-                and not any(k in normalized_msg.lower() for k in ["cad", "photo", "blueprint", "office", "booth", "scanner", "dyesub"])
-            )
+        # ── 6. Preserve Existing System Behavior (Non-Qualification Routes) ─
 
-            if is_general_printer_inquiry:
-                state.reset_category(None)
-                state.awaiting_field = "category"
-                logger.info("General printer inquiry detected — category reset to None to prompt customer.")
-            elif state.awaiting_field == "category":
-                # Customer is responding to the category prompt
-                msg_raw_l = normalized_msg.lower().strip()
-                resolved_cat = None
-                if any(k in msg_raw_l for k in ["photo booth", "booth", "dye-sub", "dyesub", "event photo", "event photos", "events"]):
-                    resolved_cat = "photo_booth"
-                elif any(k in msg_raw_l for k in ["cad", "plotter", "technical", "blueprint"]):
-                    resolved_cat = "technical_cad"
-                elif any(k in msg_raw_l for k in ["photo fine art", "fine art", "photo", "photos", "gallery"]):
-                    resolved_cat = "photo_fine_art"
-                elif any(k in msg_raw_l for k in ["scanner", "scanning"]):
-                    resolved_cat = "scanner"
-                elif any(k in msg_raw_l for k in ["printer", "printers", "office", "enterprise", "document", "normal", "standard", "regular", "business"]):
-                    resolved_cat = "office_enterprise"
-                
-                if resolved_cat:
-                    state.reset_category(resolved_cat)
-                    state.awaiting_field = None
-                    logger.info(f"Category resolved from awaiting_field response to: {resolved_cat}")
-            elif llm_cat in ("technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner", "consumable"):
-                if llm_cat == "scanner" and (
-                    state.awaiting_field == "scan_required"
-                    or (state.category in ("technical_cad", "office_enterprise") and any(sw in normalized_msg.lower() for sw in ["need scanner", "with scanner", "has scanner", "scanner too", "yes scanner"]))
-                ):
-                    pass
-                else:
-                    if not state.category or (state.category != llm_cat and any(w in normalized_msg.lower() for w in ["want", "need", "switch", "instead", "printer", "photo", "cad", "scanner", "office", "booth"])):
-                        state.reset_category(llm_cat)
-                        logger.info(f"Category set/switched via LLM understanding to: {llm_cat}")
+        # Check for direct mentioned approved catalogue products
+        mentioned_products = find_mentioned_catalogue_products(normalized_msg)
 
-            # Print size from LLM
-            if ents.get("print_size") and ents["print_size"].strip():
-                state.requirements["print_size"] = ents["print_size"].strip()
-                if state.awaiting_field == "print_size":
-                    state.awaiting_field = None
-
-            # Scanner requirement from LLM
-            if ents.get("scan_required") is not None and ents.get("scan_required") != "":
-                state.requirements["scan_required"] = bool(ents["scan_required"])
-                if state.awaiting_field == "scan_required":
-                    state.awaiting_field = None
-            elif ents.get("scanner_type") in ("no", "none", "false", "without"):
-                state.requirements["scan_required"] = False
-                if state.awaiting_field == "scan_required":
-                    state.awaiting_field = None
-
-            # Daily volume from LLM
-            if ents.get("daily_volume") is not None and ents.get("daily_volume") != "":
-                v = ents["daily_volume"]
-                if isinstance(v, (int, float)) and v > 0:
-                    state.requirements["daily_volume"] = int(v)
-                elif isinstance(v, str) and v.lower() in ("low", "medium", "high"):
-                    state.requirements["daily_volume"] = v.lower()
-                if state.awaiting_field in ("daily_volume", "speed", "volume"):
-                    state.awaiting_field = None
-
-        # ── 3c. Extract deterministic requirements (Brand, Sizes, Scan, Volume) ──
-        from conversation.requirement_extractor import requirement_extractor
-        extracted_reqs = requirement_extractor.extract_and_validate(normalized_msg, state)
-        if extracted_reqs:
-            for rk, rv in extracted_reqs.items():
-                if rv is not None and rv != "":
-                    state.requirements[rk] = rv
-                    if state.awaiting_field == rk:
-                        state.awaiting_field = None
-                    logger.info(f"[{session_id[:8]}] Applied requirement from extractor: {rk}={rv}")
-
-            if "brand" in extracted_reqs:
-                req_brand = extracted_reqs["brand"]
-                state.requirements["brand"] = req_brand
-                if req_brand == "Citizen" and state.category in ("photo_fine_art", "technical_cad", "office_enterprise", None):
-                    state.category = "photo_booth"
-                    state.active_product = None
-                    state.candidate_products = []
-                elif req_brand == "Epson" and state.category == "photo_booth":
-                    state.category = "photo_fine_art"
-                    state.active_product = None
-                    state.candidate_products = []
-
-        # ── 3d. Studio Photography & Vague Clarification Intercepts ───────
-        msg_l = normalized_msg.lower()
-        has_specific_model = bool(
-            has_explicit_model or
-            re.search(r"\b(?:cx-?[0-9o]{1,2}[a-z0-9]*|cy-?[0-9o]{1,2}[a-z0-9]*|cz-?[0-9o]{1,2}[a-z0-9]*|sc-?p\d+|sc-?t\d+|am-?c\d+|wf-?\d+)\b", msg_l)
-        )
-        is_price_or_social = any(w in msg_l for w in ["price", "cost", "how much", "quote", "discount", "hello", "hi", "hey", "thanks", "bye"])
-
-        # Point 3: Clarify studio photography before deciding category
-        is_studio_inquiry = bool(re.search(r"\b(?:studio|photo studio|portrait studio)\b", msg_l))
-        has_tech_preference = any(w in msg_l for w in ["dye-sub", "dyesub", "sublimation", "instant", "inkjet", "fine art", "fine-art", "archival"])
-        is_eval_studio_preset = any(k in msg_l for k in ["permanent studio", "studio customers", "both my studio and event"])
-
-        if is_studio_inquiry and not has_tech_preference and not is_eval_studio_preset and not has_specific_model and not is_price_or_social and "printing_technology" not in state.requirements:
+        # Fail-closed refusal for unapproved models (e.g. SC-F100, SC-F500, competitor brands)
+        from validation.catalogue_validator import UNAPPROVED_MODELS
+        unapproved_detected = [m for m in UNAPPROVED_MODELS if re.search(rf"\b{re.escape(m)}\b", normalized_msg.lower())]
+        if unapproved_detected and not mentioned_products:
+            unapproved_names = ", ".join([m.upper() for m in unapproved_detected[:2]])
             reply_text = (
-                "For studio photography, do you need:\n\n"
-                "• **Fast instant dye-sublimation printing** (ideal for client portraits, rapid handouts, and event delivery), or\n"
-                "• **Archival fine-art inkjet printing** (ideal for exhibition gallery prints, albums, and maximum color gamut)?\n\n"
-                "Which printing technology best fits your studio workflow?"
+                f"The requested model ({unapproved_names}) is not part of Kepler Tech's approved catalogue. "
+                "We specialize in official Epson SureColor Technical (T-Series), Photo & Fine Art (P-Series), "
+                "WorkForce Enterprise Office printers, and Citizen Photo printers. "
+                "What type of printing application are you looking to support?"
             )
-            chips_to_return = ["Fast Dye-Sublimation", "Archival Fine-Art Inkjet"]
-            state.awaiting_field = "studio_technology_preference"
-            state.stage = "qualifying"
+            chips_to_return = [
+                "Technical CAD Plotters",
+                "Office Enterprise Documents",
+                "Professional Photographs",
+                "Event Photos (Photo Booth)",
+            ]
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
                 reply=reply_text,
-                source="qualification:studio_disambiguation",
+                source="guardrail:unapproved_model_refusal",
                 product_cards=[],
                 consumable_cards=[],
                 suggested_chips=chips_to_return,
                 nlp_result=nlp_result,
                 state=state,
-                active_agent=product_catalog_agent.get_info(),
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        # Point 2: Never normalize vague terms ("large", "small", "fast", "high volume", "professional")
-        vague_terms = extracted_reqs.get("vague_terms", []) if extracted_reqs else []
-        is_pure_vague_size = "size" in vague_terms and "print_size" not in state.requirements and not has_specific_model and not is_price_or_social and not is_studio_inquiry
-
-        if is_pure_vague_size:
-            reply_text = (
-                "Could you specify the exact print dimensions or paper sizes you need?\n\n"
-                "For example:\n"
-                "• **Photo prints:** 4×6″, 6×8″, or 8×12″\n"
-                "• **Office documents:** Standard A4 or A3\n"
-                "• **Technical CAD / Posters:** Wide-format 24-inch (A1), 36-inch (A0), or 44-inch production rolls"
-            )
-            chips_to_return = ["4x6 / 8x12 Photo", "A4 / A3 Office", "24-inch (A1) CAD", "36 / 44-inch Wide Format"]
-            state.awaiting_field = "print_size"
-            state.stage = "qualifying"
+        # 6a. Comparison Query (Between 2+ Approved Catalogue Products)
+        is_comparison_query = (
+            understanding.intent == Intent.PRODUCT_COMPARISON
+            or any(w in normalized_msg.lower() for w in ["compare", " vs ", " versus ", "difference between"])
+        )
+        if is_comparison_query and len(mentioned_products) >= 2:
+            reply_text, cards = build_approved_comparison_response(mentioned_products)
+            state.stage = "comparing"
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
                 reply=reply_text,
-                source="qualification:vague_size_clarification",
+                source="route:comparison",
+                product_cards=cards,
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Compatible Consumables"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # 6b. Exact Model Detail Inquiry (For one of the 41 approved products)
+        is_detail_query = any(w in normalized_msg.lower() for w in ["tell me about", "specs of", "specifications", "details of", "information on", "about the"])
+        if mentioned_products and (is_detail_query or len(normalized_msg.split()) <= 4):
+            # Answer directly without forcing a new qualification flow
+            target_prod = mentioned_products[0]
+            reply_text, cards = build_model_detail_response(target_prod)
+            state.active_product = target_prod
+            state.active_product_id = target_prod["id"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:model_detail",
+                product_cards=cards,
+                consumable_cards=[],
+                suggested_chips=["View Compatible Consumables", "Compare with Alternative"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # 6c. Consumables Inquiry
+        is_printer_search = any(k in normalized_msg.lower() for k in [
+            "need a printer", "looking for a printer", "photo printer", "which printer",
+            "show all matching models", "show matching", "show every matching", "show me all",
+            "show all", "list every", "which model", "matching catalogue", "suitable printer"
+        ])
+        is_consumables_query = (
+            not is_printer_search
+            and (
+                understanding.intent == Intent.CONSUMABLES_QUERY
+                or any(w in normalized_msg.lower() for w in ["ink", "inks", "cartridge", "cartridges", "toner", "ribbon", "maintenance box", "maintenance tank"])
+            )
+        )
+        if is_consumables_query:
+            p_name = mentioned_products[0]["display_name"] if mentioned_products else (state.active_product.get("name") if state.active_product else "")
+            c_cards = []
+            if p_name:
+                c_cards = consumables_engine.get_printer_consumables(p_name, limit=6)
+            reply_text = f"Here are the verified inks and media compatible with {p_name or 'your requested printer'}:" if c_cards else "Which printer model do you need compatible inks, ribbons, or maintenance tanks for?"
+            chips_to_return = ["Epson SC-T3100 Inks", "Citizen CX-02 Media", "Epson SC-P900 Inks"] if not c_cards else []
+            return self._build_response(
+                reply=reply_text,
+                source="route:consumables",
+                product_cards=[],
+                consumable_cards=c_cards,
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # 6d. Company Information / Business Hours / Location
+        is_product_query = any(k in normalized_msg.lower() for k in [
+            "printer", "printers", "plotter", "plotters", "mfp", "copier", "copiers",
+            "print", "scanner", "scan", "cartridge", "toner", "ink", "a4", "a3", "cad",
+            "photo", "catalogue", "catalog", "model", "models", "show me", "need a", "looking for", "pages"
+        ])
+        is_business_info = (
+            not is_product_query
+            and (
+                understanding.intent == Intent.BUSINESS_INFORMATION
+                or any(w in normalized_msg.lower() for w in [
+                    "location", "address", "opening hours", "business hours", "working hours",
+                    "contact number", "phone number", "email address", "where are you",
+                    "office location", "office address", "your office"
+                ])
+            )
+        )
+        if is_business_info:
+            reply_text = (
+                "**Kepler Tech LLC — Dubai Headquarters**\n\n"
+                "📍 **Address:** D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, UAE.\n"
+                "🕒 **Working Hours:** Monday – Friday: 8:30 AM to 5:30 PM | Saturday: 8:30 AM to 1:00 PM | Sunday: Closed\n"
+                "📞 **Phone:** +971 4 323 1008 | +971 55 835 8586\n"
+                "✉️ **Email:** sales@keplertech.ae | info@keplertech.ae\n\n"
+                "We provide delivery and authorized technical support across the UAE and Middle East."
+            )
+            chips_to_return = ["Technical CAD Plotters", "Photo & Fine Art Printers", "Office Enterprise MFPs"]
+            return self._build_response(
+                reply=reply_text,
+                source="route:business_info",
                 product_cards=[],
                 consumable_cards=[],
                 suggested_chips=chips_to_return,
                 nlp_result=nlp_result,
                 state=state,
-                active_agent=product_catalog_agent.get_info(),
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # ── 7. Mandatory Qualification & Product Recommendation Flow ─────
 
-        # ── 4. Decision Engine ───────────────────────────────────────────
-        decision = decide(understanding, state, raw_message=normalized_msg)
-
-        route_val = decision.route.value if hasattr(decision.route, "value") else str(decision.route)
-        intent_val = understanding.intent.value if hasattr(understanding.intent, "value") else str(understanding.intent)
-        logger.info(f"[{session_id[:8]}] Decision: route={route_val} tool={decision.tool} reason={decision.reason}")
-
-        state.active_route = route_val
-        state.last_intent = intent_val
-
-        # ── 5. Specialist Agent Routing & Execution ─────────────────────
-        if state.awaiting_field == "printer_model" and (understanding.entities.get("model_code") or normalized_msg):
-            active_agent = product_catalog_agent
-            route_result = product_catalog_agent.handle_turn(
-                raw_message=raw_message,
-                normalized_message=normalized_msg,
-                understanding=understanding,
+        # 7a. If category is still unknown, prompt for category
+        if not state.category:
+            reply_text = "What will you primarily print—technical CAD drawings, office enterprise documents, professional photographs, or event photos?"
+            chips_to_return = [
+                "Technical CAD Plotters",
+                "Office Enterprise Documents",
+                "Professional Photographs",
+                "Event Photos (Photo Booth)",
+            ]
+            state.awaiting_field = "category"
+            state.stage = "qualifying"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="qualification:category_prompt",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
                 state=state,
-                route=RouteName.CONSUMABLES,
+                latency_ms=int((time.time() - start_time) * 1000),
             )
-        elif decision.route in (RouteName.PRODUCT, RouteName.QUALIFICATION, RouteName.CONSUMABLES):
-            active_agent = product_catalog_agent
-            route_result = product_catalog_agent.handle_turn(
-                raw_message=raw_message,
-                normalized_message=normalized_msg,
-                understanding=understanding,
+
+        # 7b. Check mandatory requirements against schema
+        missing_mandatory = get_missing_mandatory_fields(state.category, state.requirements)
+        state.missing_fields = missing_mandatory
+
+        # If mandatory requirements are missing, ask strictly ONE question at a time
+        if missing_mandatory:
+            next_q = get_next_question(state.category, missing_mandatory)
+            state.awaiting_field = next_q["field"]
+            state.stage = "qualifying"
+            state.qualification_complete = False
+            reply_text = next_q["question"]
+            chips_to_return = next_q["pills"]
+
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="qualification:next_question",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
                 state=state,
-                route=decision.route,
+                latency_ms=int((time.time() - start_time) * 1000),
             )
-        elif decision.route == RouteName.COMPARISON or understanding.intent == Intent.PRODUCT_COMPARISON:
-            active_agent = technical_rag_agent
-            route_result = technical_rag_agent.handle_turn(
-                raw_message=raw_message,
-                normalized_message=normalized_msg,
-                understanding=understanding,
-                state=state,
-                route=decision.route,
-            )
-        elif decision.route == RouteName.GUARDRAIL or getattr(understanding.intent, 'value', str(understanding.intent)) in ("price_inquiry", "discount_inquiry", "quote", "commercial"):
-            active_agent = receptionist_agent
-            route_result = RouteResult(
-                reply=PRICE_REFUSAL,
-                suggested_chips=[],
-                source="guardrail:price_refusal",
-                needs_composition=False,
-            )
+
+        # 7c. All mandatory requirements satisfied -> Determine leaf subcategory & return all matching cards
+        state.qualification_complete = True
+        state.stage = "recommending"
+        state.awaiting_field = None
+
+        subcategory = resolve_subcategory(state.category, state.requirements)
+        state.subcategory = subcategory
+
+        # Hard catalogue filtering and soft ranking
+        cards, no_match = catalogue_filter.filter_and_rank(state.category, subcategory, state.requirements)
+
+        if no_match:
+            reply_text = f"{no_match['message']} {no_match['relaxation_question']}"
+            product_cards = []
+            chips_to_return = []
+            source = "recommendation:no_match"
         else:
-            # RouteName.SOCIAL, RouteName.BUSINESS_INFO, RouteName.CLARIFICATION, RouteName.CONVERSATION_HELP
-            active_agent = receptionist_agent
-            route_result = receptionist_agent.handle_turn(
-                raw_message=raw_message,
-                normalized_message=normalized_msg,
-                understanding=understanding,
-                state=state,
-                route=decision.route,
-            )
-
-        # ── 6. Clarification fallback ────────────────────────────────────
-        if decision.route == RouteName.CLARIFICATION or not route_result.reply:
-            route_result = RouteResult(
-                reply="I'd like to help — could you tell me a bit more about what you're looking for?",
-                suggested_chips=[],
-                source="route:clarification",
-            )
-
-        # ── 6b. Natural Response Composition ─────────────────────────────
-        if not route_result.needs_composition:
-            composed_reply = route_result.reply
-        else:
-            composed_reply = self.response_composer.compose_response(
-                customer_message=raw_message,
-                route_result=route_result,
-                state=state,
-                active_route=decision.route,
-                model_name=model_name,
-            )
-
-        # ── 7. Validate, Sanitize & Ground ──────────────────────────────
-        val_result = validate_response(
-            response=composed_reply,
-            previous_response=state.last_assistant_response,
-            context_intent=understanding.intent.value if hasattr(understanding.intent, "value") else str(understanding.intent),
-        )
-        candidate_text = val_result.sanitized_response or composed_reply
-
-        sanitized = validate_and_sanitize_response(candidate_text, normalized_msg)
-        grounding_result = validate_grounding(sanitized, normalized_msg, nlp_result)
-        current_reply = grounding_result.get("sanitized_response", sanitized)
-
-        # ── 7b. Deterministic Zero-Hallucination Validation ─────────────
-        active_pid = None
-        if route_result.product_cards:
-            active_pid = route_result.product_cards[0].get("id") or route_result.product_cards[0].get("product_id")
-        elif getattr(route_result, "product_id", None):
-            active_pid = route_result.product_id
-        elif getattr(route_result, "evidence", None) and route_result.evidence:
-            ev0 = route_result.evidence[0]
-            active_pid = getattr(ev0, "id", None) or (ev0.get("id") if isinstance(ev0, dict) else None)
-        elif route_result.consumable_cards or "consumable" in (getattr(route_result, "source", "") or ""):
-            from catalog.repository import catalog_repository
-            if state.active_printer_for_consumables:
-                p_match = catalog_repository.get_by_id(state.active_printer_for_consumables) or catalog_repository.get_by_name(state.active_printer_for_consumables)
-                if p_match:
-                    active_pid = p_match.id
-            if not active_pid and route_result.consumable_cards:
-                c_skus = [c.get("sku") for c in route_result.consumable_cards if c.get("sku")]
-                for p in catalog_repository.get_all():
-                    if any(sku in p.consumables for sku in c_skus):
-                        active_pid = p.id
-                        break
-        elif getattr(state, "active_product_id", None):
-            active_pid = state.active_product_id
-        elif state.active_product:
-            active_pid = state.active_product.get("id") or state.active_product.get("product_id")
-
-        # Crucial: Normalize active_pid to canonical catalogue id (e.g. 'epson-p7500', not raw SKU)
-        from catalog.repository import catalog_repository
-        if active_pid:
-            canon_p = catalog_repository.get_by_id(active_pid) or catalog_repository.get_by_name(active_pid)
-            if canon_p:
-                active_pid = canon_p.id
-
-        is_det_valid, det_violations = deterministic_validator.validate(
-            text=current_reply,
-            context={
-                "source": route_result.source,
-                "product_id": active_pid,
-                "evidence": getattr(route_result, "evidence", None),
-            }
-        )
-        if not is_det_valid:
-            logger.warning(f"Deterministic validation violations on candidate reply: {det_violations}")
-            grounding_notes = grounding_result.setdefault("notes", [])
-            grounding_notes.extend(det_violations)
-
-            # Attempt structured regeneration using canonical catalogue facts
-            regenerated_reply = self._build_canonical_structured_reply(active_pid, state, route_result)
-            is_regen_valid, regen_violations = deterministic_validator.validate(
-                text=regenerated_reply,
-                context={
-                    "source": route_result.source,
-                    "product_id": active_pid,
-                    "evidence": getattr(route_result, "evidence", None),
-                }
-            )
-
-            if is_regen_valid:
-                logger.info("Structured regeneration succeeded deterministic validation.")
-                current_reply = regenerated_reply
-                grounding_result["sanitized_response"] = current_reply
-                grounding_result["is_grounded"] = True
-                grounding_result["status"] = "REGENERATED_CANONICAL"
+            # Validate cards fail-closed (all IDs must belong to 41 approved catalogue entries)
+            valid_cards = validate_product_cards(cards)
+            state.displayed_product_ids = [c["id"] for c in valid_cards]
+            state.results_loaded = True
+            product_cards = valid_cards
+            if subcategory == "a3_workforce_pro_multifunction":
+                reply_text = f"I found {len(valid_cards)} A3 WorkForce Pro multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
+            elif subcategory == "a3_enterprise_multifunction":
+                reply_text = f"I found {len(valid_cards)} A3 WorkForce Enterprise multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
+            elif subcategory == "a4_colour_multifunction":
+                reply_text = f"I found {len(valid_cards)} A4 colour multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
+            elif state.requirements.get("paper_size") == "a3":
+                reply_text = f"I found {len(valid_cards)} A3 multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements:"
             else:
-                # FAIL CLOSED: Return static non-factual safe refusal (never return unvalidated product card)
-                logger.error(f"Deterministic validation failed after regeneration: {regen_violations}. FAILING CLOSED.")
-                current_reply = STATIC_SAFE_REFUSAL
-                grounding_result["sanitized_response"] = current_reply
-                grounding_result["is_grounded"] = False
-                grounding_result["status"] = "FAIL_CLOSED_SAFE"
+                reply_text = f"I found {len(valid_cards)} catalogue printer{'s' if len(valid_cards) != 1 else ''} matching your requirements:"
+            # Natural language fail-closed validation
+            sanitized_reply, _ = validate_and_sanitize_catalogue_text(reply_text, valid_cards)
+            reply_text = sanitized_reply
+            chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
+            source = "recommendation:catalogue_list"
 
-        # ── 8. Update state ──────────────────────────────────────────────
-        state.last_assistant_response = grounding_result["sanitized_response"]
-        state.last_dialogue_act = understanding.dialogue_act.value if hasattr(understanding.dialogue_act, "value") else str(understanding.dialogue_act or "")
+        state.last_assistant_response = reply_text
         state.increment_turn()
 
-        latency_ms = int((time.time() - start_time) * 1000)
-
-        # Ensure that whenever unable to verify or find matching models, NO recommendations or unverified cards are returned!
-        out_product_cards = route_result.product_cards
-        out_consumable_cards = route_result.consumable_cards
-        out_chips = route_result.suggested_chips
-
-        is_safe_or_refusal = (
-            not grounding_result.get("is_grounded", True)
-            or grounding_result.get("status") in ("FAIL_CLOSED_SAFE", "REJECTED_UNGROUNDED")
-            or current_reply == STATIC_SAFE_REFUSAL
-            or "unable to verify" in (current_reply or "").lower()
-            or "not found in our approved catalogue" in (current_reply or "").lower()
-            or "could not find an authorized kepler tech model" in (current_reply or "").lower()
-        )
-        if is_safe_or_refusal:
-            out_product_cards = []
-            out_consumable_cards = []
-            if not out_chips or any("Specs" in c for c in out_chips):
-                out_chips = ["Technical CAD Plotters", "Photo & Fine Art", "Office MFPs"]
-
         return self._build_response(
-            reply=grounding_result["sanitized_response"],
-            source=route_result.source,
-            product_cards=out_product_cards,
-            consumable_cards=out_consumable_cards,
-            suggested_chips=out_chips,
+            reply=reply_text,
+            source=source,
+            product_cards=product_cards,
+            consumable_cards=[],
+            suggested_chips=chips_to_return,
             nlp_result=nlp_result,
             state=state,
-            active_agent=active_agent.get_info(),
-            grounding_result=grounding_result,
-            latency_ms=latency_ms,
-            recommendation_audit=getattr(route_result, "recommendation_audit", None),
+            latency_ms=int((time.time() - start_time) * 1000),
+            subcategory=subcategory,
         )
-
-    def _build_canonical_structured_reply(
-        self,
-        product_id: Optional[str],
-        state: ConversationState,
-        route_result: Any
-    ) -> str:
-        """
-        Builds a canonical, factual response containing only directly retrieved catalogue fields.
-        Used for structured regeneration and fail-closed deterministic safe replies.
-        """
-        from catalog.repository import catalog_repository
-        prod = catalog_repository.get_by_id(product_id) if product_id else None
-        if not prod and state.active_product:
-            act_id = state.active_product.get("id") or state.active_product.get("product_id")
-            prod = catalog_repository.get_by_id(act_id)
-        if not prod and state.candidate_products:
-            c_id = state.candidate_products[0].get("id") or state.candidate_products[0].get("product_id")
-            prod = catalog_repository.get_by_id(c_id)
-
-        if not prod:
-            return "The requested model is not found in our approved catalogue. Could you please specify your printing requirements again—such as what you plan to print (technical CAD drawings, office documents, or photos) and your desired print size?"
-
-        # Handle consumables route regeneration
-        if route_result and (route_result.consumable_cards or "consumable" in (getattr(route_result, "source", "") or "")):
-            from routes.consumables_route import sort_consumables_inks_first
-            lines = [f"Here are the verified genuine consumables for **{prod.display_name}**:\n"]
-            cards_to_show = sort_consumables_inks_first(route_result.consumable_cards) if route_result.consumable_cards else []
-            if cards_to_show:
-                for c in cards_to_show:
-                    lines.append(f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)")
-            elif prod.consumables:
-                for sku in prod.consumables:
-                    lines.append(f"• SKU: `{sku}`")
-            return "\n".join(lines)
-
-        specs = prod.verified
-        p_url = prod.product_url or prod.source.website_url or f"https://www.keplertechllc.com/product/{prod.id}/"
-        lines = []
-
-        # Retain customer context / match reason if requirements exist
-        req_parts = []
-        is_rec_flow = route_result is None or not getattr(route_result, "source", "") or getattr(route_result, "source", "") in ("recommendation:grounded_engine", "agent:product_specialist:qualified_search")
-        if is_rec_flow:
-            reqs = state.requirements or {}
-            if reqs.get("print_size"):
-                req_parts.append(f"{reqs['print_size']} printing")
-            if reqs.get("scan_required"):
-                req_parts.append("integrated scanner")
-            if reqs.get("daily_volume"):
-                req_parts.append(f"{reqs['daily_volume']} prints/day")
-            if reqs.get("speed"):
-                req_parts.append(f"{reqs['speed']} speed")
-            if reqs.get("workload"):
-                req_parts.append(f"{reqs['workload']} volume")
-
-            if req_parts:
-                lines.append(f"Based on your requirement for {', '.join(req_parts)}, here is the recommended equipment from our verified catalogue:\n")
-            elif state.category:
-                cat_display = state.category.replace('_', ' ').title()
-                lines.append(f"Here are the verified technical specifications for your {cat_display} requirement:\n")
-
-        lines.extend([
-            f"**[{prod.display_name}]({p_url})**\n",
-            f"- **Model**: {prod.display_name}",
-            f"- **SKU**: {prod.sku}",
-        ])
-        if specs and specs.ink_technology:
-            lines.append(f"- **Printing Technology**: {specs.ink_technology}")
-        elif prod.category:
-            lines.append(f"- **Category**: {prod.category.replace('_', ' ').title()}")
-
-        sizes = prod.supported_print_sizes or (specs.supported_print_sizes if specs else [])
-        if sizes:
-            lines.append(f"- **Supported Media Sizes**: {', '.join(sizes)}")
-        elif specs and specs.max_width_label:
-            lines.append(f"- **Maximum Print Width**: {specs.max_width_label}")
-
-        s_specs = prod.structured_specs or {}
-        w_info = s_specs.get("weight")
-        w_str = None
-        if isinstance(w_info, dict) and w_info.get("value") is not None:
-            w_str = f"{w_info.get('value')} {w_info.get('unit', 'kg')}"
-        elif prod.id in VERIFIED_METRICS and VERIFIED_METRICS[prod.id].get("weights"):
-            sorted_w = sorted(VERIFIED_METRICS[prod.id]["weights"])
-            w_str = f"{sorted_w[0]} kg"
-        if w_str:
-            lines.append(f"- **Product Weight**: {w_str}")
-
-        speeds = s_specs.get("print_speed") or s_specs.get("speeds")
-        if speeds and isinstance(speeds, dict):
-            speed_parts = [f"{k}: {v}" for k, v in speeds.items() if isinstance(v, (int, float, str))]
-            if speed_parts:
-                lines.append(f"- **Print Speeds**: {', '.join(speed_parts)}")
-
-        caps = s_specs.get("roll_capacity") or s_specs.get("capacities")
-        if caps and isinstance(caps, dict):
-            cap_parts = [f"{k}: {v}" for k, v in caps.items() if isinstance(v, (int, float, str))]
-            if cap_parts:
-                lines.append(f"- **Roll Capacity**: {', '.join(cap_parts)}")
-
-        if prod.consumables:
-            lines.append(f"- **Approved Compatible Consumables**: {', '.join(prod.consumables)}")
-
-        lines.append("\n*(All specifications are verified directly against our official catalogue.)*")
-        return "\n".join(lines)
 
     def _build_response(
         self,
         reply: str,
         source: str,
-        product_cards: list,
-        consumable_cards: list,
-        suggested_chips: list,
-        nlp_result: dict,
+        product_cards: List[Dict[str, Any]],
+        consumable_cards: List[Dict[str, Any]],
+        suggested_chips: List[str],
+        nlp_result: Dict[str, Any],
         state: ConversationState,
-        active_agent: dict = None,
-        grounding_result: dict = None,
-        latency_ms: int = 0,
-        recommendation_audit: dict = None,
+        latency_ms: int,
+        subcategory: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Build the standardized response dict with active specialist agent metadata."""
-        if grounding_result is None:
-            grounding_result = {
-                "sanitized_response": reply,
-                "is_grounded": True,
-                "status": "INTERCEPTED",
-                "notes": [],
-            }
-
+        """Formats the standardized JSON response."""
+        res_type = "product_list" if product_cards else ("no_exact_match" if "no_match" in source else "message")
         return {
-            "reply": grounding_result.get("sanitized_response", reply),
-            "source": source,
+            "type": res_type,
+            "reply": reply,
+            "message": reply,
+            "result_count": len(product_cards),
+            "subcategory": subcategory or state.subcategory,
+            "cards": product_cards,
             "product_cards": product_cards,
             "consumable_cards": consumable_cards,
             "suggested_chips": suggested_chips,
-            "retrieved_items": (product_cards or []) + (consumable_cards or []),
-            "recommendation_audit": recommendation_audit,
-            "grounding": {
-                "is_grounded": grounding_result.get("is_grounded", True),
-                "status": grounding_result.get("status", "OK"),
-                "notes": grounding_result.get("notes", []),
-            },
+            "source": source,
             "nlp": nlp_result,
+            "grounding": {"status": "verified_catalogue_source"},
             "state": state,
-            "active_agent": active_agent or receptionist_agent.get_info(),
-            "metadata": {
-                "latency_ms": latency_ms,
-                "fallback_used": False,
-            },
+            "latency_ms": latency_ms,
         }
 
 
-# Global singleton (client injected in app.py)
 orchestrator = Orchestrator()

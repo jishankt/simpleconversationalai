@@ -108,6 +108,22 @@ class ProductRanker:
                         use_case_pts = 100.0
                 else:
                     use_case_pts = 20.0
+            elif "scanner" in combined_text or p.category == "scanner":
+                req_st = requirements.get("scanner_type")
+                if req_st == "sheetfed":
+                    if p.id in ("epson-ds-530ii", "epson-ds-800wn", "epson-ds-900wn"):
+                        use_case_pts = 100.0
+                    elif "flatbed" in p_name_l:
+                        use_case_pts = 30.0
+                    else:
+                        use_case_pts = 80.0
+                elif req_st == "flatbed":
+                    if "12000xl" in p.id.lower() or "flatbed" in p_name_l:
+                        use_case_pts = 100.0
+                    else:
+                        use_case_pts = 30.0
+                else:
+                    use_case_pts = 90.0
             else:
                 use_case_pts = 80.0
             score_factors["use_case"] = round(use_case_pts * (weights["use_case"] / 100.0), 1)
@@ -115,20 +131,55 @@ class ProductRanker:
 
             # 2. Volume Alignment
             vol_val = requirements.get("event_volume") or requirements.get("daily_volume")
+            exact_v = requirements.get("exact_daily_volume")
+            cat = p.category or ""
             vol_pts = 50.0
-            if isinstance(vol_val, (int, float)) and vol_val >= 500:
-                if p.id == "citizen-cy-02":
-                    vol_pts = 100.0  # 700 prints/roll
-                elif p.id == "citizen-cx-02":
-                    vol_pts = 75.0   # 400 prints/roll
-                elif p.id == "citizen-cz-01":
-                    vol_pts = 40.0   # 150 prints/roll
-                elif "production" in p_name_l or p.id in ("epson-sc-t5700d", "epson-sc-p9500", "epson-am-c4000"):
-                    vol_pts = 100.0
+
+            if cat == "technical_cad":
+                is_high_vol = vol_val in ("high", "large", "production") or (isinstance(vol_val, (int, float)) and vol_val >= 50) or (isinstance(exact_v, (int, float)) and exact_v >= 50)
+                is_med_vol = vol_val in ("medium", "moderate", "mid") or (isinstance(vol_val, (int, float)) and 10 <= vol_val < 50) or (isinstance(exact_v, (int, float)) and 10 <= exact_v < 50)
+                is_low_vol = vol_val in ("low", "small", "light") or (isinstance(vol_val, (int, float)) and vol_val < 10) or (isinstance(exact_v, (int, float)) and exact_v < 10)
+            else:
+                is_high_vol = vol_val in ("high", "large", "production") or (isinstance(vol_val, (int, float)) and vol_val >= 200) or (isinstance(exact_v, (int, float)) and exact_v >= 200)
+                is_med_vol = vol_val in ("medium", "moderate", "mid") or (isinstance(vol_val, (int, float)) and 50 <= vol_val < 200) or (isinstance(exact_v, (int, float)) and 50 <= exact_v < 200)
+                is_low_vol = vol_val in ("low", "small", "light") or (isinstance(vol_val, (int, float)) and vol_val < 50) or (isinstance(exact_v, (int, float)) and exact_v < 50)
+
+            if is_high_vol:
+                if cat == "technical_cad":
+                    vol_pts = 100.0 if "t5700" in p.id else (85.0 if "t5400" in p.id else 40.0)
+                else:
+                    if p.id in ("citizen-cy-02", "epson-sc-t5700d", "epson-t5700d", "epson-sc-p9500", "epson-am-c4000") or "c4000" in p.id or "production" in p_name_l:
+                        vol_pts = 100.0
+                    elif p.id in ("citizen-cx-02", "epson-am-c550") or "c550" in p.id:
+                        vol_pts = 75.0
+                    elif p.id == "citizen-cz-01":
+                        vol_pts = 40.0
+                    else:
+                        vol_pts = 70.0
+            elif is_med_vol:
+                if cat == "technical_cad":
+                    vol_pts = 100.0 if "t5400" in p.id else (80.0 if "t5700" in p.id else (60.0 if "t5100" in p.id else 50.0))
+                else:
+                    if p.id in ("citizen-cx-02", "citizen-cx-02w", "epson-am-c550", "epson-am-c4000") or "c550" in p.id or "c4000" in p.id:
+                        vol_pts = 100.0
+                    else:
+                        vol_pts = 70.0
+            elif is_low_vol:
+                if cat == "technical_cad":
+                    vol_pts = 100.0 if ("t5100" in p.id or "t3100" in p.id) else (60.0 if "t5400" in p.id else 40.0)
+                else:
+                    if p.id in ("citizen-cz-01", "epson-sc-t3100", "epson-t3100", "epson-p700"):
+                        vol_pts = 100.0
+                    elif p.id in ("citizen-cx-02", "epson-am-c550") or "c550" in p.id:
+                        vol_pts = 95.0
+                    elif "c4000" in p.id:
+                        vol_pts = 85.0
+                    else:
+                        vol_pts = 50.0
             elif is_volume_priority:
-                if p.id == "citizen-cy-02" or "production" in p_name_l or p.id == "epson-sc-t5700d":
+                if p.id == "citizen-cy-02" or "production" in p_name_l or "t5700" in p.id:
                     vol_pts = 100.0
-                elif p.id in ("citizen-cx-02", "citizen-cx-02w", "epson-am-c550"):
+                elif p.id in ("citizen-cx-02", "citizen-cx-02w", "epson-am-c550") or "c550" in p.id or "t5400" in p.id:
                     vol_pts = 70.0
                 else:
                     vol_pts = 40.0

@@ -47,7 +47,7 @@ class EligibilityEngine:
 
         # ── 1. Print Size Gate ───────────────────────────────────────────────
         req_size = requirements.get("print_size")
-        if req_size:
+        if req_size and product.category != "scanner":
             import re
             m_metric = re.search(r"\b(\d+(?:\.\d+)?)\s*(cm|m|meter|metre|metter|mm)\b", str(req_size).lower())
             if m_metric:
@@ -203,6 +203,27 @@ class EligibilityEngine:
                     failed.append("scan_required")
                     is_eligible = False
                     rejection_reason = "Product includes an integrated scanner (customer specified print only / no scanner)."
+
+        # ── 2b. Scanner Type Gate ────────────────────────────────────────────
+        req_scanner_type = requirements.get("scanner_type")
+        if req_scanner_type and product.category == "scanner":
+            p_name_lower = (product.name or "").lower()
+            p_desc_lower = ((product.description or "") + " " + (product.comparison_highlights or "")).lower()
+            is_flatbed_prod = "flatbed" in p_name_lower or "flatbed" in p_desc_lower or "12000xl" in product.id.lower()
+            if req_scanner_type == "flatbed":
+                if is_flatbed_prod:
+                    matched.append("scanner_type")
+                else:
+                    failed.append("scanner_type")
+                    is_eligible = False
+                    rejection_reason = "Product is a sheetfed document scanner, not an A3 flatbed scanner."
+            elif req_scanner_type == "sheetfed":
+                if not is_flatbed_prod or "sheet-fed" in p_desc_lower or "sheetfed" in p_name_lower or "ds-1630" in product.id.lower():
+                    matched.append("scanner_type")
+                else:
+                    failed.append("scanner_type")
+                    is_eligible = False
+                    rejection_reason = "Product is a specialized graphics flatbed scanner, not a sheetfed document scanner."
 
         # ── 3. Application Match ─────────────────────────────────────────────
         req_app = requirements.get("application")

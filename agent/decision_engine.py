@@ -68,51 +68,13 @@ PRICE_KEYWORDS = [
 
 
 def min_qualification_satisfied(state: ConversationState) -> bool:
-    """Check if minimum requirements are met when customer explicitly asks to recommend now."""
-    cat = state.category
-    reqs = state.requirements
-    if not cat:
-        return False
-    if cat in ("technical_cad", "photo_booth", "photo_fine_art"):
-        return "print_size" in reqs
-    if cat == "office_enterprise":
-        return "speed" in reqs or "daily_volume" in reqs or "workload" in reqs
-    if cat == "scanner":
-        return "scanner_type" in reqs
-    if cat == "consumable":
-        return "printer_model" in reqs or state.active_printer_for_consumables is not None
+    """Qualification check — returns True as qualification flow is retired."""
     return True
 
 
 def qualification_complete(state: ConversationState) -> bool:
-    """Check if all consultative requirements are collected to automatically search for products."""
-    cat = state.category
-    reqs = state.requirements
-
-    if not cat:
-        return False
-
-    if cat == "technical_cad":
-        if reqs.get("scan_required") is True:
-            return "print_size" in reqs and "daily_volume" in reqs
-        return "print_size" in reqs and ("scan_required" in reqs or "daily_volume" in reqs)
-
-    if cat == "photo_booth":
-        return "print_size" in reqs
-
-    if cat == "photo_fine_art":
-        return "print_size" in reqs
-
-    if cat == "office_enterprise":
-        return "speed" in reqs or "daily_volume" in reqs or "workload" in reqs
-
-    if cat == "scanner":
-        return "scanner_type" in reqs
-
-    if cat == "consumable":
-        return "printer_model" in reqs or state.active_printer_for_consumables is not None
-
-    return False
+    """Qualification check — returns True as qualification flow is retired."""
+    return True
 
 
 def decide(understanding: LLMUnderstanding, state: ConversationState, raw_message: str = "") -> RouteDecision:
@@ -469,15 +431,10 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         if is_category_change:
             state.reset_category(discovered_category)
 
-        if qualification_complete(state):
-            return RouteDecision(
-                route=RouteName.PRODUCT,
-                tool="search_catalog",
-                reason=f"Category {discovered_category} qualified — ready to search",
-            )
         return RouteDecision(
-            route=RouteName.QUALIFICATION,
-            reason=f"Category {discovered_category} identified — continuing qualification",
+            route=RouteName.PRODUCT,
+            tool="search_catalog",
+            reason=f"Category {discovered_category} identified — routing directly to product search",
         )
 
     # Check for general printer discovery without category
@@ -490,50 +447,11 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             "select the right printer", "what printer", "which printer"
         ])
     )
-    if is_general_discovery and not state.category:
-        state.reset_category(None)
-        state.awaiting_field = "category"
-        return RouteDecision(
-            route=RouteName.QUALIFICATION,
-            reason="General printer discovery — prompt customer for category",
-        )
-
-    # Qualification complete — ready to recommend products
-    if state.category and qualification_complete(state):
+    if is_general_discovery or state.category:
         return RouteDecision(
             route=RouteName.PRODUCT,
             tool="search_catalog",
-            reason=f"Category {state.category} qualification complete — ready to recommend products",
-        )
-
-    # ── Tier 9: Answer to Awaited Qualification Field ─────────────────────
-    vol_cand = re.search(r"\b\d+\b", msg_lower) or (
-        state.awaiting_field in ("daily_volume", "speed", "print_volume", "volume") and
-        any(k in msg_lower for k in ["low", "medium", "high", "standard", "heavy", "moderate", "few"])
-    )
-    is_scan_ans = state.awaiting_field == "scan_required" and any(k in msg_lower for k in [
-        "yes", "no", "yep", "nope", "both", "scanning", "scannin", "scaning", "scanner", "scan",
-        "print only", "printer only", "only print", "only printer", "printing only", "just print", "just printer", "no scan"
-    ])
-    is_size_ans = any(s in msg_lower for s in ["a0", "a1", "a2", "a3", "a4", "4x6", "5x7", "6x8", "8x12", "24\"", "36\"", "44\""])
-
-    if state.awaiting_field and (
-        vol_cand
-        or is_scan_ans
-        or is_size_ans
-        or understanding.dialogue_act.value in ("informing", "answering_question")
-        or intent in (Intent.CONFIRMATION, Intent.REJECTION, Intent.CORRECTION)
-    ):
-        return RouteDecision(
-            route=RouteName.QUALIFICATION,
-            reason=f"Answering awaiting field: {state.awaiting_field}",
-        )
-
-    # Qualification in progress
-    if state.category and not qualification_complete(state):
-        return RouteDecision(
-            route=RouteName.QUALIFICATION,
-            reason="Active qualification in progress — collecting remaining requirements",
+            reason="Product discovery — routing directly to product search",
         )
 
     # ── Tier 10: Clarification / Fallback ─────────────────────────────────

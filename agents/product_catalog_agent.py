@@ -42,17 +42,7 @@ class ProductCatalogAgent(BaseSpecialistAgent):
             res.source = "agent:product_specialist:consumables"
             return res
 
-        # 2. Qualification
-        if route == RouteName.QUALIFICATION or state.stage == "qualifying":
-            res = qualification_route.handle(understanding, state, raw_message=normalized_message)
-            if res.reply == "__READY_FOR_SEARCH__":
-                res = product_route.handle(understanding, state, raw_message=normalized_message)
-                res.source = "agent:product_specialist:qualified_search"
-            else:
-                res.source = "agent:product_specialist:qualification"
-            return res
-
-        # 3. Direct product lookup or general catalog search
+        # Direct product lookup, recommendation, or catalog search (qualification removed)
         res = product_route.handle(understanding, state, raw_message=normalized_message)
         res.source = "agent:product_specialist:catalog"
         return res

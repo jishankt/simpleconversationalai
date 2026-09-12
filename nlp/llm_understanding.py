@@ -153,11 +153,12 @@ class LLMUnderstandingEngine:
         has_ink_kw = any(re.search(rf"\b{re.escape(k)}\b", msg_l) for k in [
             "consumable", "consumables", "ink", "inks", "cartridge", "cartridges",
             "toner", "ribbon", "what ink", "which ink", "maintenance box", "maintenance tank",
-            "paper roll", "photo paper", "media", "yellow", "cyan", "magenta", "photo black",
+            "paper roll", "photo paper", "yellow", "cyan", "magenta", "photo black",
             "matte black", "light cyan", "light magenta", "gray", "grey", "violet", "orange", "green"
         ]) or "compatible with" in msg_l
         is_negating_ink = any(k in msg_l for k in ["not ink", "no ink", "dont want ink", "don't want ink", "printer only", "only printer"])
-        is_pure_consumable = has_ink_kw and not is_negating_ink and not any(rw in msg_l for rw in ["ribbon rewind", "rewind", "inkjet or dye sub", "use ink or ribbon"])
+        is_printer_search = any(p in msg_l for p in ["printer", "printers", "plotter", "plotters", "show all", "show matching", "show every", "need a", "looking for"])
+        is_pure_consumable = has_ink_kw and not is_negating_ink and not is_printer_search and not any(rw in msg_l for rw in ["ribbon rewind", "rewind", "inkjet or dye sub", "use ink or ribbon"])
 
         if is_pure_consumable:
             logger.info("Fallback NLU: classified as intent=consumables_query action=show_consumables")
@@ -321,16 +322,17 @@ class LLMUnderstandingEngine:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "ask_qualification_question"
 
-        # Volume (ignore dimension patterns like 594 x 841 mm)
+        # Volume (ignore dimension patterns like 594 x 841 mm, 36-inch, 24", etc.)
         clean_vol_text = re.sub(r"\b\d+\s*[x×*]\s*\d+\s*(?:mm|cm|in|inch|inches)?\b", "", msg_l)
-        clean_vol_text = re.sub(r"\b\d+\s*(?:mm|cm|in|inch|inches)\b", "", clean_vol_text)
+        clean_vol_text = re.sub(r"\b\d+\s*-?\s*(?:mm|cm|in|inch|inches|\"|')\b", "", clean_vol_text)
+        clean_vol_text = re.sub(r"\b(?:a0|a1|a2|a3|a4|a5)\b", "", clean_vol_text)
         vol = re.search(r"\b(\d{1,4})\b", clean_vol_text)
-        if vol and any(vkw in clean_vol_text for vkw in ["print", "drawing", "day", "daily", "around", "about", "approx", "volume"]):
+        if vol and any(vkw in clean_vol_text for vkw in ["print", "drawing", "day", "daily", "around", "about", "approx", "volume", "page", "pages"]):
             entities["daily_volume"] = int(vol.group(1))
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "search_products"
-        elif vol and len(clean_vol_text.split()) <= 3 and any(ch.isdigit() for ch in clean_vol_text):
+        elif vol and len(clean_vol_text.split()) <= 3 and any(ch.isdigit() for ch in clean_vol_text) and not any(sz in msg_l for sz in ["36", "24", "44", "17", "13", "inch", "\""]):
             entities["daily_volume"] = int(vol.group(1))
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY

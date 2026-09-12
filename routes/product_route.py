@@ -475,18 +475,33 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
     if extracted:
         state.requirements.update(extracted)
 
+    raw_l = (raw_message or "").lower()
     if understanding.requirement_updates:
         for rk, rv in understanding.requirement_updates.items():
             if rv is not None and rv != "":
                 if rk == "daily_volume" and isinstance(rv, (int, float)):
-                    rv = int(rv)
+                    val = int(rv)
+                    if any(mkw in raw_l for mkw in ["month", "monthly", "per month", "a month", "/month"]):
+                        val = max(1, val // 30)
+                    state.requirements["exact_daily_volume"] = val
+                    if state.category == "office_enterprise":
+                        rv = "high" if val >= 200 else ("medium" if val >= 50 else "low")
+                    elif state.category == "technical_cad":
+                        rv = "high" if val >= 50 else ("medium" if val >= 10 else "low")
                 state.requirements[rk] = rv
     if understanding.entities:
         for ek in ["print_size", "scan_required", "daily_volume", "speed"]:
             val = understanding.entities.get(ek)
             if val is not None and val != "":
                 if ek == "daily_volume" and isinstance(val, (int, float)):
-                    val = int(val)
+                    v_int = int(val)
+                    if any(mkw in raw_l for mkw in ["month", "monthly", "per month", "a month", "/month"]):
+                        v_int = max(1, v_int // 30)
+                    state.requirements["exact_daily_volume"] = v_int
+                    if state.category == "office_enterprise":
+                        val = "high" if v_int >= 200 else ("medium" if v_int >= 50 else "low")
+                    elif state.category == "technical_cad":
+                        val = "high" if v_int >= 50 else ("medium" if v_int >= 10 else "low")
                 state.requirements[ek] = val
 
     # 1. Fetch category candidates
@@ -544,6 +559,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
         top_url = top_product.source.website_url or f"https://www.keplertechllc.com/product/{top_product.id}/"
         top_desc = top_product.description or top_product.comparison_highlights or "engineered for reliable, high-precision performance"
         top_highlights = top_product.comparison_highlights
+        if top_highlights and "compared to" in top_highlights.lower():
+            top_highlights = re.split(r'\s*compared to\b', top_highlights, flags=re.IGNORECASE)[0].rstrip(" ;,-")
         if not top_highlights and top_desc:
             # Extract first clean human sentence without raw spec dumping
             first_sent = [s.strip() for s in re.split(r'(?<=[.!?])\s+', top_desc) if len(s.strip()) > 15 and not s.startswith("Discover") and "Product Data Sheet" not in s and "Printing Technology:" not in s]
@@ -570,8 +587,49 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             else:
                 match_label = "only verified match" if is_single_match else "recommended model"
                 reply = f"For compact Citizen photo printing, the {match_label} is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. Here are the verified specifications and data sheet:"
-        elif "am-c550" in top_product.id.lower() and state.requirements.get("daily_volume") in (20, "low", "medium"):
-            reply = f"For your office document printing, the recommended model from our authorized lineup is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. While your daily volume of 20 pages is light, this system provides Heat-Free printing with ultra-low intervention ink packs up to 86,000 pages. You can explore the verified specifications below:"
+        elif "am-c4000" in top_product.id.lower():
+            exact_v = state.requirements.get("exact_daily_volume") or state.requirements.get("daily_volume")
+            is_low_vol = state.requirements.get("daily_volume") == "low" or (isinstance(exact_v, (int, float)) and exact_v < 50)
+            if is_low_vol:
+                vol_str = f"approximately **{int(exact_v)} pages per day**" if exact_v and isinstance(exact_v, (int, float)) else "light daily volume"
+                reply = (
+                    f"For your daily workload of {vol_str} requiring A3 paper support, the recommended model is the **[{top_product.name}]({top_url})** — "
+                    f"Powered by Epson PrecisionCore Heat-Free technology for sharp color documents, zero warm-up time, and significantly lower energy consumption. "
+                    f"While this system is capable of high-volume output, it is our authorized A3 solution—delivering quiet operation, low running costs, and effortless headroom as your team's needs grow. You can explore the verified specifications and official data sheet below:"
+                )
+            elif exact_v and isinstance(exact_v, (int, float)) and int(exact_v) >= 200:
+                reply = (
+                    f"For your high-volume workload of approximately **{int(exact_v)} pages per day**, the recommended system is the **[{top_product.name}]({top_url})** — "
+                    f"Engineered for heavy-duty office production with 40 ppm speed, up to 5,150-sheet paper capacity, and dual-head single-pass duplex scanning for demanding document workflows. You can explore the verified specifications and official data sheet below:"
+                )
+            else:
+                vol_str = f"approximately **{int(exact_v)} pages per day**" if exact_v and isinstance(exact_v, (int, float)) else "your daily workload"
+                reply = (
+                    f"For {vol_str} with A3 paper support, the recommended model is the **[{top_product.name}]({top_url})** — "
+                    f"Combining 40 ppm Heat-Free productivity, versatile multi-cassette paper handling, and fast duplex scanning. You can explore the verified specifications and official data sheet below:"
+                )
+        elif "am-c550" in top_product.id.lower():
+            exact_v = state.requirements.get("exact_daily_volume") or state.requirements.get("daily_volume")
+            if exact_v and isinstance(exact_v, (int, float)):
+                vol_phrase = f"Well matched for your workload of approximately **{int(exact_v)} pages per day**"
+            else:
+                vol_phrase = "Designed for dependable daily office productivity"
+
+            reply = (
+                f"For your A4 office document printing, the recommended model from our authorized lineup is the **[{top_product.name}]({top_url})** — "
+                f"A high-speed 55 ppm color multifunction printer powered by PrecisionCore Heat-Free technology. "
+                f"{vol_phrase}, it features ultra-high yield ink packs (up to 86,000 pages) that virtually eliminate consumable replacements and keep energy costs exceptionally low. "
+                f"You can explore the verified specifications below:"
+            )
+        elif "t5400m" in top_product.id.lower():
+            exact_v = state.requirements.get("exact_daily_volume") or state.requirements.get("daily_volume")
+            if exact_v and isinstance(exact_v, (int, float)):
+                reply = (
+                    f"For your workload of approximately **{int(exact_v)} drawings per day** with integrated scanning, the recommended model is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. "
+                    f"Equipped with an integrated 36-inch scanner, high-yield 350ml ink cartridges, and precision production speed, it is built to handle medium-to-high technical blueprint volumes without slowing down your team. Here are the verified specifications and official data sheet:"
+                )
+            else:
+                reply = f"For your 36-inch technical drawing and scanning requirements, the recommended model is the **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. You can explore the verified specifications and official data sheet below:"
         elif any(w in (raw_message or "").lower() for w in ["sorry", "instead", "actually", "switch"]):
             reply = f"Understood! For your updated requirements, here is the recommended option: **[{top_product.name}]({top_url})** — {top_highlights.rstrip('.')}. You can explore the verified specifications below:"
         else:
@@ -585,7 +643,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             "do you have any other", "do you have another", "any other one", "any other",
             "other one", "other model", "another printer", "other printer"
         ])
-        is_repeat_turn = bool(state.last_assistant_response and reply.strip() == state.last_assistant_response.strip())
+        is_refinement = any(k in (raw_message or "").lower() for k in ["drawing", "page", "drawings", "pages", "day", "month", "volume", "around", "about", "approx"])
+        is_repeat_turn = bool(state.last_assistant_response and reply.strip() == state.last_assistant_response.strip()) and not is_refinement
         is_same_active = bool(state.active_product and top_product.id == (state.active_product.get("id") or state.active_product.get("name")))
 
         suggested_chips = ["Download Datasheet", "View Consumables", "Technical Specs"]

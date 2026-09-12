@@ -31,7 +31,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 
 BASE_URL = "http://127.0.0.1:5050/api/chat"
-OUTPUT_REPORT_PATH = str(Path(__file__).resolve().parents[2] / "scratch" / "citizen_test_report.json")
+OUTPUT_REPORT_PATH = str(Path(__file__).resolve().parent / "citizen_test_report.json")
 
 TEST_SUITE = {
     "1. Direct product-identification questions": [
