@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
       productCards.forEach(p => {
         const card = document.createElement('div');
         card.className = 'product-card-item';
-        const cardImg = p.image_url || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
+        const cardImg = p.image_url || '/static/images/printer-placeholder.svg';
         const cardUrl = p.product_url || p.website_url || 'https://www.keplertechllc.com/';
         const modelName = p.model || p.display_name || p.name || 'Catalogue Printer';
         const categoryLabel = p.category || 'Printing Equipment';
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         card.innerHTML = `
           <div class="card-img-wrap" title="Click to view image">
-            <img src="${cardImg}" alt="${modelName}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
+            <img src="${cardImg}" alt="${modelName}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/static/images/printer-placeholder.svg';">
           </div>
           <div class="card-badge-row">
             <span class="card-cat-badge">${subcategoryLabel || categoryLabel}</span>
