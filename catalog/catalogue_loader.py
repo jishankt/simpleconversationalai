@@ -17,7 +17,7 @@ APPROVED_CATALOGUES = {
     "business_a4": "BUSINESS A4 PRINTERS_CATALOG.pdf",
     "business_a3": "BUSINESS A3 PRINTERS_CATALOG.pdf",
     "technical_large_format": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
-    "photography_and_fine_art": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+    "photography_and_fine_art": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "citizen_photo": "CITIZEN PHOTO PRINTERS_CATALOG.pdf",
 }
 

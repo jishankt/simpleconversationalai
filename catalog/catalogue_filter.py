@@ -113,8 +113,7 @@ class CatalogueFilter:
 
         # 5. Subcategory filter
         if subcategory:
-            sub_filtered = [p for p in cat_filtered if p.get("subcategory") == subcategory]
-            filtered = sub_filtered if sub_filtered else cat_filtered
+            filtered = [p for p in cat_filtered if p.get("subcategory") == subcategory]
         else:
             filtered = cat_filtered
 
@@ -325,21 +324,49 @@ class CatalogueFilter:
         sub_key = subcategory or p.get("subcategory") or ""
         cat_label, sub_label = SUBCATEGORY_LABELS.get(sub_key, (p.get("main_category", "").replace("_", " ").title(), sub_key.replace("_", " ").title()))
 
-        # Match reasons
+        # Match reasons (strictly requirements-based per Phase 12)
         match_reasons = []
-        if p.get("max_width_inches"):
-            match_reasons.append(f"Supports printing up to {p['max_width_inches']:.0f} inches")
-        if p.get("paper_size"):
-            match_reasons.append(f"Supports standard {p['paper_size'].upper()} documents")
-        if p.get("scanner_integrated"):
-            match_reasons.append("Includes an integrated high-speed scanner")
-        if p.get("dual_roll"):
-            match_reasons.append("Equipped with dual-roll media switching")
-        if p.get("spectro"):
+        req_paper = str(requirements.get("paper_size", "")).lower()
+        if "a3" in req_paper:
+            match_reasons.append("Matches your requested A3 output")
+        elif "a4" in req_paper:
+            match_reasons.append("Matches your requested A4 output")
+
+        req_width = requirements.get("print_width")
+        if req_width is not None and p.get("max_width_inches") == float(req_width):
+            match_reasons.append(f"Supports the requested {req_width:.0f}-inch width")
+
+        req_scan = requirements.get("scanner_required")
+        if req_scan is True and p.get("scanner_integrated"):
+            match_reasons.append("Includes the integrated scanner you requested")
+        elif req_scan is False and not p.get("scanner_integrated"):
+            match_reasons.append("Print-only configuration as requested")
+
+        req_line = requirements.get("product_line")
+        if req_line == "workforce_pro" and "workforce_pro" in p.get("subcategory", ""):
+            match_reasons.append("Belongs to the requested WorkForce Pro range")
+        elif req_line == "workforce_enterprise" and "enterprise" in p.get("subcategory", ""):
+            match_reasons.append("Belongs to the requested WorkForce Enterprise range")
+
+        req_funcs = requirements.get("functions")
+        if req_funcs and any(f in req_funcs for f in ["scan", "copy", "multifunction"]):
+            if "Matches your requested A3 output" not in match_reasons and "Includes the integrated scanner you requested" not in match_reasons:
+                match_reasons.append("Supports print, scan and copy")
+
+        if requirements.get("dual_roll_required") is True and p.get("dual_roll"):
+            match_reasons.append("Equipped with dual-roll media switching as requested")
+
+        if requirements.get("spectro_required") is True and p.get("spectro"):
             match_reasons.append("Equipped with spectrophotometer for automated colour calibration")
-        if p.get("applications"):
-            clean_apps = [a.replace("_", " ").title() for a in p["applications"][:2]]
-            match_reasons.append(f"Engineered for {', '.join(clean_apps)}")
+
+        req_photo_sizes = requirements.get("print_sizes")
+        if req_photo_sizes:
+            sizes_list = [req_photo_sizes] if isinstance(req_photo_sizes, str) else list(req_photo_sizes)
+            clean_s = " and ".join(sizes_list[:2])
+            match_reasons.append(f"Supports your requested {clean_s} prints")
+
+        if not match_reasons:
+            match_reasons.append(f"Catalogue-certified model matching your {sub_label} requirements")
 
         # Key features
         key_features = []
@@ -353,7 +380,8 @@ class CatalogueFilter:
         return {
             "id": p["id"],
             "model": p["display_name"],
-            "image_url": p.get("image_url") or "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png",
+            "name": p["display_name"],
+            "image_url": p.get("image_url") or "/static/images/printer-placeholder.svg",
             "product_url": p.get("product_url") or "https://www.keplertechllc.com/",
             "category": cat_label,
             "subcategory": sub_label,

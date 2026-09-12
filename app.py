@@ -7,6 +7,7 @@ enforces strict commercial guardrails, and guarantees zero-hallucination groundi
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import uuid
+import re
 import logging
 from config import PORT, DEBUG, DEFAULT_COMPANY_CONTEXT, DEFAULT_MODEL, OLLAMA_BASE_URL, ALLOWED_MODELS, CORS_ORIGINS, MAX_REQUEST_BYTES
 from prompts import build_system_prompt, format_generate_prompt, format_evidence_grounded_prompt
@@ -15,27 +16,12 @@ from ollama_client import OllamaClient
 from nlp.intent_extractor import analyze_input, INTENT_PRICE, INTENT_DISCOUNT
 from nlp.grounding_validator import validate_grounding
 from nlp.discovery_engine import is_broad_query, get_discovery_question
-from state.conversation_state import CanonicalState
-from nlp.dialogue_act import (
-    classify_dialogue_act,
-    ACT_ANSWERING_QUESTION,
-    ACT_CORRECTING_ANSWER,
-    ACT_ASKING_PRODUCT_QUESTION,
-    ACT_ASKING_COMPARISON,
-    ACT_ASKING_CONSUMABLES,
-    ACT_CHANGING_REQUIREMENT,
-    ACT_CHANGING_TOPIC,
-    ACT_REFERENCING_ITEM,
-    ACT_GREETING,
-    ACT_ENDING,
-    ACT_CONFIRMING,
-    ACT_REJECTING,
-    ACT_GENERAL_DISCOVERY
-)
+from domain.conversation_state import ConversationState
+from domain.state_store import state_manager
 from agent.orchestrator import orchestrator as new_orchestrator
 from rag.consumables_engine import consumables_engine
 from agents import list_agent_metadata
-from persistence import lead_repository
+from persistence import lead_repository, state_repository
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("conversational_ai")
@@ -43,13 +29,8 @@ logger = logging.getLogger("conversational_ai")
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
 
-# Security: enforce maximum request payload size (1 MB)
+# Security: enforce maximum request payload size
 app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
-
-# Session store: session_id -> list of {"role": "user"|"assistant", "content": str}
-SESSIONS = {}
-# Canonical State store: session_id -> CanonicalState
-STATE_STORE = {}
 
 ollama_client = OllamaClient(base_url=OLLAMA_BASE_URL, default_model=DEFAULT_MODEL)
 
@@ -61,22 +42,35 @@ new_orchestrator.response_composer.ollama_client = ollama_client
 
 @app.after_request
 def add_security_headers(response):
-    """Attach standard security headers to every response."""
+    """Attach standard security headers and prevent caching of conversation responses."""
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
     return response
 
 
 @app.errorhandler(413)
 def payload_too_large(e):
-    return jsonify({"error": "Request payload too large (max 1 MB)"}), 413
+    return jsonify({"error": "Request payload too large"}), 413
 
 
 @app.errorhandler(400)
 def bad_request(e):
     return jsonify({"error": str(e)}), 400
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "The requested resource was not found."}), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    logger.error(f"Internal server error: {e}")
+    return jsonify({"error": "An internal server error occurred."}), 500
 
 
 @app.route("/")
@@ -100,11 +94,10 @@ def chat_full():
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
-    """Returns current default company context and model configuration."""
+    """Returns current default company context and model configuration without internal Ollama URL."""
     return jsonify({
         "company_context": DEFAULT_COMPANY_CONTEXT,
-        "default_model": DEFAULT_MODEL,
-        "ollama_base_url": OLLAMA_BASE_URL
+        "default_model": DEFAULT_MODEL
     })
 
 
@@ -123,20 +116,31 @@ def liveness():
 
 @app.route("/health/ready", methods=["GET"])
 def readiness():
-    """Readiness probe — confirms catalog loaded and Ollama is reachable."""
-    from catalog.repository import catalog_repository
-    catalog_ok = len(catalog_repository.get_all()) > 0
+    """Readiness probe — confirms approved 41 catalogue loaded, persistence available, and returns 503 when not ready."""
+    from catalog.catalogue_loader import catalogue_loader, EXPECTED_CATALOGUE_COUNT
+    all_prods = catalogue_loader.get_all()
+    catalogue_ok = len(all_prods) == EXPECTED_CATALOGUE_COUNT
+
+    persistence_ok = True
+    try:
+        with state_repository._get_connection() as conn:
+            conn.execute("SELECT 1").fetchone()
+    except Exception:
+        persistence_ok = False
+
     health_info = ollama_client.check_health()
     ollama_ok = bool(health_info.get("online") or health_info.get("model_available"))
-    status = "ready" if (catalog_ok and ollama_ok) else "not_ready"
+
+    is_ready = catalogue_ok and persistence_ok
+    status_code = 200 if is_ready else 503
     return jsonify({
-        "status": status,
-        "catalog_count": len(catalog_repository.get_all()),
+        "status": "ready" if is_ready else "not_ready",
+        "catalog_count": len(all_prods),
+        "catalogue_count": len(all_prods),
+        "catalogue_ok": catalogue_ok,
+        "persistence_ok": persistence_ok,
         "ollama_ok": ollama_ok
-    }), 200
-
-
-from persistence import state_repository
+    }), status_code
 
 
 @app.route("/api/reset", methods=["POST"])
@@ -145,11 +149,7 @@ def reset_session():
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id")
     if session_id:
-        if session_id in SESSIONS:
-            del SESSIONS[session_id]
-        if session_id in STATE_STORE:
-            del STATE_STORE[session_id]
-        state_repository.delete_session(session_id)
+        state_manager.reset(session_id)
         logger.info(f"Session {session_id} reset successfully.")
     return jsonify({"success": True, "message": "Session reset."})
 
@@ -189,22 +189,30 @@ def chat():
     - Returns sanitized reply, interactive suggestion chips, product cards, and retrieved RAG sources
     """
     data = request.get_json(silent=True)
-    if not data:
+    if not data or not isinstance(data, dict):
         return jsonify({"error": "Missing or invalid JSON body"}), 400
 
-    # Security: Model allowlist enforcement — checked before message validation
+    # Security: Model allowlist enforcement — do not leak full allowed model list in error
     if data.get("model") and data["model"] not in ALLOWED_MODELS:
-        return jsonify({"error": f"Model not allowed: '{data['model']}'. Permitted models: {ALLOWED_MODELS}"}), 400
+        return jsonify({"error": f"Model not allowed: '{data['model']}'"}), 400
 
     if "message" not in data:
         return jsonify({"error": "Missing 'message' field"}), 400
 
-    raw_message = data["message"].strip()
-    session_id = data.get("session_id") or str(uuid.uuid4())
-    company_context = data.get("company_context") or DEFAULT_COMPANY_CONTEXT
+    if not isinstance(data["message"], str):
+        return jsonify({"error": "'message' field must be a string"}), 400
 
-    # Security: SSRF protection — ignore client-supplied ollama_base_url
-    # Ollama endpoint is strictly controlled via server environment variables only
+    if len(data["message"]) > 4000:
+        return jsonify({"error": "Message exceeds maximum allowed length of 4000 characters"}), 400
+
+    raw_message = data["message"].strip()
+    session_id = data.get("session_id")
+    if session_id:
+        if not isinstance(session_id, str) or len(session_id) > 128 or not re.match(r"^[a-zA-Z0-9_\-\.:]+$", session_id):
+            return jsonify({"error": "Invalid session_id format"}), 400
+    else:
+        session_id = str(uuid.uuid4())
+
     model_name = data.get("model") or DEFAULT_MODEL
 
     # 1. NLP Analysis: Normalization, Intent Classification, Entity Extraction
@@ -212,19 +220,9 @@ def chat():
     normalized_msg = nlp_result["normalized_text"]
     detected_intent = nlp_result["intent"]
 
-    # Initialize session history and canonical state (with SQLite persistence recovery)
-    if session_id not in STATE_STORE or session_id not in SESSIONS:
-        persisted = state_repository.get_session(session_id)
-        if persisted:
-            STATE_STORE[session_id], SESSIONS[session_id] = persisted
-        else:
-            if session_id not in SESSIONS:
-                SESSIONS[session_id] = []
-            if session_id not in STATE_STORE:
-                STATE_STORE[session_id] = CanonicalState(session_id=session_id)
-
-    history = SESSIONS[session_id]
-    state = STATE_STORE[session_id]
+    # Retrieve canonical state and history via unified state_manager
+    state = state_manager.get_or_create(session_id)
+    history = state_manager.get_history(session_id)
 
     logger.info(f"[{session_id[:8]}] Customer: '{raw_message}' -> Normalized: '{normalized_msg}' | Intent: {detected_intent}")
 
@@ -247,28 +245,24 @@ def chat():
     state = orchestrator_res["state"]
     retrieved_items = orchestrator_res.get("retrieved_items", [])
 
-    # Save state and history turns
+    # Save state and history turns via canonical state_manager
     state.history_turns.append({"role": "user", "content": normalized_msg})
     state.history_turns.append({"role": "assistant", "content": assistant_reply})
-    STATE_STORE[session_id] = state
-
     history.append({"role": "user", "content": normalized_msg})
     history.append({"role": "assistant", "content": assistant_reply})
-
-    # Persist session to SQLite
-    state_repository.save_session(session_id, state, history)
+    state_manager.save(state, history)
 
     logger.info(f"[{session_id[:8]}] Assistant ({source} | Grounding: {grounding_result['status']}): {assistant_reply}")
 
     # Format retrieved sources for frontend UI inspection
-    sources_summary = [
+    sources_summary = orchestrator_res.get("retrieved_sources") or [
         {
             "id": r.get("id"),
-            "name": r.get("name"),
+            "name": r.get("model") or r.get("display_name") or r.get("name") or "Catalogue Product",
             "score": r.get("similarity_score", 0),
             "width": r.get("width") or r.get("print_sizes") or r.get("speed", ""),
             "ink": r.get("ink_technology") or r.get("technology", ""),
-            "url": r.get("url") or r.get("source_url") or r.get("website_url") or "https://www.keplertechllc.com/"
+            "url": r.get("product_url") or r.get("url") or r.get("source_url") or r.get("website_url") or "https://www.keplertechllc.com/"
         }
         for r in retrieved_items
     ]

@@ -24,23 +24,51 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True); nltk.download('stopwords', quiet=True)"
 
-    - name: Run Architecture & Security Tests
+    - name: Validate Catalogue Integrity (41 Approved Entries)
       run: |
-        python -m unittest tests/test_architecture_single_orchestrator.py
-        python -m unittest tests/test_security_hardening.py
+        python -c "
+        from catalog.catalogue_loader import catalogue_loader, EXPECTED_CATALOGUE_COUNT
+        prods = catalogue_loader.get_all()
+        assert len(prods) == EXPECTED_CATALOGUE_COUNT, f'Expected {EXPECTED_CATALOGUE_COUNT} products, got {len(prods)}'
+        print(f'Successfully verified {len(prods)} approved catalogue products across 5 approved catalogues.')
+        "
 
-    - name: Run Claim Validation & Zero-Hallucination Tests
+    - name: Run Architecture & Security Hardening Tests
       run: |
-        python -m unittest tests/test_claim_validator.py
+        pytest tests/test_architecture_single_orchestrator.py
+        pytest tests/test_security_hardening.py
 
-    - name: Run RAG & Retrieval Tests
+    - name: Run Deterministic Claim & Zero-Hallucination Validation Tests
       run: |
-        python -m unittest test_rag.py
-        python -m unittest tests/test_retrieval_and_eligibility.py
+        pytest tests/test_claim_validator.py
+        pytest tests/test_deterministic_validator.py
 
-    - name: Run Domain & Comprehensive Tests
+    - name: Run Catalogue Scope, Filters & Eligibility Tests
       run: |
-        python -m unittest discover -s tests -p "test_*.py"
-        python -m unittest test_nlp.py test_consumables.py
+        pytest tests/test_catalogue_scope_and_filters.py
+        pytest tests/test_retrieval_and_eligibility.py
+
+    - name: Run Production Readiness Suite
+      run: |
+        pytest tests/test_production_readiness.py
+
+    - name: Run 20 Expected Recommendation Scenarios
+      run: |
+        pytest tests/test_twenty_questions_suite.py
+
+    - name: Run Pipeline Improvements & Evaluation Suites
+      run: |
+        pytest tests/test_pipeline_improvements.py
+        pytest tests/evaluation/test_evaluation_suite.py
+        pytest tests/test_continuous_flows.py
+
+    - name: Run Multi-Agent & RAG Verification
+      run: |
+        pytest tests/test_multi_agent_system.py
+        pytest test_rag.py
+        pytest test_nlp.py
+
+    - name: Run Complete Test Suite
+      run: |
+        pytest --maxfail=1 tests

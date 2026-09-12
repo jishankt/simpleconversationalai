@@ -76,7 +76,8 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
         or any(neg in text_l for neg in [
             "without scanner", "no scanner", "not scanner", "don't need scanner", 
             "dont need scanner", "print only", "printer only", "only print", 
-            "only printer", "printing only", "no scan", "no scanning", "just print", "just printer"
+            "only printer", "printing only", "no scan", "no scanning", "just print", "just printer",
+            "only need printing", "only need print"
         ])
     )
 

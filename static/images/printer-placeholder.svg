@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="200" height="160" fill="none">
+  <rect width="200" height="160" rx="8" fill="#f1f5f9"/>
+  <!-- Printer body -->
+  <path d="M50 65 C50 60 54 56 60 56 L140 56 C146 56 150 60 150 65 L150 115 C150 120 146 124 140 124 L60 124 C54 124 50 120 50 115 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2"/>
+  <!-- Paper tray top -->
+  <path d="M68 56 L68 35 C68 32 71 30 74 30 L126 30 C129 30 132 32 132 35 L132 56 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="78" y1="40" x2="122" y2="40" stroke="#e2e8f0" stroke-width="2"/>
+  <line x1="78" y1="46" x2="114" y2="46" stroke="#e2e8f0" stroke-width="2"/>
+  <!-- Output slot -->
+  <rect x="62" y="80" width="76" height="8" rx="3" fill="#64748b"/>
+  <!-- Paper coming out -->
+  <path d="M68 84 L68 135 C68 138 71 140 74 140 L126 140 C129 140 132 138 132 135 L132 84 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="78" y1="98" x2="122" y2="98" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="78" y1="106" x2="114" y2="106" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="78" y1="114" x2="120" y2="114" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- Status light -->
+  <circle cx="138" cy="70" r="3" fill="#10b981"/>
+</svg>

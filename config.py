@@ -48,12 +48,12 @@ DEFAULT_COMPANY_CONTEXT = {
     "company_name": "Kepler Tech LLC",
     "business_type": "Dubai's #1 Printer, Inkjet Media & Consumables Supplier & Authorized Distributor",
     "products_services": (
-        "1. Large Format & Technical CAD Plotters: Epson SureColor T-Series (T3100, T5100, T3400, T5400) for AEC/CAD drawings.\n"
-        "2. Professional Photo & Fine Art Printers: Epson SureColor P-Series (P700, P900, P7500, P9500) with UltraChrome PRO12 12-color ink systems.\n"
-        "3. High-Speed Enterprise Office Printers: Epson WorkForce Enterprise (AM-C4000 40ppm, AM-C550 55ppm Heat-Free MFPs, WorkForce Pro WF-C879R with Replaceable Ink Pack System up to 86,000 pages).\n"
-        "4. Dye-Sublimation Photo Printers: Citizen CX-02, CY-02, OP900II for event photography, photo booths, and studios.\n"
+        "1. Large Format & Technical CAD Plotters: Epson SureColor T-Series (SC-T3100, SC-T3700, SC-T5100, SC-T5405, SC-T5700, SC-T7700) for AEC/CAD drawings.\n"
+        "2. Professional Photo & Fine Art Printers: Epson SureColor P-Series (SC-P700, SC-P900, SC-P5300, SC-P6500, SC-P7500, SC-P8500, SC-P9500, SC-P20500) with UltraChrome PRO ink systems.\n"
+        "3. High-Speed Enterprise Office Printers: Epson WorkForce Enterprise (AM-C4000, AM-C5000, AM-C6000, WF-C21000, AM-C400, AM-C550 Heat-Free MFPs, WorkForce Pro WF-C878R, WF-C879R, WF-C5890, EM-C800).\n"
+        "4. Dye-Sublimation Photo Printers: Citizen CZ-01, CX-02, CY-02, CX-02W for event photography, photo booths, and studios.\n"
         "5. Premium Fine Art & Photo Media: Innova Art (IFA 11 Photo Cotton Rag 315gsm, IFA 13 Cold Press, IFA 22 Etching Rag), Olmec Photo Papers (OLM 68 Lustre, OLM 70 Pearl Premium 310gsm), Korejet rolls.\n"
-        "6. Genuine Consumables: Epson UltraChrome Inks (700ml/350ml/110ml), Citizen photo ribbons/paper, Epson Maintenance Boxes.\n"
+        "6. Genuine Consumables: Epson UltraChrome Inks, Citizen photo ribbons/paper, Epson Maintenance Boxes.\n"
         "7. Print Workflow Software: Mirage by DINAX (official RIP & print workflow software), AirCastPro (wireless print server for events), Adobe learning solutions."
     ),
     "location": "D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, United Arab Emirates (Fast delivery all over UAE and Middle East).",

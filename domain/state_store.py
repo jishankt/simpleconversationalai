@@ -106,6 +106,21 @@ class StateManager:
                 entry["last_active"] = now
                 return entry["state"]
 
+            # Try SQLite persistence recovery
+            try:
+                from persistence.state_repository import state_repository
+                persisted = state_repository.get_session(cleaned_id)
+                if persisted:
+                    p_state, p_history = persisted
+                    self._store[cleaned_id] = {
+                        "state": p_state,
+                        "history": p_history,
+                        "last_active": now,
+                    }
+                    return p_state
+            except Exception as e:
+                logger.warning(f"Failed to check SQLite session persistence: {e}")
+
             # Evict expired or oldest if threshold reached
             self._cleanup_expired_locked(now)
             if len(self._store) >= self.max_sessions:
@@ -115,12 +130,31 @@ class StateManager:
             new_state = ConversationState(session_id=cleaned_id)
             self._store[cleaned_id] = {
                 "state": new_state,
+                "history": [],
                 "last_active": now,
             }
             return new_state
 
-    def save(self, state: ConversationState) -> None:
-        """Persists the state to memory and Redis with TTL renewal."""
+    def get_history(self, session_id: str) -> list:
+        """Returns the conversation history for a session."""
+        cleaned_id = (session_id or "").strip()
+        if not cleaned_id:
+            return []
+        with self._lock:
+            if cleaned_id in self._store:
+                return list(self._store[cleaned_id].get("history", []))
+        try:
+            from persistence.state_repository import state_repository
+            persisted = state_repository.get_session(cleaned_id)
+            if persisted:
+                _, p_history = persisted
+                return p_history
+        except Exception:
+            pass
+        return []
+
+    def save(self, state: ConversationState, history: Optional[list] = None) -> None:
+        """Persists the state to memory, Redis, and SQLite with TTL renewal."""
         if not state or not state.session_id:
             return
 
@@ -138,26 +172,43 @@ class StateManager:
         # In-Memory storage
         with self._lock:
             now = time.time()
+            existing_history = self._store.get(sid, {}).get("history", [])
+            saved_history = history if history is not None else existing_history
             self._store[sid] = {
                 "state": state,
+                "history": saved_history,
                 "last_active": now,
             }
 
+        # SQLite persistence
+        try:
+            from persistence.state_repository import state_repository
+            state_repository.save_session(sid, state, saved_history or state.history_turns)
+        except Exception as e:
+            logger.error(f"SQLite save failed for {sid}: {e}")
+
     def reset(self, session_id: str) -> ConversationState:
-        """Resets a session back to blank initial state."""
+        """Resets a session back to blank initial state across memory, Redis, and SQLite."""
         sid = (session_id or "").strip()
+        self.delete(sid)
         new_state = ConversationState(session_id=sid)
-        self.save(new_state)
+        self.save(new_state, history=[])
         return new_state
 
     def delete(self, session_id: str) -> None:
-        """Removes a session completely."""
+        """Removes a session completely from memory, Redis, and SQLite."""
         sid = (session_id or "").strip()
         if self.redis_client:
             try:
                 self.redis_client.delete(f"session:{sid}")
             except Exception as e:
                 logger.error(f"Redis delete failed for {sid}: {e}")
+
+        try:
+            from persistence.state_repository import state_repository
+            state_repository.delete_session(sid)
+        except Exception as e:
+            logger.error(f"SQLite delete failed for {sid}: {e}")
 
         with self._lock:
             self._store.pop(sid, None)

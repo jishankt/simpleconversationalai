@@ -663,7 +663,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -691,7 +691,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -717,7 +717,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -743,7 +743,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -771,7 +771,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -797,7 +797,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -823,7 +823,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -849,7 +849,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -875,7 +875,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -903,7 +903,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -929,7 +929,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -955,7 +955,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -981,7 +981,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },
@@ -1009,7 +1009,7 @@ CATALOGUE_DATA = [
         "recommended_monthly_max": None,
         "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
         "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
-        "source_catalogue": "PHOTOGRAPHY AND FINE ART PRINTERS_CATALOG.pdf",
+        "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
         "catalogue_verified": True,
         "active": True
     },

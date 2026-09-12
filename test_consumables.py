@@ -87,7 +87,7 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
 
     def test_chat_returns_product_and_consumable_cards(self):
         resp = self.client.post("/api/chat", json={
-            "message": "Can you show me the Epson SC-F100 printer and its inks?",
+            "message": "Can you show me the Epson SC-P900 printer and its inks?",
             "session_id": "test-cards-session"
         })
         self.assertEqual(resp.status_code, 200)
@@ -97,10 +97,10 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
         self.assertIn("consumable_cards", data)
         self.assertTrue(len(data["product_cards"]) > 0)
         self.assertTrue(len(data["consumable_cards"]) > 0)
-        self.assertIn("F100", data["product_cards"][0]["name"])
+        self.assertIn("P900", data["product_cards"][0]["name"])
         # Check that response cards contain genuine inks or maintenance box
         consumable_names = [c["name"] for c in data["consumable_cards"]]
-        self.assertTrue(any("T49N" in name or "Maintenance Box" in name or "Ink" in name for name in consumable_names))
+        self.assertTrue(any("T47A" in name or "Maintenance Box" in name or "Maintenance Tank" in name or "Ink" in name for name in consumable_names))
 
 
     def test_switch_from_ink_to_printer_hardware(self):
@@ -151,11 +151,11 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
 
 
     def test_ink_for_this_active_printer(self):
-        """User views printer F100, then says 'i want cyan ink for this' -> directly returns Cyan ink for F100."""
+        """User views printer P900, then says 'i want cyan ink for this' -> directly returns Cyan ink for P900."""
         sess_id = "test-ink-for-this-session"
-        # Turn 1: Show F100 printer
+        # Turn 1: Show P900 printer
         resp1 = self.client.post("/api/chat", json={
-            "message": "f100 printer",
+            "message": "p900 printer",
             "session_id": sess_id
         })
         self.assertEqual(resp1.status_code, 200)

@@ -68,13 +68,17 @@ PRICE_KEYWORDS = [
 
 
 def min_qualification_satisfied(state: ConversationState) -> bool:
-    """Qualification check — returns True as qualification flow is retired."""
-    return True
+    """Checks if minimum qualification requirements are satisfied."""
+    if not state or not state.requirements:
+        return False
+    return bool(state.qualification_complete or len(state.requirements) >= 2)
 
 
 def qualification_complete(state: ConversationState) -> bool:
-    """Qualification check — returns True as qualification flow is retired."""
-    return True
+    """Checks if full qualification is complete."""
+    if not state:
+        return False
+    return bool(state.qualification_complete)
 
 
 def decide(understanding: LLMUnderstanding, state: ConversationState, raw_message: str = "") -> RouteDecision:
@@ -426,10 +430,18 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         if llm_cat in ("technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner"):
             discovered_category = llm_cat
 
+    is_consultative = any(w in msg_lower for w in ["recommend", "suggest", "which printer", "what printer", "guide me", "help me choose"])
     if discovered_category:
         is_category_change = state.category != discovered_category
         if is_category_change:
             state.reset_category(discovered_category)
+
+        if is_consultative and not min_qualification_satisfied(state):
+            return RouteDecision(
+                route=RouteName.QUALIFICATION,
+                tool="ask_qualification_question",
+                reason=f"Category {discovered_category} identified — consultative request requires qualification",
+            )
 
         return RouteDecision(
             route=RouteName.PRODUCT,

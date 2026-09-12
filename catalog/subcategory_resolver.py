@@ -45,7 +45,7 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
             # When volume is also not specified, do not assume Pro or Enterprise
             return None
 
-        return "a4_colour_multifunction"
+        return None
 
     # ── 2. Technical Large-Format ────────────────────────────────────────
     if category == "technical_large_format":
@@ -54,7 +54,12 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
 
         # 24-inch (All 24-inch CAD entries in catalogue are print-only)
         if width == 24:
-            return "technical_24_print_only"
+            if scanner_req is True:
+                return "technical_24_multifunction"
+            elif scanner_req is False:
+                return "technical_24_print_only"
+            # When scanner requirement is unanswered, return None so qualification asks
+            return None
 
         # 36-inch
         if width == 36:
@@ -62,8 +67,8 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
                 return "technical_36_multifunction"
             elif scanner_req is False:
                 return "technical_36_print_only"
-            # If scanner requirement unknown, return default
-            return "technical_36_print_only"
+            # When scanner requirement is unanswered, return None so qualification asks
+            return None
 
         # 44-inch
         if width == 44:
@@ -71,7 +76,8 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
                 return "technical_44_multifunction"
             elif scanner_req is False:
                 return "technical_44_print_only"
-            return "technical_44_print_only"
+            # When scanner requirement is unanswered, return None so qualification asks
+            return None
 
         return None
 
@@ -106,7 +112,8 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
         elif any(s in sizes_str for s in ["4x6", "5x7", "6x8", "6-inch", "6 inch"]):
             return "citizen_6_inch"
 
-        return "citizen_6_inch"
+        # Unknown Citizen print size must not default to 6-inch
+        return None
 
     return None
 
